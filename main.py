@@ -57,9 +57,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
         if last_keys[0] != "none" and pacman.direction == "stay":
             pacman.direction = last_keys[0]
         if last_keys[0] == "left":
-            if pacman.can_change_direction(maze_data, "left", WIDTH, HEIGHT):
-                pacman.direction = "left"
-            elif pacman.direction == "left" and last_keys[1] == "up" and pacman.can_change_direction(maze_data, "up",
+
+            if pacman.direction == "left" and last_keys[1] == "up" and pacman.can_change_direction(maze_data, "up",
                                                                                                    WIDTH, HEIGHT):
                 pacman.direction = "up"
                 last_keys[0] = "up"
@@ -94,12 +93,11 @@ def move_pacmans(last_keys, pacmans, maze_data):
                     if last_keys[i] == "none":
                         last_keys[i] = "left"
                         break
-
+            elif pacman.can_change_direction(maze_data, "left", WIDTH, HEIGHT):
+                pacman.direction = "left"
         elif last_keys[0] == "right":
-            if pacman.can_change_direction(maze_data, "right", WIDTH, HEIGHT):
-                pacman.direction = "right"
-            elif pacman.direction == "right" and last_keys[1] == "up" and pacman.can_change_direction(maze_data, "up",
-                                                                                                     WIDTH, HEIGHT):
+            if pacman.direction == "right" and last_keys[1] == "up" and pacman.can_change_direction(maze_data, "up",
+                                                                                                    WIDTH, HEIGHT):
                 pacman.direction = "up"
                 last_keys[0] = "up"
                 last_keys[1] = last_keys[2]
@@ -110,8 +108,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
                         last_keys[i] = "right"
                         break
             elif pacman.direction == "right" and last_keys[1] == "down" and pacman.can_change_direction(maze_data,
-                                                                                                         "down",
-                                                                                                         WIDTH, HEIGHT):
+                                                                                                        "down",
+                                                                                                        WIDTH, HEIGHT):
                 pacman.direction = "down"
                 last_keys[0] = "down"
                 last_keys[1] = last_keys[2]
@@ -122,8 +120,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
                         last_keys[i] = "right"
                         break
             elif pacman.direction == "right" and last_keys[1] == "left" and pacman.can_change_direction(maze_data,
-                                                                                                        "left", WIDTH,
-                                                                                                        HEIGHT):
+                                                                                                       "left", WIDTH,
+                                                                                                       HEIGHT):
                 pacman.direction = "left"
                 last_keys[0] = "left"
                 last_keys[1] = last_keys[2]
@@ -133,12 +131,11 @@ def move_pacmans(last_keys, pacmans, maze_data):
                     if last_keys[i] == "none":
                         last_keys[i] = "right"
                         break
-
+            elif pacman.can_change_direction(maze_data, "right", WIDTH, HEIGHT):
+                pacman.direction = "right"
         elif last_keys[0] == "up":
-            if pacman.can_change_direction(maze_data, "up", WIDTH, HEIGHT):
-                pacman.direction = "up"
-            elif pacman.direction == "up" and last_keys[1] == "right" and pacman.can_change_direction(maze_data, "right",
-                                                                                                      WIDTH, HEIGHT):
+            if pacman.direction == "up" and last_keys[1] == "right" and pacman.can_change_direction(maze_data, "right",
+                                                                                                    WIDTH, HEIGHT):
                 pacman.direction = "right"
                 last_keys[0] = "right"
                 last_keys[1] = last_keys[2]
@@ -148,8 +145,19 @@ def move_pacmans(last_keys, pacmans, maze_data):
                     if last_keys[i] == "none":
                         last_keys[i] = "up"
                         break
+            elif pacman.direction == "up" and last_keys[1] == "left" and pacman.can_change_direction(maze_data, "left",
+                                                                                                    WIDTH, HEIGHT):
+                pacman.direction = "left"
+                last_keys[0] = "left"
+                last_keys[1] = last_keys[2]
+                last_keys[2] = last_keys[3]
+                last_keys[3] = "none"
+                for i in range(1, len(last_keys)):
+                    if last_keys[i] == "none":
+                        last_keys[i] = "up"
+                        break
             elif pacman.direction == "up" and last_keys[1] == "down" and pacman.can_change_direction(maze_data, "down",
-                                                                                                     WIDTH, HEIGHT):
+                                                                                                    WIDTH, HEIGHT):
                 pacman.direction = "down"
                 last_keys[0] = "down"
                 last_keys[1] = last_keys[2]
@@ -159,24 +167,12 @@ def move_pacmans(last_keys, pacmans, maze_data):
                     if last_keys[i] == "none":
                         last_keys[i] = "up"
                         break
-            elif pacman.direction == "up" and last_keys[1] == "left" and pacman.can_change_direction(maze_data, "left",
-                                                                                                     WIDTH, HEIGHT):
-                pacman.direction = "left"
-                last_keys[0] = "left"
-                last_keys[1] = last_keys[2]
-                last_keys[2] = last_keys[3]
-                last_keys[3] = "none"
-                for i in range(1, len(last_keys)):
-                    if last_keys[i] == "none":
-                        last_keys[i] = "up"
-                        break
-
+            elif pacman.can_change_direction(maze_data, "up", WIDTH, HEIGHT):
+                pacman.direction = "up"
         elif last_keys[0] == "down":
-            if pacman.can_change_direction(maze_data, "down", WIDTH, HEIGHT):
-                pacman.direction = "down"
-            elif pacman.direction == "down" and last_keys[1] == "right" and pacman.can_change_direction(maze_data,
-                                                                                                       "right",
-                                                                                                       WIDTH, HEIGHT):
+            if pacman.direction == "down" and last_keys[1] == "right" and pacman.can_change_direction(maze_data,
+                                                                                                     "right", WIDTH,
+                                                                                                     HEIGHT):
                 pacman.direction = "right"
                 last_keys[0] = "right"
                 last_keys[1] = last_keys[2]
@@ -186,19 +182,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
                     if last_keys[i] == "none":
                         last_keys[i] = "down"
                         break
-            elif pacman.direction == "down" and last_keys[1] == "up" and pacman.can_change_direction(maze_data, "up",
-                                                                                                     WIDTH, HEIGHT):
-                pacman.direction = "up"
-                last_keys[0] = "up"
-                last_keys[1] = last_keys[2]
-                last_keys[2] = last_keys[3]
-                last_keys[3] = "none"
-                for i in range(1, len(last_keys)):
-                    if last_keys[i] == "none":
-                        last_keys[i] = "down"
-                        break
             elif pacman.direction == "down" and last_keys[1] == "left" and pacman.can_change_direction(maze_data, "left",
-                                                                                                      WIDTH, HEIGHT):
+                                                                                                     WIDTH, HEIGHT):
                 pacman.direction = "left"
                 last_keys[0] = "left"
                 last_keys[1] = last_keys[2]
@@ -208,6 +193,19 @@ def move_pacmans(last_keys, pacmans, maze_data):
                     if last_keys[i] == "none":
                         last_keys[i] = "down"
                         break
+            elif pacman.direction == "down" and last_keys[1] == "up" and pacman.can_change_direction(maze_data, "up",
+                                                                                                    WIDTH, HEIGHT):
+                pacman.direction = "up"
+                last_keys[0] = "up"
+                last_keys[1] = last_keys[2]
+                last_keys[2] = last_keys[3]
+                last_keys[3] = "none"
+                for i in range(1, len(last_keys)):
+                    if last_keys[i] == "none":
+                        last_keys[i] = "down"
+                        break
+            elif pacman.can_change_direction(maze_data, "down", WIDTH, HEIGHT):
+                pacman.direction = "down"
 
         if pacman.direction != "stay":
             if pacman.direction == "left" and pacman.check_open_path(maze_data, "left", WIDTH, HEIGHT):
@@ -219,7 +217,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
             elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down", WIDTH, HEIGHT):
                 pacman.rect.y += pacman.speed
 
-    # print(last_keys)
+    print(last_keys)
     return last_keys
 
 

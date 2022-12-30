@@ -35,7 +35,7 @@ class Pacman(pygame.sprite.Sprite):
         min_threshold = (.07, .07)
         centerness = (abs(position[0] - (self.rect.x - (window_width - self.scale * 32) / 2) / self.scale),
                             abs(position[1] - (self.rect.y - (window_height - self.scale * 32) / 2) / self.scale))
-        print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (window_height - self.scale * 32) / 2)/ self.scale), centerness)
+        #print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (window_height - self.scale * 32) / 2)/ self.scale), centerness)
         if direction == "left":
             return maze_data[position[1]][position[0] - 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < min_threshold[1]
         elif direction == "right":

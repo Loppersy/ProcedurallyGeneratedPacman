@@ -23,5 +23,9 @@ def load_sheet(sheet, rows, cols, width, height):
 
 # get position of the player inside the maze taking into account the scale of the tiles and the offset of the maze
 # rounded to the nearest integer
-def get_position_in_maze(x, y, scale, window_width, window_height):
+def get_position_in_maze_int(x, y, scale, window_width, window_height):
     return (x - (window_width - scale * 32) // 2) // scale, ((y - (window_height - scale * 32) // 2) // scale)
+
+
+def get_position_in_maze_float(x, y, scale, window_width, window_height):
+    return (x - (window_width - scale * 32) / 2) / scale, ((y - (window_height - scale * 32) / 2) / scale)

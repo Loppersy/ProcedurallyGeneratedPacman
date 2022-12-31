@@ -217,13 +217,18 @@ def move_pacmans(last_keys, pacmans, maze_data):
             elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down", WIDTH, HEIGHT):
                 pacman.rect.y += pacman.speed
 
-    print(last_keys)
+    #print(last_keys)
     return last_keys
 
 
-def update_sprites(sprite_list):
-    for sprite in sprite_list:
-        sprite.update()
+def update_sprites(maze_data, pacmans, ghosts, consumables):
+    for pacman in pacmans:
+        maze_data = pacman.update(maze_data, consumables, WIDTH, HEIGHT)
+
+    for ghost in ghosts:
+        ghost.update()
+
+    return maze_data
 
 
 class GhostHouse(pygame.sprite.Sprite):
@@ -338,7 +343,8 @@ def main():
                     last_keys[3] = "none"
 
         last_keys = move_pacmans(last_keys, pacmans, maze_data)
-        update_sprites([pacmans, ghosts])
+
+        maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets])
         draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses])
 
     pygame.quit()

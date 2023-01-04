@@ -34,6 +34,10 @@ def draw_window(sprite_list):
     for sprite in sprite_list:
         sprite.draw(screen)
 
+    # display the path of the ghosts
+    for ghost in sprite_list[1]:
+        ghost.draw_path(screen)
+
     pygame.display.update()
 
 
@@ -58,6 +62,11 @@ def move_pacmans(last_keys, pacmans, maze_data):
         #        pacman.can_change_direction(maze_data, "down", WIDTH, HEIGHT), " ",
         #        pacman.can_change_direction(maze_data, "left", WIDTH, HEIGHT), " ",
         #        pacman.can_change_direction(maze_data, "right", WIDTH, HEIGHT))
+
+        # if pacman is dying, don't move it
+        if pacman.direction == "dying":
+            continue
+
         if last_keys[0] != "none" and pacman.direction == "stay":
             pacman.direction = last_keys[0]
         if last_keys[0] == "left":
@@ -200,6 +209,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
             elif pacman.can_change_direction(maze_data, "down"):
                 pacman.direction = "down"
 
+        temp_pos_x = pacman.rect.x
+        temp_pos_y = pacman.rect.y
         if pacman.direction != "stay":
             if pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
                 pacman.rect.x -= pacman.speed
@@ -210,6 +221,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
             elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
                 pacman.rect.y += pacman.speed
 
+        pacman.moving = not (temp_pos_x == pacman.rect.x and pacman.rect.y == temp_pos_y)
     # print(last_keys)
     return last_keys
 
@@ -330,7 +342,7 @@ def main():
                            2))
 
     # TEST: ghosts
-    ghosts.add(Ghost(14 * SCALE + (WIDTH - 32 * SCALE) / 2, 14 * SCALE + (HEIGHT - 32 * SCALE) / 2, utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1,4,16,16, EYES_SHEET_IMAGE), "blinky", WIDTH, HEIGHT, SCALE))
+    ghosts.add(Ghost(14 * SCALE + (WIDTH - 32 * SCALE) / 2, 14 * SCALE + (HEIGHT - 32 * SCALE) / 2, utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1,4,16,16, EYES_SHEET_IMAGE), "blinky", WIDTH, HEIGHT, SCALE, 1.9))
 
     last_keys = ["none", "none", "none", "none"]
     while run:

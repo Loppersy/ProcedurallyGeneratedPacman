@@ -1,40 +1,127 @@
+import pygame
+
+
 class AStar(object):
-    def __init__(self, start, goal, grid):
-        self.start = start
-        self.goal = goal
-        self.grid = grid
+    def __init__(self):
+        self.start = None
+        self.goal = None
+        self.grid = None
         self.open = []
         self.closed = []
         self.path = []
-        self.g = 0
-        self.h = 0
-        self.f = 0
         self.current = None
 
-    def get_path(self):
-        self.open.append(self.start)
+    # Return a list of tuples as a path from the given start to the given end in the given maze.
+    # The path is the shortest path from the start to the end.
+    # The path can take any direction as long as there is not a wall in the way (id 1 in grid).
+    def get_path(self, start, goal, maze_data):
+        self.start = start
+        self.goal = goal
+        self.grid = maze_data
+        self.open = []
+        self.closed = []
+        self.path = []
+        self.current = None
+
+        self.update_surrounding_nodes(self.start)
+        self.closed.append(self.start)
+
         while len(self.open) > 0:
+            # Get the open node with smallest f value
             self.current = self.open[0]
-            for cell in self.open:
-                if cell.f < self.current.f:
-                    self.current = cell
-            if self.current == self.goal:
-                while self.current != self.start:
-                    self.path.append(self.current)
-                    self.current = self.current.parent
-                return self.path[::-1]
+            for node in self.open:
+                if self.current is None or node.f <= self.current.f:
+                    self.current = node
+
+            # Create a list of nodes that are not walls and are not in the closed list
+            # for the nodes around the current node (up, down, left, right)
+            # calculate the g, h, and f values for each node and add it to the open list
+            # if the node to be checked is out of bounds, assume it is a wall
+
+            self.update_surrounding_nodes(self.current)
+
+            # Remove the current node from the open list and add it to the closed list
             self.open.remove(self.current)
             self.closed.append(self.current)
-            for cell in self.current.neighbors:
-                if cell in self.closed:
-                    continue
-                if cell not in self.open:
-                    self.open.append(cell)
-                cell.parent = self.current
-                cell.g = self.current.g + 1
-                cell.h = self.heuristic(cell)
-                cell.f = cell.g + cell.h
-        return None
 
-    def heuristic(self, cell):
-        return abs(cell.x - self.goal.x) + abs(cell.y - self.goal.y)
+            # Found the goal
+            if self.current == self.goal:
+                path = []
+                current = self.current
+                while current is not None:
+                    path.append(current.position)
+                    current = current.parent
+
+                return path[::-1]
+
+    def update_surrounding_nodes(self, node):
+        # Checking "up" node
+        if node.position[1] - 1 >= 0:
+            if not self.grid[node.position[1] - 1][node.position[0]] == 1 and not self.is_in_closed(
+                    (node.position[0], node.position[1] - 1)):
+                self.calculate_values(node.position[0], node.position[1] - 1, node)
+                #print("up: ", node.position[0], node.position[1] - 1)
+        # Checking "down" node
+        if node.position[1] + 1 < len(self.grid):
+            if not self.grid[node.position[1] + 1][node.position[0]] == 1 and not self.is_in_closed(
+                    (node.position[0], node.position[1] + 1)):
+                self.calculate_values(node.position[0], node.position[1] + 1, node)
+                #print("down: ", node.position[0], node.position[1] + 1)
+        # Checking "left" node
+        if node.position[0] - 1 >= 0:
+            if not self.grid[node.position[1]][node.position[0] - 1] == 1 and not self.is_in_closed(
+                    (node.position[0] - 1, node.position[1])):
+                self.calculate_values(node.position[0] - 1, node.position[1], node)
+                #print("left: ", node.position[0] - 1, node.position[1])
+        # Checking "right" node
+        if node.position[0] + 1 < len(self.grid[0]):
+            if not self.grid[node.position[1]][node.position[0] + 1] == 1 and not self.is_in_closed(
+                    (node.position[0] + 1, node.position[1])):
+                self.calculate_values(node.position[0] + 1, node.position[1], node)
+                #print("right: ", node.position[0] + 1, node.position[1])
+
+    def calculate_values(self, x, y, parent):
+        g = parent.g + 1
+        h = self.heuristic((x, y), self.goal.position)
+        f = g + h
+        node = Node((x, y), g, h, f, parent)
+
+        # Check if node is already in open list and if it is, check if the new node has a lower f value
+        # if it does, replace the old node with the new node
+        # if it is not in the open list, add it to the open list
+        for open_node in self.open:
+            if open_node.position == node.position:
+                if open_node.f > node.f:
+                    self.open.remove(open_node)
+                    self.open.append(node)
+                return
+        self.open.append(node)
+
+
+    def heuristic(self, position, goal):
+        return abs(position[0] - goal[0]) + abs(position[1] - goal[1])
+
+    def is_in_closed(self, param):
+        for node in self.closed:
+            if node.position == param:
+                return True
+        return False
+
+
+class Node(object):
+    def __init__(self, position, g=0, h=0, f=0, parent=None):
+        self.position = position
+        self.g = g
+        self.h = h
+        self.f = f
+        self.parent = parent
+        self.neighbors = []
+
+    def __eq__(self, other):
+        return self.position == other.position
+
+    def __lt__(self, other):
+        return self.f < other.f
+
+    def __repr__(self):
+        return '({}, {})'.format(self.x, self.y)

@@ -9,32 +9,95 @@ class Pacman(pygame.sprite.Sprite):
         super().__init__()
         self.x = x
         self.y = y
-        self.images = load_sheet(pacman_sheet_image, 1, 2, 16, 16)
+        self.images = load_sheet(pacman_sheet_image, 2, 11, 16, 16)
         self.current_image = 0
         self.image = pygame.transform.scale(self.images[self.current_image], (scale * 1, scale * 1))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.last_update = pygame.time.get_ticks()
-        self.animation_cooldown = 100
+
         self.speed = speed
         self.direction = "stay"
         self.scale = scale
         self.window_width = window_width
         self.window_height = window_height
+        self.moving = False
+
+        self.animation_cooldown = 50
+        self.dying_animation_cooldown = 150
+        self.dying_animation_start_cooldown = 1000
+        self.dying_animation_end_cooldown = 75
+        self.start_animation_completed = False
+        self.dead_animation_completed = False
 
     def update(self, maze_data, consumables):
-        now = pygame.time.get_ticks()
-        if now - self.last_update > self.animation_cooldown:
-            self.last_update = now
-            self.current_image = (self.current_image + 1) % 2
-            # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
-            self.image = pygame.transform.scale(self.images[self.current_image], (self.scale * 1, self.scale * 1))
+        if self.direction == "dead":
+            self.kill()
+        self.draw_pacman()
 
         # consume any consumable in the current position
         maze_data = self.check_consumables(maze_data, consumables)
 
         return maze_data
+
+    def draw_pacman(self):
+        now = pygame.time.get_ticks()
+        if self.direction == "dying":
+            if not self.start_animation_completed:
+                self.current_image = 11
+
+            if now - self.last_update > self.dying_animation_start_cooldown:
+                self.start_animation_completed = True
+
+            if now - self.last_update > self.dying_animation_end_cooldown and self.dead_animation_completed:
+                self.last_update = now
+                self.current_image = 10
+                self.direction = "dead"
+
+            if now - self.last_update > self.dying_animation_cooldown and self.start_animation_completed:
+                self.last_update = now
+                if self.current_image != 21:
+                    self.current_image = (self.current_image + 1) % len(self.images)
+                else:
+                    self.dead_animation_completed = True
+
+            self.image = pygame.transform.scale(self.images[self.current_image], (self.scale * 1, self.scale * 1))
+
+
+        elif now - self.last_update > self.animation_cooldown and self.moving:
+            self.last_update = now
+            if self.direction == "right":
+                if self.current_image >= 2:
+                    self.current_image = 0
+                elif self.current_image < 1:
+                    self.current_image = 1
+                else:
+                    self.current_image = self.current_image + 1
+            elif self.direction == "left":
+                if self.current_image >= 4:
+                    self.current_image = 0
+                elif self.current_image < 3:
+                    self.current_image = 3
+                else:
+                    self.current_image = self.current_image + 1
+            elif self.direction == "up":
+                if self.current_image >= 6:
+                    self.current_image = 0
+                elif self.current_image < 5:
+                    self.current_image = 5
+                else:
+                    self.current_image = self.current_image + 1
+            elif self.direction == "down":
+                if self.current_image >= 8:
+                    self.current_image = 0
+                elif self.current_image < 7:
+                    self.current_image = 7
+                else:
+                    self.current_image = self.current_image + 1
+
+            # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
+            self.image = pygame.transform.scale(self.images[self.current_image], (self.scale * 1, self.scale * 1))
 
     # check collision with walls in a given direction
     def can_change_direction(self, maze_data, direction):
@@ -89,7 +152,7 @@ class Pacman(pygame.sprite.Sprite):
                 min_threshold = (.2, .2)
                 centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
                 if centerness[0] < min_threshold[0] and centerness[1] < min_threshold[1]:
-                    print(consumable.type)
+                    #print(consumable.type)
                     if consumable.type == "pellet":
                         consumable.kill()
                         maze_data[position_int[1]][position_int[0]] = 0
@@ -101,3 +164,7 @@ class Pacman(pygame.sprite.Sprite):
                         # TODO: add power pellet effect
 
         return maze_data
+
+    def die(self):
+        if self.direction != "dead":
+            self.direction = "dying"

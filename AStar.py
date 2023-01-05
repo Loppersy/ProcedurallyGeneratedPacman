@@ -60,25 +60,37 @@ class AStar(object):
             if not self.grid[node.position[1] - 1][node.position[0]] == 1 and not self.is_in_closed(
                     (node.position[0], node.position[1] - 1)):
                 self.calculate_values(node.position[0], node.position[1] - 1, node)
-                #print("up: ", node.position[0], node.position[1] - 1)
+        # checking "up" node if it is out of bounds (i.e., wrap around)
+        else:
+            if not self.grid[31][node.position[0]] == 1 and not self.is_in_closed((node.position[0], 31)):
+                self.calculate_values(node.position[0], 31, node)
         # Checking "down" node
-        if node.position[1] + 1 < len(self.grid):
+        if node.position[1] + 1 <= 31:
             if not self.grid[node.position[1] + 1][node.position[0]] == 1 and not self.is_in_closed(
                     (node.position[0], node.position[1] + 1)):
                 self.calculate_values(node.position[0], node.position[1] + 1, node)
-                #print("down: ", node.position[0], node.position[1] + 1)
+        # checking "down" node if it is out of bounds (i.e., wrap around)
+        else:
+            if not self.grid[0][node.position[0]] == 1 and not self.is_in_closed((node.position[0], 0)):
+                self.calculate_values(node.position[0], 0, node)
         # Checking "left" node
         if node.position[0] - 1 >= 0:
             if not self.grid[node.position[1]][node.position[0] - 1] == 1 and not self.is_in_closed(
                     (node.position[0] - 1, node.position[1])):
                 self.calculate_values(node.position[0] - 1, node.position[1], node)
-                #print("left: ", node.position[0] - 1, node.position[1])
+        # checking "left" node if it is out of bounds (i.e., wrap around)
+        else:
+            if not self.grid[node.position[1]][31] == 1 and not self.is_in_closed((31, node.position[1])):
+                self.calculate_values(31, node.position[1], node)
         # Checking "right" node
-        if node.position[0] + 1 < len(self.grid[0]):
+        if node.position[0] + 1 <= 31:
             if not self.grid[node.position[1]][node.position[0] + 1] == 1 and not self.is_in_closed(
                     (node.position[0] + 1, node.position[1])):
                 self.calculate_values(node.position[0] + 1, node.position[1], node)
-                #print("right: ", node.position[0] + 1, node.position[1])
+        # checking "right" node if it is out of bounds (i.e., wrap around)
+        else:
+            if not self.grid[node.position[1]][0] == 1 and not self.is_in_closed((0, node.position[1])):
+                self.calculate_values(0, node.position[1], node)
 
     def calculate_values(self, x, y, parent):
         g = parent.g + 1
@@ -97,9 +109,17 @@ class AStar(object):
                 return
         self.open.append(node)
 
-
+    # calculate the distance between two points taking into account wrap around
     def heuristic(self, position, goal):
-        return abs(position[0] - goal[0]) + abs(position[1] - goal[1])
+        x1, y1 = position
+        x2, y2 = goal
+        dx = abs(x1 - x2)
+        dy = abs(y1 - y2)
+        if dx > 15:
+            dx = 31 - dx
+        if dy > 15:
+            dy = 31 - dy
+        return dx + dy
 
     def is_in_closed(self, param):
         for node in self.closed:

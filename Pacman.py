@@ -107,21 +107,48 @@ class Pacman(pygame.sprite.Sprite):
                       abs(position[1] - (self.rect.y - (self.window_height - self.scale * 32) / 2) / self.scale))
         # print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (window_height - self.scale * 32) / 2)/ self.scale), centerness)
 
-        # TODO: missing teleportation handling
-
+        # if the pacman is not in the center of the tile, it can't change direction. if pacman is in the edge of the
+        # maze, check if it can change direction by looking at the other side of the maze to account for the wrapping
+        # / teleporting
         if direction == "left":
-            return maze_data[position[1]][position[0] - 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
-                min_threshold[1]
+            if position[0] == 0:
+                return maze_data[position[1]][31] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
+            else:
+                return maze_data[position[1]][position[0] - 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
         elif direction == "right":
-            return maze_data[position[1]][position[0] + 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
-                min_threshold[1]
+            if position[0] == 31:
+                return maze_data[position[1]][0] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
+            else:
+                return maze_data[position[1]][position[0] + 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
         elif direction == "up":
-            return maze_data[position[1] - 1][position[0]] != 1 and centerness[1] < min_threshold[1] and centerness[0] < \
-                min_threshold[0]
+            if position[1] == 0:
+                return maze_data[31][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
+            else:
+                return maze_data[position[1] - 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
         elif direction == "down":
-            return maze_data[position[1] + 1][position[0]] != 1 and centerness[1] < min_threshold[1] and centerness[0] < \
-                min_threshold[0]
-        return False
+            if position[1] == 31:
+                return maze_data[0][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
+            else:
+                return maze_data[position[1] + 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                    min_threshold[1]
+
+        # elif direction == "right":
+        #     return maze_data[position[1]][position[0] + 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+        #         min_threshold[1]
+        # elif direction == "up":
+        #     return maze_data[position[1] - 1][position[0]] != 1 and centerness[1] < min_threshold[1] and centerness[0] < \
+        #         min_threshold[0]
+        # elif direction == "down":
+        #     return maze_data[position[1] + 1][position[0]] != 1 and centerness[1] < min_threshold[1] and centerness[0] < \
+        #         min_threshold[0]
+        # return False
 
     def check_open_path(self, maze_data, direction):
         position_int = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
@@ -130,15 +157,29 @@ class Pacman(pygame.sprite.Sprite):
                                                               self.window_height)
         min_threshold = (.07, .07)
         centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
+        # check if the pacman is in the middle of the tile and if there is a wall in the direction of the movement
+        # if it is the end of the maze, check the tile in the other side of the maze.
         if direction == "left":
-            return maze_data[position_int[1]][position_int[0] - 1] != 1 or centerness[0] > min_threshold[0]
+            if direction == "left":
+                if position_int[0] == 0:
+                    return maze_data[position_int[1]][position_int[0] + 31] != 1 or centerness[0] > min_threshold[0]
+                else:
+                    return maze_data[position_int[1]][position_int[0] - 1] != 1 or centerness[0] > min_threshold[0]
         elif direction == "right":
-            return maze_data[position_int[1]][position_int[0] + 1] != 1 or centerness[0] > min_threshold[0]
+            if position_int[0] == 31:
+                return maze_data[position_int[1]][position_int[0] - 31] != 1 or centerness[0] > min_threshold[0]
+            else:
+                return maze_data[position_int[1]][position_int[0] + 1] != 1 or centerness[0] > min_threshold[0]
         elif direction == "up":
-            return maze_data[position_int[1] - 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
+            if position_int[1] == 0:
+                return maze_data[position_int[1] + 31][position_int[0]] != 1 or centerness[1] > min_threshold[1]
+            else:
+                return maze_data[position_int[1] - 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
         elif direction == "down":
-            return maze_data[position_int[1] + 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
-        return True
+            if position_int[1] == 31:
+                return maze_data[position_int[1] - 31][position_int[0]] != 1 or centerness[1] > min_threshold[1]
+            else:
+                return maze_data[position_int[1] + 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
 
     def check_consumables(self, maze_data, consumables):
         for i in range(len(consumables)):

@@ -31,12 +31,13 @@ MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
 def draw_window(sprite_list):
     screen.fill(BLACK)
-    for sprite in sprite_list:
-        sprite.draw(screen)
 
     # display the path of the ghosts
     for ghost in sprite_list[1]:
         ghost.draw_path(screen)
+
+    for sprite in sprite_list:
+        sprite.draw(screen)
 
     pygame.display.update()
 
@@ -342,7 +343,9 @@ def main():
                            2))
 
     # TEST: ghosts
-    ghosts.add(Ghost(14 * SCALE + (WIDTH - 32 * SCALE) / 2, 14 * SCALE + (HEIGHT - 32 * SCALE) / 2, utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1,4,16,16, EYES_SHEET_IMAGE), "blinky", WIDTH, HEIGHT, SCALE, 1.9))
+    ghosts.add(Ghost(14 * SCALE + (WIDTH - 32 * SCALE) / 2, 14 * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                     utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE), "blinky", WIDTH,
+                     HEIGHT, SCALE, 1.9))
 
     last_keys = ["none", "none", "none", "none"]
     while run:

@@ -51,7 +51,24 @@ class Ghost(pygame.sprite.Sprite):
             for node in self.current_path:
                 (x, y) = utilities.get_position_in_window(node[0], node[1], self.scale, self.window_width,
                                                           self.window_height)
-                pygame.draw.rect(screen, (255, 0, 0), (x, y, self.scale / 3, self.scale / 3), 1)
+                # check if next node is in the same direction as the current node and draw a line to it if it is.
+                # if not, draw a line to the middle of the tile and then draw a line to the next node
+                if self.current_path.index(node) + 1 < len(self.current_path):
+                    (next_x, next_y) = utilities.get_position_in_window(self.current_path[self.current_path.index(node) + 1][0],
+                                                                        self.current_path[self.current_path.index(node) + 1][1],
+                                                                        self.scale, self.window_width,
+                                                                        self.window_height)
+                    if node[0] == self.current_path[self.current_path.index(node) + 1][0]:
+                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
+                                         (x + self.scale / 2, next_y + self.scale / 2), 3)
+                    elif node[1] == self.current_path[self.current_path.index(node) + 1][1]:
+                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
+                                         (next_x + self.scale / 2, y + self.scale / 2), 3)
+                    else:
+                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
+                                         (x + self.scale / 2, y + self.scale / 2), 3)
+                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
+                                         (next_x + self.scale / 2, next_y + self.scale / 2), 3)
 
     # Check collision with pacman. If collision, that pacman dies
     def check_collision(self, pacmans):
@@ -59,6 +76,7 @@ class Ghost(pygame.sprite.Sprite):
             if self.rect.colliderect(pacman.rect):
                 pacman.die()
 
+    # TODO: Make an option to use the classic pathfinding found in pacman
     def change_direction(self, path):
         # find in what direction is the next node in the path by comparing path[0] with path[1]
         # only change direction if the ghost is in the middle of a tile
@@ -69,7 +87,6 @@ class Ghost(pygame.sprite.Sprite):
         centerness = (position[0] - int(position[0]), position[1] - int(position[1]))
         if path and len(path) > 1:
             if centerness[0] < min_threshold[0] and centerness[1] < min_threshold[1]:
-                # TODO: can only change direction by 90 degrees normally. 180 if hits a wall
                 if path[0][0] < path[1][0]:
                     self.direction = "right"
                     # center ghost in the middle of the tile

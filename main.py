@@ -25,14 +25,13 @@ CLYDE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "clyde.png")).conve
 PACMAN_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pacman.png")).convert_alpha()
 EYES_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "eyes.png")).convert_alpha()
 PELLETS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pallets.png")).convert_alpha()
+FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frightened_ghost.png")).convert_alpha()
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
 
 def draw_window(sprite_list, maze_data):
     screen.fill(BLACK)
-
-
 
     for sprite in sprite_list:
         sprite.draw(screen)
@@ -218,7 +217,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
         # and its offset (using SCALE and WIDTH and HEIGHT).
         if pacman.direction != "stay":
             if pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
-                pacman.rect.x -= pacman.speed
+                pacman.rect.x -= pacman.current_speed
                 if pacman.rect.x < utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.rect.x,
                                                                                                           pacman.rect.y,
                                                                                                           SCALE, WIDTH,
@@ -230,23 +229,24 @@ def move_pacmans(last_keys, pacmans, maze_data):
                                                                                                 WIDTH, HEIGHT)[1],
                                                          SCALE, WIDTH, HEIGHT)[0]
             elif pacman.direction == "right" and pacman.check_open_path(maze_data, "right"):
-                pacman.rect.x += pacman.speed
-                if pacman.rect.x > utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                           pacman.rect.y,
-                                                                                                           SCALE, WIDTH,
-                                                                                                           HEIGHT)[1],
-                                                                    SCALE, WIDTH, HEIGHT)[0]:
+                pacman.rect.x += pacman.current_speed
+                if pacman.rect.x > \
+                        utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.rect.x,
+                                                                                                pacman.rect.y,
+                                                                                                SCALE, WIDTH,
+                                                                                                HEIGHT)[1],
+                                                         SCALE, WIDTH, HEIGHT)[0]:
                     pacman.rect.x = \
                         utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.rect.x,
                                                                                                pacman.rect.y, SCALE,
                                                                                                WIDTH, HEIGHT)[1], SCALE,
                                                          WIDTH, HEIGHT)[0]
             elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
-                pacman.rect.y -= pacman.speed
+                pacman.rect.y -= pacman.current_speed
                 if pacman.rect.y < utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                         pacman.rect.y,
-                                                                                                         SCALE, WIDTH,
-                                                                                                         HEIGHT)[0], 0,
+                                                                                                       pacman.rect.y,
+                                                                                                       SCALE, WIDTH,
+                                                                                                       HEIGHT)[0], 0,
                                                                     SCALE, WIDTH, HEIGHT)[1]:
                     pacman.rect.y = \
                         utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
@@ -254,18 +254,17 @@ def move_pacmans(last_keys, pacmans, maze_data):
                                                                                             WIDTH, HEIGHT)[0], 31,
                                                          SCALE, WIDTH, HEIGHT)[1]
             elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
-                pacman.rect.y += pacman.speed
+                pacman.rect.y += pacman.current_speed
                 if pacman.rect.y > utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                          pacman.rect.y,
-                                                                                                          SCALE, WIDTH,
-                                                                                                          HEIGHT)[0], 31,
+                                                                                                       pacman.rect.y,
+                                                                                                       SCALE, WIDTH,
+                                                                                                       HEIGHT)[0], 31,
                                                                     SCALE, WIDTH, HEIGHT)[1]:
                     pacman.rect.y = \
                         utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
                                                                                             pacman.rect.y, SCALE,
                                                                                             WIDTH, HEIGHT)[0], 0, SCALE,
                                                          WIDTH, HEIGHT)[1]
-
 
         # if pacman.direction != "stay":
         #     if pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
@@ -285,6 +284,10 @@ def move_pacmans(last_keys, pacmans, maze_data):
 def update_sprites(maze_data, pacmans, ghosts, consumables):
     for pacman in pacmans:
         maze_data = pacman.update(maze_data, consumables)
+        if pacman.consumed_power_pellet:
+            pacman.consumed_power_pellet = False
+            for ghost in ghosts:
+                ghost.trigger_frightening_state()
 
     for ghost in ghosts:
         ghost.update(pacmans, maze_data)
@@ -399,7 +402,12 @@ def main():
 
     # TEST: ghosts
     ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                     utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE), "blinky", WIDTH,
+                     utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                     utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
+                     HEIGHT, SCALE, FPS, 1, 1.9))
+    ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                     utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                     utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
                      HEIGHT, SCALE, FPS, 1, 1.9))
 
     last_keys = ["none", "none", "none", "none"]

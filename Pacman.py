@@ -7,6 +7,7 @@ from utilities import load_sheet
 class Pacman(pygame.sprite.Sprite):
     def __init__(self, x, y, window_width, window_height, pacman_sheet_image, scale, speed):
         super().__init__()
+        self.consumed_power_pellet = False
         self.x = x
         self.y = y
         self.images = load_sheet(pacman_sheet_image, 2, 11, 16, 16)
@@ -17,7 +18,7 @@ class Pacman(pygame.sprite.Sprite):
         self.rect.y = y
         self.last_update = pygame.time.get_ticks()
 
-        self.speed = speed
+        self.current_speed = speed
         self.direction = "stay"
         self.scale = scale
         self.window_width = window_width
@@ -64,7 +65,6 @@ class Pacman(pygame.sprite.Sprite):
 
             self.image = pygame.transform.scale(self.images[self.current_image], (self.scale * 1, self.scale * 1))
 
-
         elif now - self.last_update > self.animation_cooldown and self.moving:
             self.last_update = now
             if self.direction == "right":
@@ -101,7 +101,8 @@ class Pacman(pygame.sprite.Sprite):
 
     # check collision with walls in a given direction
     def can_change_direction(self, maze_data, direction):
-        position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width, self.window_height)
+        position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
+                                                      self.window_height)
         min_threshold = (.07, .07)
         centerness = (abs(position[0] - (self.rect.x - (self.window_width - self.scale * 32) / 2) / self.scale),
                       abs(position[1] - (self.rect.y - (self.window_height - self.scale * 32) / 2) / self.scale))
@@ -115,28 +116,32 @@ class Pacman(pygame.sprite.Sprite):
                 return maze_data[position[1]][31] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
                     min_threshold[1]
             else:
-                return maze_data[position[1]][position[0] - 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                return maze_data[position[1]][position[0] - 1] != 1 and centerness[0] < min_threshold[0] and centerness[
+                    1] < \
                     min_threshold[1]
         elif direction == "right":
             if position[0] == 31:
                 return maze_data[position[1]][0] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
                     min_threshold[1]
             else:
-                return maze_data[position[1]][position[0] + 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                return maze_data[position[1]][position[0] + 1] != 1 and centerness[0] < min_threshold[0] and centerness[
+                    1] < \
                     min_threshold[1]
         elif direction == "up":
             if position[1] == 0:
                 return maze_data[31][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
                     min_threshold[1]
             else:
-                return maze_data[position[1] - 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                return maze_data[position[1] - 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[
+                    1] < \
                     min_threshold[1]
         elif direction == "down":
             if position[1] == 31:
                 return maze_data[0][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
                     min_threshold[1]
             else:
-                return maze_data[position[1] + 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
+                return maze_data[position[1] + 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[
+                    1] < \
                     min_threshold[1]
 
         # elif direction == "right":
@@ -193,7 +198,7 @@ class Pacman(pygame.sprite.Sprite):
                 min_threshold = (.2, .2)
                 centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
                 if centerness[0] < min_threshold[0] and centerness[1] < min_threshold[1]:
-                    #print(consumable.type)
+                    # print(consumable.type)
                     if consumable.type == "pellet":
                         consumable.kill()
                         maze_data[position_int[1]][position_int[0]] = 0
@@ -202,7 +207,7 @@ class Pacman(pygame.sprite.Sprite):
                         consumable.kill()
                         maze_data[position_int[1]][position_int[0]] = 0
                         # TODO: add score
-                        # TODO: add power pellet effect
+                        self.consumed_power_pellet = True
 
         return maze_data
 

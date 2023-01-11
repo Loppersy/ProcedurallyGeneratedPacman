@@ -60,7 +60,7 @@ class Ghost(pygame.sprite.Sprite):
             if self.state_times[self.level - 1][0][1] == -1:
                 self.is_permanent_state = True
 
-            if self.state == "scatter":
+            if self.state == "scatter" or self.state == "chase" or self.state == "frightened":
                 # reverse ghosts current direction
                 if self.direction == "up":
                     self.direction = "down"

@@ -34,3 +34,14 @@ def get_position_in_maze_float(x, y, scale, window_width, window_height):
 # get position in the window taking into account the scale of the tiles and the offset of the maze
 def get_position_in_window(x, y, scale, window_width, window_height):
     return x * scale + (window_width - scale * 32) / 2, y * scale + (window_height - scale * 32) / 2
+
+
+# get distance from one point to another taking into account the wrap around of the maze
+def get_distance(x, y, x1, y1, use_wrap_around=False):
+    if use_wrap_around:
+        return ((min(abs(float(x) - float(x1)), 32.0 - abs(float(x) - float(x1)))) ** 2 + (
+            min(abs(float(y) - float(y1)), 32.0 - abs(float(y) - float(y1)))) ** 2) ** 0.5
+    else:
+        return ((float(x) - float(x1)) ** 2 + (float(y) - float(y1)) ** 2) ** 0.5
+# def get_distance(x, y, x1, y1):
+#     return ((x - x1) ** 2 + (y - y1) ** 2) ** 0.5

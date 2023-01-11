@@ -23,7 +23,11 @@ class AStar(object):
         self.path = []
         self.current = None
 
+        # Add the start node to the open list
+        # and update its values as well as the surrounding nodes
+        self.calculate_values(self.start.position[0], self.start.position[1], Node(None, 0, 0, 0, None))
         self.update_surrounding_nodes(self.start)
+        self.open.remove(self.start)
         self.closed.append(self.start)
 
         while len(self.open) > 0:
@@ -44,7 +48,7 @@ class AStar(object):
             self.open.remove(self.current)
             self.closed.append(self.current)
 
-            # Found the goal
+            # Found the goal.
             if self.current == self.goal:
                 path = []
                 current = self.current
@@ -53,6 +57,23 @@ class AStar(object):
                     current = current.parent
 
                 return path[::-1]
+
+        # If the goal cannot be reached, make a path to the closest node to the goal
+        # First, find the closest node to the goal
+        closest_node = self.closed[0]
+        for node in self.closed:
+            if self.heuristic(node.position, self.goal.position) < self.heuristic(closest_node.position, self.goal.position):
+                closest_node = node
+
+        # Then, make a path to that node
+        path = []
+        current = closest_node
+        while current is not None:
+            path.append(current.position)
+            current = current.parent
+
+        return path[::-1]
+
 
     def update_surrounding_nodes(self, node):
         # Checking "up" node

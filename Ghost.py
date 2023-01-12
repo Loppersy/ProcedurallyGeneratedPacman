@@ -1,3 +1,5 @@
+import random
+
 import pygame
 
 import utilities
@@ -122,7 +124,7 @@ class Ghost(pygame.sprite.Sprite):
                                                                    self.scale,
                                                                    self.window_width, self.window_height)
                 else:
-                    self.state = "scatter"
+                    self.goal = None
 
             elif self.type == "pinky":  # get the closest pacman and set its position + 4 tiles in the direction it is
                 # moving as the goal
@@ -147,11 +149,10 @@ class Ghost(pygame.sprite.Sprite):
                     elif closest_pacman.direction == "right":
                         self.goal = (self.goal[0] + 4, self.goal[1])
                 else:
-                    self.state = "scatter"
+                    self.goal = None
 
         elif self.state == "frightened":
-            self.goal = (0, 0)
-            # TODO: implement frightened mode
+            self.goal = None
         elif self.state == "dead":
             print("dead")
             # TODO: implement dead mode
@@ -240,9 +241,14 @@ class Ghost(pygame.sprite.Sprite):
 
     # Check collision with pacman. If collision, that pacman dies
     def check_collision(self, pacmans):
-        for pacman in pacmans:
-            if self.rect.colliderect(pacman.rect):
-                pacman.die()
+        if self.state == "chase":
+            for pacman in pacmans:
+                if self.rect.colliderect(pacman.rect):
+                    pacman.die()
+        elif self.state == "frightened":
+            for pacman in pacmans:
+                if self.rect.colliderect(pacman.rect):
+                    self.trigger_dead_state()
 
     def change_direction(self, path):
         # find in what direction is the next node in the path by comparing path[0] with path[1]
@@ -349,11 +355,23 @@ class Ghost(pygame.sprite.Sprite):
             if now - self.last_update > self.animation_cooldown:
                 self.last_update = now
                 self.current_image = (self.current_image + 1) % 2
-                self.image = self.images[self.current_image]
-            # add image[4] (eyes) on top of image
-            self.image.blit(self.images[4], (0, 0))
+
+            self.image = pygame.Surface.copy(self.images[self.current_image])
             # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
-            self.image = pygame.transform.scale(self.images[self.current_image], (self.scale * 1, self.scale * 1))
+
+            # add eyes on top of image depending on which direction the ghost is facing.
+            # if no direction is given, the eyes are removed
+            if self.direction == "right":
+                self.image.blit(self.images[4], (0, 0))
+            elif self.direction == "left":
+                self.image.blit(self.images[5], (0, 0))
+            elif self.direction == "up":
+                self.image.blit(self.images[6], (0, 0))
+            elif self.direction == "down":
+                self.image.blit(self.images[7], (0, 0))
+
+            self.image = pygame.transform.scale(self.image, (self.scale * 1, self.scale * 1))
+
         elif self.state == "frightened":
             if now - self.flash_last_update > self.flash_cooldown:
                 self.flash_last_update = now
@@ -425,69 +443,12 @@ class Ghost(pygame.sprite.Sprite):
                     if self.direction != "right":
                         available_tiles.append("left")
 
-            # Now get the distance to the goal from each available tile taking into account the wrap around effect.
-            # The tile with the shortest distance to the goal is the one the ghost will move to.
-            shortest_distance = None
-            distance = None
-
-            for tile in available_tiles:
-                if tile == "right":
-                    if int_position[0] + 1 < len(maze_data[0]):
-                        distance = utilities.get_distance(int_position[0] + 1, int_position[1], goal[0], goal[1],
-                                                          use_wrap_around)
-                    else:
-                        distance = utilities.get_distance(0, int_position[1], goal[0], goal[1], use_wrap_around)
-
-                elif tile == "left":
-                    if int_position[0] - 1 >= 0:
-                        distance = utilities.get_distance(int_position[0] - 1, int_position[1], goal[0], goal[1],
-                                                          use_wrap_around)
-                    else:
-                        distance = utilities.get_distance(len(maze_data[0]) - 1, int_position[1], goal[0], goal[1],
-                                                          use_wrap_around)
-
-                elif tile == "down":
-                    if int_position[1] + 1 < len(maze_data):
-                        distance = utilities.get_distance(int_position[0], int_position[1] + 1, goal[0], goal[1],
-                                                          use_wrap_around)
-                    else:
-                        distance = utilities.get_distance(int_position[0], 0, goal[0], goal[1], use_wrap_around)
-
-                elif tile == "up":
-                    if int_position[1] - 1 >= 0:
-                        distance = utilities.get_distance(int_position[0], int_position[1] - 1, goal[0], goal[1],
-                                                          use_wrap_around)
-                    else:
-                        distance = utilities.get_distance(int_position[0], len(maze_data) - 1, goal[0], goal[1],
-                                                          use_wrap_around)
-
-                if not shortest_distance or distance < shortest_distance \
-                        or (distance == shortest_distance and (
-                        (tile == "up") or (tile == "left" and self.direction != "up") or (
-                        tile == "down" and self.direction == "right"))):
-                    shortest_distance = distance
-                    self.direction = tile
-                    self.previous_node = int_position
-                    if tile == "right":
-                        if int_position[0] + 1 < len(maze_data[0]):
-                            self.next_node = (int_position[0] + 1, int_position[1])
-                        else:
-                            self.next_node = (0, int_position[1])
-                    elif tile == "left":
-                        if int_position[0] - 1 >= 0:
-                            self.next_node = (int_position[0] - 1, int_position[1])
-                        else:
-                            self.next_node = (len(maze_data[0]) - 1, int_position[1])
-                    elif tile == "down":
-                        if int_position[1] + 1 < len(maze_data):
-                            self.next_node = (int_position[0], int_position[1] + 1)
-                        else:
-                            self.next_node = (int_position[0], 0)
-                    elif tile == "up":
-                        if int_position[1] - 1 >= 0:
-                            self.next_node = (int_position[0], int_position[1] - 1)
-                        else:
-                            self.next_node = (int_position[0], len(maze_data) - 1)
+            # if there is a goal to go to, calculate the shortest path. If there is no goal, choose a new direction
+            # randomly
+            if goal is not None:
+                self.change_direction_to_closest_tile(available_tiles, goal, int_position, maze_data, use_wrap_around)
+            else:
+                self.change_direction_randomly(available_tiles, int_position, maze_data)
 
         # move the ghost in the direction it decided to move
         position_of_next_node = utilities.get_position_in_window(self.next_node[0], self.next_node[1], self.scale,
@@ -532,6 +493,70 @@ class Ghost(pygame.sprite.Sprite):
 
         self.rect.topleft = round(self.position[0]), round(self.position[1])
 
+    def change_direction_to_closest_tile(self, available_tiles, goal, int_position, maze_data, use_wrap_around):
+        # Now get the distance to the goal from each available tile taking into account the wrap around effect (if
+        # set to true). The tile with the shortest distance to the goal is the one the ghost will move to.
+        shortest_distance = None
+        distance = None
+        for tile in available_tiles:
+            if tile == "right":
+                if int_position[0] + 1 < len(maze_data[0]):
+                    distance = utilities.get_distance(int_position[0] + 1, int_position[1], goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(0, int_position[1], goal[0], goal[1], use_wrap_around)
+
+            elif tile == "left":
+                if int_position[0] - 1 >= 0:
+                    distance = utilities.get_distance(int_position[0] - 1, int_position[1], goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(len(maze_data[0]) - 1, int_position[1], goal[0], goal[1],
+                                                      use_wrap_around)
+
+            elif tile == "down":
+                if int_position[1] + 1 < len(maze_data):
+                    distance = utilities.get_distance(int_position[0], int_position[1] + 1, goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(int_position[0], 0, goal[0], goal[1], use_wrap_around)
+
+            elif tile == "up":
+                if int_position[1] - 1 >= 0:
+                    distance = utilities.get_distance(int_position[0], int_position[1] - 1, goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(int_position[0], len(maze_data) - 1, goal[0], goal[1],
+                                                      use_wrap_around)
+
+            if not shortest_distance or distance < shortest_distance \
+                    or (distance == shortest_distance and (
+                    (tile == "up") or (tile == "left" and self.direction != "up") or (
+                    tile == "down" and self.direction == "right"))):
+                shortest_distance = distance
+                self.direction = tile
+                self.previous_node = int_position
+                if tile == "right":
+                    if int_position[0] + 1 < len(maze_data[0]):
+                        self.next_node = (int_position[0] + 1, int_position[1])
+                    else:
+                        self.next_node = (0, int_position[1])
+                elif tile == "left":
+                    if int_position[0] - 1 >= 0:
+                        self.next_node = (int_position[0] - 1, int_position[1])
+                    else:
+                        self.next_node = (len(maze_data[0]) - 1, int_position[1])
+                elif tile == "down":
+                    if int_position[1] + 1 < len(maze_data):
+                        self.next_node = (int_position[0], int_position[1] + 1)
+                    else:
+                        self.next_node = (int_position[0], 0)
+                elif tile == "up":
+                    if int_position[1] - 1 >= 0:
+                        self.next_node = (int_position[0], int_position[1] - 1)
+                    else:
+                        self.next_node = (int_position[0], len(maze_data) - 1)
+
     def draw_classic_path(self, screen, maze_data):
         # draw a red line that predicts the path that the ghost is going to take.
         current_tile = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
@@ -545,13 +570,14 @@ class Ghost(pygame.sprite.Sprite):
         elif self.type == "pinky":
             color = (255, 0, 255)
 
-        pygame.draw.circle(screen, color, (
-            utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
-                                             self.window_height)[
-                0] + self.scale // 2,
-            utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
-                                             self.window_height)[
-                1] + self.scale // 2), 5)
+        if self.goal is not None:
+            pygame.draw.circle(screen, color, (
+                utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    0] + self.scale // 2,
+                utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    1] + self.scale // 2), 5)
 
         # draw line from current tile to goal
 
@@ -565,15 +591,6 @@ class Ghost(pygame.sprite.Sprite):
         # reverse ghosts current direction
         self.turn_around()
 
-        # if self.direction == "up":
-        #     self.direction = "down"
-        # elif self.direction == "down":
-        #     self.direction = "up"
-        # elif self.direction == "left":
-        #     self.direction = "right"
-        # elif self.direction == "right":
-        #     self.direction = "left"
-
         self.current_image = 0
         self.image = pygame.transform.scale(self.frightened_images[self.current_image],
                                             (self.scale * 1, self.scale * 1))
@@ -581,43 +598,51 @@ class Ghost(pygame.sprite.Sprite):
         self.flash_last_update = pygame.time.get_ticks()
 
     def turn_around(self):
-        int_position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
-                                                          self.window_height)
-
         # Reverse the direction the ghost is facing. Change the next node to the node behind the ghost if the ghost is
         # not past the center of the tile. Change the next node to the current node if the ghost is  past the center of
         # the tile.
         if self.direction == "up":
             self.direction = "down"
-            # if self.rect.y > utilities.get_position_in_window(int_position[0], int_position[1], self.scale,
-            #                                                   self.window_width, self.window_height)[
-            #     1] + self.scale / 2:
-            #     self.next_node = int_position
-            # else:
-            #     self.next_node = (int_position[0], int_position[1] + 1)
         elif self.direction == "down":
             self.direction = "up"
-            # if self.rect.y < utilities.get_position_in_window(int_position[0], int_position[1], self.scale,
-            #                                                   self.window_width, self.window_height)[
-            #     1] + self.scale / 2:
-            #     self.next_node = int_position
-            # else:
-            #     self.next_node = (int_position[0], int_position[1] - 1)
         elif self.direction == "left":
             self.direction = "right"
-            # if self.rect.x > utilities.get_position_in_window(int_position[0], int_position[1], self.scale,
-            #                                                   self.window_width, self.window_height)[
-            #     0] + self.scale / 2:
-            #     self.next_node = int_position
-            # else:
-            #     self.next_node = (int_position[0] + 1, int_position[1])
         elif self.direction == "right":
             self.direction = "left"
-            # if self.rect.x < utilities.get_position_in_window(int_position[0], int_position[1], self.scale,
-            #                                                   self.window_width, self.window_height)[
-            #     0] + self.scale / 2:
-            #     self.next_node = int_position
-            # else:
-            #     self.next_node = (int_position[0] - 1, int_position[1])
 
         self.next_node = self.previous_node
+
+    def change_direction_randomly(self, available_tiles, int_position, maze_data):
+        # change the ghost's direction randomly
+        self.direction = random.choice(available_tiles)
+        self.previous_node = int_position
+        if self.direction == "right":
+            if int_position[0] + 1 < len(maze_data[0]):
+                self.next_node = (int_position[0] + 1, int_position[1])
+            else:
+                self.next_node = (0, int_position[1])
+        elif self.direction == "left":
+            if int_position[0] - 1 >= 0:
+                self.next_node = (int_position[0] - 1, int_position[1])
+            else:
+                self.next_node = (len(maze_data[0]) - 1, int_position[1])
+        elif self.direction == "down":
+            if int_position[1] + 1 < len(maze_data):
+                self.next_node = (int_position[0], int_position[1] + 1)
+            else:
+                self.next_node = (int_position[0], 0)
+        elif self.direction == "up":
+            if int_position[1] - 1 >= 0:
+                self.next_node = (int_position[0], int_position[1] - 1)
+            else:
+                self.next_node = (int_position[0], len(maze_data) - 1)
+
+    def trigger_dead_state(self):
+        # change the ghost's state to dead
+        self.state = "dead"
+
+        self.current_image = 0
+        self.image = pygame.transform.scale(self.frightened_images[self.current_image],
+                                            (self.scale * 1, self.scale * 1))
+        self.flash_timer = pygame.time.get_ticks()
+        self.flash_last_update = pygame.time.get_ticks()

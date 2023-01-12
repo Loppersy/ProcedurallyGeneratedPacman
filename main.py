@@ -29,6 +29,17 @@ FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frighte
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
+# times of the different modes for each level. In seconds
+LEVEL_STATE_TIMES = [
+    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
+     ("scatter", 5), ("chase", -1)],  # level 1
+    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 1033),
+     ("scatter", 1), ("chase", -1)],  # level 2 - 4
+    [("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 1037),
+     ("scatter", 1), ("chase", -1)]]  # level 5+
+
+global_state_stop_time = []
+
 
 def draw_window(sprite_list, maze_data):
     screen.fill(BLACK)
@@ -286,13 +297,38 @@ def update_sprites(maze_data, pacmans, ghosts, consumables):
         maze_data = pacman.update(maze_data, consumables)
         if pacman.consumed_power_pellet:
             pacman.consumed_power_pellet = False
+            frightened_time = 5
+            if len(global_state_stop_time) > 0:
+                global_state_stop_time.pop()
+            global_state_stop_time.append((0, frightened_time))
             for ghost in ghosts:
-                ghost.trigger_frightening_state()
+                ghost.overwrite_global_state("frightened", frightened_time)
 
     for ghost in ghosts:
         ghost.update(pacmans, maze_data)
 
     return maze_data
+
+
+def update_states(level_times, current_time, ghosts):
+    # get current time of pygame in seconds
+    state = "scatter"
+    time = level_times[0][1]
+
+    for i in range(0, len(level_times)):
+        if current_time < time:
+            state = level_times[i][0]
+            break
+
+        if i != len(level_times) - 1 or level_times[i][1] != -1:
+            time += level_times[i + 1][1]
+        else:
+            state = level_times[i][0]
+            break
+
+    print("time: " + str(time), "current_time: " + str(current_time))
+    for ghost in ghosts:
+        ghost.set_global_state(state)
 
 
 def main():
@@ -411,6 +447,9 @@ def main():
                      HEIGHT, SCALE, FPS, 1, 1.9))
 
     last_keys = ["none", "none", "none", "none"]
+    current_tim = 0
+    current_level = 0
+
     while run:
         clock.tick(FPS)
 
@@ -450,6 +489,14 @@ def main():
 
         maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets])
         draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses], maze_data)
+
+        if len(global_state_stop_time) > 0:
+            global_state_stop_time[0] = (global_state_stop_time[0][0] + 1, global_state_stop_time[0][1])
+            if global_state_stop_time[0][0] >= global_state_stop_time[0][1] * FPS:
+                global_state_stop_time.pop(0)
+        else:
+            current_tim += 1
+        update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
 
     pygame.quit()
 

@@ -10,6 +10,10 @@ class Ghost(pygame.sprite.Sprite):
     def __init__(self, x, y, images, fright_images, ghost_type, window_width, window_height, scale, fps, level, speed):
         super().__init__()
 
+        self.overwrite_clock = None
+        self.overwrite_time = None
+        self.global_state = None
+        self.level_state_clock = 0
         self.timer_on_hold = 0
         self.frightened_speed = speed * 0.7
         self.frightened_time = 5
@@ -37,17 +41,16 @@ class Ghost(pygame.sprite.Sprite):
         self.next_node = None
         self.previous_node = None
 
+        # test var for dead state
+        self.dead_time = 5
+        self.dead_timer = 0
+        self.resume_state_timer = True
+
         # Variables for the different modes of the ghosts
         self.state = "scatter"
-        self.state_timer = 0  # in frames
-        # times of the different modes for each level. In seconds
-        self.state_times = [
-            [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
-             ("scatter", 5), ("chase", -1)],  # level 1
-            [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 1033),
-             ("scatter", 1), ("chase", -1)],  # level 2 - 4
-            [("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 1037),
-             ("scatter", 1), ("chase", -1)]]  # level 5+
+        self.level_state_timer = 0  # in frames
+        self.state_overwrite = False
+        self.current_level_state = None
 
         # frightened animation variables
         self.frightened_images = fright_images
@@ -66,26 +69,7 @@ class Ghost(pygame.sprite.Sprite):
 
         self.check_collision(pacmans)
 
-        # update the state of the ghost
-
-        self.state_timer += 1
-        if self.state == "frightened" and self.state_timer > self.frightened_time * self.fps:
-            self.state = self.state_times[self.level - 1][0][0]
-            self.state_timer = self.timer_on_hold
-            # revert speed to normal
-            self.current_speed = self.speed
-            self.turn_around()
-
-        elif self.state_timer > self.state_times[self.level - 1][0][1] * self.fps and not self.is_permanent_state:
-            self.state_times[self.level - 1].pop(0)
-            self.state = self.state_times[self.level - 1][0][0]
-            self.state_timer = 0
-            if self.state_times[self.level - 1][0][1] == -1:
-                self.is_permanent_state = True
-
-            if self.state == "scatter" or self.state == "chase":
-                # reverse ghosts current direction
-                self.turn_around()
+        self.update_overwritten_state()
 
         # change ghosts goal depending on the state
         if self.state == "scatter":
@@ -154,7 +138,7 @@ class Ghost(pygame.sprite.Sprite):
         elif self.state == "frightened":
             self.goal = None
         elif self.state == "dead":
-            print("dead")
+            self.goal = None
             # TODO: implement dead mode
 
         # self.change_direction(self.current_path)
@@ -162,8 +146,6 @@ class Ghost(pygame.sprite.Sprite):
 
         self.move_ghost_classic(self.goal, maze_data)
         self.draw_ghost()
-
-    #
 
     def move(self):
 
@@ -241,14 +223,14 @@ class Ghost(pygame.sprite.Sprite):
 
     # Check collision with pacman. If collision, that pacman dies
     def check_collision(self, pacmans):
-        if self.state == "chase":
+        if self.state == "chase" or self.state == "scatter":
             for pacman in pacmans:
                 if self.rect.colliderect(pacman.rect):
                     pacman.die()
         elif self.state == "frightened":
             for pacman in pacmans:
                 if self.rect.colliderect(pacman.rect):
-                    self.trigger_dead_state()
+                    self.overwrite_global_state("dead", 5)
 
     def change_direction(self, path):
         # find in what direction is the next node in the path by comparing path[0] with path[1]
@@ -385,6 +367,24 @@ class Ghost(pygame.sprite.Sprite):
                 else:
                     self.image = pygame.transform.scale(self.frightened_images[self.current_image],
                                                         (self.scale * 1, self.scale * 1))
+        elif self.state == "dead":
+
+            self.image = pygame.Surface.copy(
+                self.images[self.current_image])  # changed to 3 in trigger_dead_state method
+            # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
+
+            # add eyes on top of image depending on which direction the ghost is facing.
+            # if no direction is given, the eyes are removed
+            if self.direction == "right":
+                self.image.blit(self.images[4], (0, 0))
+            elif self.direction == "left":
+                self.image.blit(self.images[5], (0, 0))
+            elif self.direction == "up":
+                self.image.blit(self.images[6], (0, 0))
+            elif self.direction == "down":
+                self.image.blit(self.images[7], (0, 0))
+
+            self.image = pygame.transform.scale(self.image, (self.scale * 1, self.scale * 1))
 
     # Move the ghost towards the goal the way it worked in the original game
     def move_ghost_classic(self, goal, maze_data):
@@ -581,22 +581,6 @@ class Ghost(pygame.sprite.Sprite):
 
         # draw line from current tile to goal
 
-    def trigger_frightening_state(self):
-        # change the ghost's state to frightened
-        self.state = "frightened"
-        self.timer_on_hold = self.state_timer
-        self.state_timer = 0
-        self.current_speed = self.frightened_speed
-
-        # reverse ghosts current direction
-        self.turn_around()
-
-        self.current_image = 0
-        self.image = pygame.transform.scale(self.frightened_images[self.current_image],
-                                            (self.scale * 1, self.scale * 1))
-        self.flash_timer = pygame.time.get_ticks()
-        self.flash_last_update = pygame.time.get_ticks()
-
     def turn_around(self):
         # Reverse the direction the ghost is facing. Change the next node to the node behind the ghost if the ghost is
         # not past the center of the tile. Change the next node to the current node if the ghost is  past the center of
@@ -637,12 +621,48 @@ class Ghost(pygame.sprite.Sprite):
             else:
                 self.next_node = (int_position[0], len(maze_data) - 1)
 
-    def trigger_dead_state(self):
-        # change the ghost's state to dead
-        self.state = "dead"
+    def set_global_state(self, state):
+        self.global_state = state
 
-        self.current_image = 0
-        self.image = pygame.transform.scale(self.frightened_images[self.current_image],
-                                            (self.scale * 1, self.scale * 1))
-        self.flash_timer = pygame.time.get_ticks()
-        self.flash_last_update = pygame.time.get_ticks()
+    def switch_state(self, state):
+        if state == self.state or (state == "frightened" and self.state == "dead"):
+            return False
+        self.state = state
+        # switch the ghost to a state
+        if state == "dead":
+            self.current_speed = self.speed
+            self.current_image = 3
+            self.image = pygame.transform.scale(self.images[self.current_image],
+                                                (self.scale * 1, self.scale * 1))
+        elif state == "frightened":
+            # change the ghost's state to frightened
+
+            self.current_speed = self.frightened_speed
+            # reverse ghosts current direction
+            self.turn_around()
+
+            self.current_image = 0
+            self.image = pygame.transform.scale(self.frightened_images[self.current_image],
+                                                (self.scale * 1, self.scale * 1))
+            self.flash_timer = pygame.time.get_ticks()
+            self.flash_last_update = pygame.time.get_ticks()
+        elif state == "chase" or state == "scatter":
+            self.current_speed = self.speed
+
+        return True
+
+    def overwrite_global_state(self, state, time):
+        if self.switch_state(state):
+            self.state_overwrite = True
+            self.overwrite_clock = 0
+            self.overwrite_time = time * self.fps
+
+    def update_overwritten_state(self):
+        if not self.state_overwrite:
+            self.switch_state(self.global_state)
+            return
+
+        self.overwrite_clock += 1
+        if self.overwrite_clock >= self.overwrite_time:
+            self.state_overwrite = False
+            self.switch_state(self.global_state)

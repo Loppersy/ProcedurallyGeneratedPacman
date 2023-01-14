@@ -8,15 +8,45 @@ from AStar import AStar, Node
 
 class Ghost(pygame.sprite.Sprite):
     def __init__(self, x, y, images, fright_images, ghost_type, window_width, window_height, scale, fps, speed,
-                 ghost_house):
+                 ghost_house, ghost_number):
         super().__init__()
 
+        self.exited_house = False
+        self.time_to_spawn = None
+        self.float_position = None
+        self.exit_house = False
+        self.ghost_number = ghost_number
+        ghost_house_entrance = ghost_house.get_entrance()
+        print(ghost_house_entrance)
+        if self.ghost_number == 0:
+            starting_position = utilities.get_position_in_window(ghost_house_entrance[0], ghost_house_entrance[1],
+                                                                 scale, window_width, window_height)
+            x = starting_position[0]
+            y = starting_position[1]
+        elif self.ghost_number == 1:
+            starting_position = utilities.get_position_in_window(ghost_house_entrance[0] - 2,
+                                                                 ghost_house_entrance[1] + 3,
+                                                                 scale, window_width, window_height)
+            x = starting_position[0]
+            y = starting_position[1]
+        elif self.ghost_number == 2:
+            starting_position = utilities.get_position_in_window(ghost_house_entrance[0], ghost_house_entrance[1] + 3,
+                                                                 scale, window_width, window_height)
+            x = starting_position[0]
+            y = starting_position[1]
+        elif self.ghost_number == 3:
+            starting_position = utilities.get_position_in_window(ghost_house_entrance[0] + 2,
+                                                                 ghost_house_entrance[1] + 3,
+                                                                 scale, window_width, window_height)
+            x = starting_position[0]
+            y = starting_position[1]
+
+        print(x, y)
         self.is_permanent_overwrite = False
         self.force_goal = None
         self.ghost_house = ghost_house
-        print("my ghost house is " + str(self.ghost_house))
-        self.overwrite_clock = None
-        self.overwrite_time = None
+        self.overwrite_clock = 0
+        self.overwrite_time = 0
         self.global_state = None
         self.level_state_clock = 0
         self.timer_on_hold = 0
@@ -55,6 +85,13 @@ class Ghost(pygame.sprite.Sprite):
 
         # Variables for the different modes of the ghosts
         self.state = "scatter"
+        if self.ghost_number == 0:
+            self.stay_in_house = False
+        else:
+            self.stay_in_house = True
+
+        self.movement_inside_house = "up"
+        self.spawn_clock = 0
         self.level_state_timer = 0  # in frames
         self.state_overwrite = False
         self.current_level_state = None
@@ -67,6 +104,16 @@ class Ghost(pygame.sprite.Sprite):
         self.flash_cooldown = 5 * self.fps  # in frames
         self.flash_start = 2000
 
+        if self.stay_in_house:
+            if self.ghost_number == 1:
+                self.time_to_spawn = 0
+            elif self.ghost_number == 2:
+                self.time_to_spawn = 5
+            elif self.ghost_number == 3:
+                self.time_to_spawn = 10
+
+            self.overwrite_global_state("spawn", -1)
+
     is_permanent_state = False
 
     # Update method. It handles the animation of the ghost, the movement of the ghost, the pathfinding and the hurtbox
@@ -76,12 +123,46 @@ class Ghost(pygame.sprite.Sprite):
         self.empty_maze_data = [[0] * len(maze_data[0]) for _ in range(len(maze_data))]
         self.int_position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
                                                                self.window_height)
-
+        self.float_position = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale,
+                                                                   self.window_width,
+                                                                   self.window_height)
         self.check_collision(pacmans)
         self.update_overwritten_state()
 
         # change ghosts goal depending on the state
-        if self.state == "scatter":
+        if self.state == "spawn":
+            self.spawn_clock += 1
+            ghost_house_entrance = self.ghost_house.get_entrance()
+            if self.spawn_clock >= self.time_to_spawn * self.fps and self.exit_house is False:
+                self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 3))
+                self.spawn_clock = 0
+                self.exit_house = True
+            elif self.movement_inside_house == "up" and self.force_goal is None:
+                if self.ghost_number == 1:
+                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 2))
+                elif self.ghost_number == 2:
+                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 2))
+                elif self.ghost_number == 3:
+                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 2))
+
+                self.movement_inside_house = "down"
+            elif self.movement_inside_house == "down" and self.force_goal is None:
+                if self.ghost_number == 1:
+                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 4))
+                elif self.ghost_number == 2:
+                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 4))
+                elif self.ghost_number == 3:
+                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 4))
+                self.movement_inside_house = "up"
+            if utilities.is_centered(self.float_position, self.force_goal) and self.exit_house:
+                self.set_force_goal(ghost_house_entrance)
+                self.stay_in_house = False
+
+            if self.stay_in_house is False and self.next_node == ghost_house_entrance:
+                self.exit_house = False
+                self.exited_house = True
+                self.overwrite_global_state(self.global_state, 0)
+        elif self.state == "scatter":
 
             if self.type == "blinky":
                 self.goal = (31, 0)
@@ -162,10 +243,9 @@ class Ghost(pygame.sprite.Sprite):
 
         # self.change_direction(self.current_path)
         # self.move()
-
         if self.force_goal is not None:
             self.move_ghost_classic(self.force_goal, self.empty_maze_data)
-            if self.int_position == self.force_goal:
+            if utilities.is_centered(self.float_position, self.force_goal):
                 self.force_goal = None
         else:
             self.move_ghost_classic(self.goal, maze_data)
@@ -357,7 +437,7 @@ class Ghost(pygame.sprite.Sprite):
 
     def draw(self):
         now = pygame.time.get_ticks()
-        if self.state == "chase" or self.state == "scatter":
+        if self.state == "chase" or self.state == "scatter" or self.state == "spawn":
             if now - self.last_update > self.animation_cooldown:
                 self.last_update = now
                 self.current_image = (self.current_image + 1) % 2
@@ -421,10 +501,11 @@ class Ghost(pygame.sprite.Sprite):
                                                               self.window_height)
 
         # if the ghost is in the middle of the tile, it takes the decision of which tile to move next
-        if self.next_node is None or ((
-                abs(float_position[0] - float(self.next_node[0])) <= 0.02 and abs(
-            float_position[1] - float(
-                self.next_node[1])) <= 0.02)):  # and self.next_node != goal): # Use to make ghost stay in goal
+
+        if self.next_node is None \
+                or ((abs(float_position[0] - float(self.next_node[0])) <= 0.02 and abs(float_position[1] - float(
+            self.next_node[
+                1])) <= 0.02)) and not (self.next_node == goal and self.force_goal):  # Use to make ghost stay in goal
 
             # get the available tiles around the ghost. If the tile is not a wall, add it to the list of available
             # tiles. The ghost can't move to the tile it came from. If the tile to be checked would be out of bounds,
@@ -660,6 +741,8 @@ class Ghost(pygame.sprite.Sprite):
         # draw line from current tile to goal
 
     def turn_around(self):
+        if self.force_goal:
+            return
         # Reverse the direction the ghost is facing. Change the next node to the node behind the ghost if the ghost is
         # not past the center of the tile. Change the next node to the current node if the ghost is  past the center of
         # the tile.
@@ -709,7 +792,8 @@ class Ghost(pygame.sprite.Sprite):
         self.global_state = state
 
     def switch_state(self, state):
-        if state == self.state or (state == "frightened" and self.state == "dead"):
+        if state is None or state == self.state or (state == "frightened" and self.state == "dead") or (
+                self.exited_house is False and self.state == "spawn"):
             return False
         self.state = state
         # switch the ghost to a state

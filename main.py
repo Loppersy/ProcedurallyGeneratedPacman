@@ -429,11 +429,19 @@ def main():
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                                  utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 1.9, ghost_house))
+                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 0))
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                                  utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 1.9, ghost_house))
+                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 1))
+                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                                 utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
+                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 2))
+                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                                 utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
+                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 3))
                 # TODO: add the entrance to the ghost house
 
     # populate maze with sprites based on maze_data. Maze centered and scaled to fit screen (using SCALE)

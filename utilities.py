@@ -43,5 +43,12 @@ def get_distance(x, y, x1, y1, use_wrap_around=False):
             min(abs(float(y) - float(y1)), 32.0 - abs(float(y) - float(y1)))) ** 2) ** 0.5
     else:
         return ((float(x) - float(x1)) ** 2 + (float(y) - float(y1)) ** 2) ** 0.5
+
+
 # def get_distance(x, y, x1, y1):
 #     return ((x - x1) ** 2 + (y - y1) ** 2) ** 0.5
+
+def is_centered(float_pos, int_pos):
+    if float_pos is None or int_pos is None:
+        return False
+    return abs(float_pos[0] - float(int_pos[0])) <= 0.02 and abs(float_pos[1] - float(int_pos[1])) <= 0.02

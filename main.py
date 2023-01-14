@@ -31,7 +31,9 @@ MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
 # times of the different modes for each level. In seconds
 LEVEL_STATE_TIMES = [
-    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
+    # [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
+    #  ("scatter", 5), ("chase", -1)],  # level 1
+    [("scatter", 5), ("chase", 5), ("scatter", 5), ("chase", 5), ("scatter", 5), ("chase", 5),
      ("scatter", 5), ("chase", -1)],  # level 1
     [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 1033),
      ("scatter", 1), ("chase", -1)],  # level 2 - 4
@@ -62,6 +64,9 @@ def register_keys(event):
         return "up"
     elif event.key == pygame.K_DOWN:
         return "down"
+
+
+power_pellet_debug = False
 
 
 # last_keys[0] is the current direction that all pacmans are moving and will continue to move in that direction unless
@@ -292,10 +297,10 @@ def move_pacmans(last_keys, pacmans, maze_data):
     return last_keys
 
 
-def update_sprites(maze_data, pacmans, ghosts, consumables):
+def update_sprites(maze_data, pacmans, ghosts, consumables, ghost_houses):
     for pacman in pacmans:
         maze_data = pacman.update(maze_data, consumables)
-        if pacman.consumed_power_pellet:
+        if pacman.consumed_power_pellet or power_pellet_debug:
             pacman.consumed_power_pellet = False
             frightened_time = 5
             if len(global_state_stop_time) > 0:
@@ -303,6 +308,9 @@ def update_sprites(maze_data, pacmans, ghosts, consumables):
             global_state_stop_time.append((0, frightened_time))
             for ghost in ghosts:
                 ghost.overwrite_global_state("frightened", frightened_time)
+
+    for ghost_house in ghost_houses:
+        ghost_house.update(pacmans, maze_data)
 
     for ghost in ghosts:
         ghost.update(pacmans, maze_data)
@@ -326,7 +334,6 @@ def update_states(level_times, current_time, ghosts):
             state = level_times[i][0]
             break
 
-    print("time: " + str(time), "current_time: " + str(current_time))
     for ghost in ghosts:
         ghost.set_global_state(state)
 
@@ -357,6 +364,15 @@ def main():
             # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
             else:
                 maze_data[y].append(1)
+
+    # Create a list for the sprites
+    walls = pygame.sprite.Group()
+    pellets = pygame.sprite.Group()
+    power_pellets = pygame.sprite.Group()
+    ghost_houses = pygame.sprite.Group()
+    ghosts = pygame.sprite.Group()
+    pacmans = pygame.sprite.Group()
+
     # Destroy the surrounding objects of the ghost house to prevent the ghosts from getting stuck
     # pellets and power pellets are fine, but walls, pacmans and other ghost houses are not
     # ghost house is 8x5 tiles
@@ -366,6 +382,7 @@ def main():
     for y in range(MAZE_SIZE[1]):
         for x in range(MAZE_SIZE[0]):
             if maze_data[y][x] == 4:
+                print("Found ghost house at " + str(x) + ", " + str(y))
                 # check if ghost house overlaps with another ghost house
                 if check_ghost_house_overlap(ghost_house_dimensions, ghost_house_placements, x, y):
                     maze_data[y][x] = 0
@@ -399,13 +416,25 @@ def main():
                             1] - 1:
                             maze_data[y + i][x + j] = 1
 
-    # Create a list for the sprites
-    walls = pygame.sprite.Group()
-    pellets = pygame.sprite.Group()
-    power_pellets = pygame.sprite.Group()
-    ghost_houses = pygame.sprite.Group()
-    ghosts = pygame.sprite.Group()
-    pacmans = pygame.sprite.Group()
+                # create ghost house instance
+                ghosts_images = [utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                                 utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE)]
+                pos_in_window = utilities.get_position_in_window(x, y, SCALE, WIDTH, HEIGHT)
+
+                ghost_house = GhostHouse(pos_in_window[0], pos_in_window[1], ["blinky", "pinky"], ghosts_images,
+                                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), WIDTH,
+                                         HEIGHT, SCALE, FPS)
+                ghost_houses.add(ghost_house)
+                ghost_house_entrance = utilities.get_position_in_window(ghost_house.get_entrance()[0],ghost_house.get_entrance()[1], SCALE, WIDTH, HEIGHT)
+                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                                 utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
+                                 HEIGHT, SCALE, FPS, 1.9, ghost_house))
+                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                                 utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
+                                 HEIGHT, SCALE, FPS, 1.9, ghost_house))
+                # TODO: add the entrance to the ghost house
 
     # populate maze with sprites based on maze_data. Maze centered and scaled to fit screen (using SCALE)
     for y in range(32):
@@ -422,9 +451,10 @@ def main():
                     PowerPellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE,
                                 SCALE, PELLETS_SHEET_IMAGE))
             elif maze_data[y][x] == 4:
-                ghost_houses.add(
-                    GhostHouse(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE,
-                               SCALE))
+                # if (somehow) there is a ghost house in the maze data still, replace it with a wall
+                maze_data[y][x] = 1
+                walls.add(
+                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, SCALE))
             elif maze_data[y][x] == 5:
                 # pacmans.add( Pacman(x * SCALE + (WIDTH - 31 * SCALE) / 2, y * SCALE + (HEIGHT - 32.4 * SCALE) / 2,
                 # SCALE, SCALE, 2))
@@ -437,14 +467,14 @@ def main():
                            2))
 
     # TEST: ghosts
-    ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                     utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                     utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-                     HEIGHT, SCALE, FPS, 1, 1.9))
-    ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                     utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                     utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                     HEIGHT, SCALE, FPS, 1, 1.9))
+    # ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
+    #                  utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+    #                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
+    #                  HEIGHT, SCALE, FPS, 1.9, None))
+    # ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
+    #                  utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+    #                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
+    #                  HEIGHT, SCALE, FPS, 1.9, None))
 
     last_keys = ["none", "none", "none", "none"]
     current_tim = 0
@@ -487,7 +517,7 @@ def main():
 
         last_keys = move_pacmans(last_keys, pacmans, maze_data)
 
-        maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets])
+        maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets], ghost_houses)
         draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses], maze_data)
 
         if len(global_state_stop_time) > 0:

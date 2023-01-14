@@ -7,9 +7,14 @@ from AStar import AStar, Node
 
 
 class Ghost(pygame.sprite.Sprite):
-    def __init__(self, x, y, images, fright_images, ghost_type, window_width, window_height, scale, fps, level, speed):
+    def __init__(self, x, y, images, fright_images, ghost_type, window_width, window_height, scale, fps, speed,
+                 ghost_house):
         super().__init__()
 
+        self.is_permanent_overwrite = False
+        self.force_goal = None
+        self.ghost_house = ghost_house
+        print("my ghost house is " + str(self.ghost_house))
         self.overwrite_clock = None
         self.overwrite_time = None
         self.global_state = None
@@ -25,6 +30,8 @@ class Ghost(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
         self.position = (x, y)
+        self.int_position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, scale, window_width,
+                                                               window_height)
         self.last_update = pygame.time.get_ticks()
         self.animation_cooldown = 150
         self.window_width = window_width
@@ -36,10 +43,10 @@ class Ghost(pygame.sprite.Sprite):
         self.speed = speed
         self.direction = "stay"
         self.fps = fps
-        self.level = level
         self.goal = (0, 0)
         self.next_node = None
         self.previous_node = None
+        self.empty_maze_data = []
 
         # test var for dead state
         self.dead_time = 5
@@ -66,9 +73,11 @@ class Ghost(pygame.sprite.Sprite):
     # It also handles the different modes of the ghosts (chase, scatter, frightened, dead), that change depending on the
     # game time.
     def update(self, pacmans, maze_data):
+        self.empty_maze_data = [[0] * len(maze_data[0]) for _ in range(len(maze_data))]
+        self.int_position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
+                                                               self.window_height)
 
         self.check_collision(pacmans)
-
         self.update_overwritten_state()
 
         # change ghosts goal depending on the state
@@ -134,18 +143,33 @@ class Ghost(pygame.sprite.Sprite):
                         self.goal = (self.goal[0] + 4, self.goal[1])
                 else:
                     self.goal = None
-
         elif self.state == "frightened":
             self.goal = None
         elif self.state == "dead":
-            self.goal = None
-            # TODO: implement dead mode
+            self.goal = self.ghost_house.get_entrance()
+            float_position = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale,
+                                                                  self.window_width,
+                                                                  self.window_height)
+            entrance_int_pos = self.ghost_house.get_entrance()
+            if self.force_goal is None \
+                    and self.int_position[0] == entrance_int_pos[0] \
+                    and self.int_position[1] == entrance_int_pos[1]:
+                self.set_force_goal((self.goal[0], self.goal[1] + 3))
+            elif utilities.is_centered(float_position, self.force_goal):
+                self.is_permanent_overwrite = False
+                self.set_force_goal(entrance_int_pos)
+                self.switch_state(self.global_state)
 
         # self.change_direction(self.current_path)
         # self.move()
 
-        self.move_ghost_classic(self.goal, maze_data)
-        self.draw_ghost()
+        if self.force_goal is not None:
+            self.move_ghost_classic(self.force_goal, self.empty_maze_data)
+            if self.int_position == self.force_goal:
+                self.force_goal = None
+        else:
+            self.move_ghost_classic(self.goal, maze_data)
+        self.draw()
 
     def move(self):
 
@@ -230,7 +254,7 @@ class Ghost(pygame.sprite.Sprite):
         elif self.state == "frightened":
             for pacman in pacmans:
                 if self.rect.colliderect(pacman.rect):
-                    self.overwrite_global_state("dead", 5)
+                    self.overwrite_global_state("dead", -1)
 
     def change_direction(self, path):
         # find in what direction is the next node in the path by comparing path[0] with path[1]
@@ -331,7 +355,7 @@ class Ghost(pygame.sprite.Sprite):
                                                            self.window_height))
             return shortest_path, goal
 
-    def draw_ghost(self):
+    def draw(self):
         now = pygame.time.get_ticks()
         if self.state == "chase" or self.state == "scatter":
             if now - self.last_update > self.animation_cooldown:
@@ -343,7 +367,7 @@ class Ghost(pygame.sprite.Sprite):
 
             # add eyes on top of image depending on which direction the ghost is facing.
             # if no direction is given, the eyes are removed
-            if self.direction == "right":
+            if self.direction == "right" or self.direction == "stay":
                 self.image.blit(self.images[4], (0, 0))
             elif self.direction == "left":
                 self.image.blit(self.images[5], (0, 0))
@@ -397,10 +421,10 @@ class Ghost(pygame.sprite.Sprite):
                                                               self.window_height)
 
         # if the ghost is in the middle of the tile, it takes the decision of which tile to move next
-        # and float_position[1] == int_position[1]:
-        if self.next_node is None or (
+        if self.next_node is None or ((
                 abs(float_position[0] - float(self.next_node[0])) <= 0.02 and abs(
-            float_position[1] - float(self.next_node[1])) <= 0.02):
+            float_position[1] - float(
+                self.next_node[1])) <= 0.02)):  # and self.next_node != goal): # Use to make ghost stay in goal
 
             # get the available tiles around the ghost. If the tile is not a wall, add it to the list of available
             # tiles. The ghost can't move to the tile it came from. If the tile to be checked would be out of bounds,
@@ -408,40 +432,59 @@ class Ghost(pygame.sprite.Sprite):
             available_tiles = []
             if int_position[1] - 1 >= 0:
                 if maze_data[int_position[1] - 1][int_position[0]] != 1:
-                    if self.direction != "down":
+                    if self.direction != "down" or self.force_goal is not None:
                         available_tiles.append("up")
             else:
                 if maze_data[len(maze_data) - 1][int_position[0]] != 1:
-                    if self.direction != "down":
+                    if self.direction != "down" or self.force_goal is not None:
                         available_tiles.append("up")
 
             if int_position[0] + 1 < len(maze_data[0]):
                 if maze_data[int_position[1]][int_position[0] + 1] != 1:
-                    if self.direction != "left":
+                    if self.direction != "left" or self.force_goal is not None:
                         available_tiles.append("right")
             else:
                 if maze_data[int_position[1]][0] != 1:
-                    if self.direction != "left":
+                    if self.direction != "left" or self.force_goal is not None:
                         available_tiles.append("right")
 
             if int_position[1] + 1 < len(maze_data):
                 if maze_data[int_position[1] + 1][int_position[0]] != 1:
-                    if self.direction != "up":
+                    if self.direction != "up" or self.force_goal is not None:
                         available_tiles.append("down")
             else:
                 if maze_data[0][int_position[0]] != 1:
-                    if self.direction != "up":
+                    if self.direction != "up" or self.force_goal is not None:
                         available_tiles.append("down")
 
             if int_position[0] - 1 >= 0:
                 if maze_data[int_position[1]][int_position[0] - 1] != 1:
-                    if self.direction != "right":
+                    if self.direction != "right" or self.force_goal is not None:
                         available_tiles.append("left")
 
             else:
                 if maze_data[int_position[1]][len(maze_data[0]) - 1] != 1:
-                    if self.direction != "right":
+                    if self.direction != "right" or self.force_goal is not None:
                         available_tiles.append("left")
+
+            # if no available tiles are found, but the ghost can back track, it will do so
+            if len(available_tiles) == 0:
+                if ((int_position[1] + 1 < len(maze_data) and maze_data[int_position[1] + 1][int_position[0]] != 1) \
+                    or (int_position[1] + 1 >= len(maze_data) and maze_data[0][
+                            int_position[0]] != 1)) and self.direction == "up":
+                    available_tiles.append("down")
+                elif ((int_position[0] + 1 < len(maze_data[0]) and maze_data[int_position[1]][int_position[0] + 1] != 1) \
+                      or (int_position[0] + 1 >= len(maze_data[0]) and maze_data[int_position[1]][
+                            0] != 1)) and self.direction == "left":
+                    available_tiles.append("right")
+                elif ((int_position[1] - 1 >= 0 and maze_data[int_position[1] - 1][int_position[0]] != 1) \
+                      or (int_position[1] - 1 < 0 and maze_data[len(maze_data) - 1][
+                            int_position[0]] != 1)) and self.direction == "down":
+                    available_tiles.append("up")
+                elif ((int_position[0] - 1 >= 0 and maze_data[int_position[1]][int_position[0] - 1] != 1) \
+                      or (int_position[0] - 1 < 0 and maze_data[int_position[1]][
+                            len(maze_data[0]) - 1] != 1)) and self.direction == "right":
+                    available_tiles.append("left")
 
             # if there is a goal to go to, calculate the shortest path. If there is no goal, choose a new direction
             # randomly
@@ -451,9 +494,15 @@ class Ghost(pygame.sprite.Sprite):
                 self.change_direction_randomly(available_tiles, int_position, maze_data)
 
         # move the ghost in the direction it decided to move
-        position_of_next_node = utilities.get_position_in_window(self.next_node[0], self.next_node[1], self.scale,
-                                                                 self.window_width, self.window_height)
-        if self.direction == "right":
+        if self.next_node is not None:
+            position_of_next_node = utilities.get_position_in_window(self.next_node[0], self.next_node[1], self.scale,
+                                                                     self.window_width, self.window_height)
+        else:
+            position_of_next_node = utilities.get_position_in_window(int_position[0], int_position[1], self.scale,
+                                                                     self.window_width, self.window_height)
+        if self.direction == "stay":
+            pass
+        elif self.direction == "right":
             # if adding speed were to make the ghost overshoot the center of the tile, move it to the center
             if self.rect.x + self.current_speed > position_of_next_node[0]:
                 self.position = position_of_next_node
@@ -529,7 +578,7 @@ class Ghost(pygame.sprite.Sprite):
                     distance = utilities.get_distance(int_position[0], len(maze_data) - 1, goal[0], goal[1],
                                                       use_wrap_around)
 
-            if not shortest_distance or distance < shortest_distance \
+            if shortest_distance is None or distance < shortest_distance \
                     or (distance == shortest_distance and (
                     (tile == "up") or (tile == "left" and self.direction != "up") or (
                     tile == "down" and self.direction == "right"))):
@@ -579,6 +628,35 @@ class Ghost(pygame.sprite.Sprite):
                                                  self.window_height)[
                     1] + self.scale // 2), 5)
 
+        if self.force_goal is not None:
+            # draw an X at the center of the forced goal
+            pygame.draw.line(screen, color, (
+                utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    0] + self.scale // 2 - 5,
+                utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    1] + self.scale // 2 - 5), (
+                                 utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale,
+                                                                  self.window_width, self.window_height)[
+                                     0] + self.scale // 2 + 5,
+                                 utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale,
+                                                                  self.window_width, self.window_height)[
+                                     1] + self.scale // 2 + 5), 5)
+            pygame.draw.line(screen, color, (
+                utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    0] + self.scale // 2 + 5,
+                utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    1] + self.scale // 2 - 5), (
+                                 utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale,
+                                                                  self.window_width, self.window_height)[
+                                     0] + self.scale // 2 - 5,
+                                 utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale,
+                                                                  self.window_width, self.window_height)[
+                                     1] + self.scale // 2 + 5), 5)
+
         # draw line from current tile to goal
 
     def turn_around(self):
@@ -594,10 +672,16 @@ class Ghost(pygame.sprite.Sprite):
         elif self.direction == "right":
             self.direction = "left"
 
+        temp = self.next_node
         self.next_node = self.previous_node
+        self.previous_node = temp
 
     def change_direction_randomly(self, available_tiles, int_position, maze_data):
         # change the ghost's direction randomly
+        if len(available_tiles) < 1:
+            self.direction = "stay"
+            return
+
         self.direction = random.choice(available_tiles)
         self.previous_node = int_position
         if self.direction == "right":
@@ -648,13 +732,18 @@ class Ghost(pygame.sprite.Sprite):
             self.flash_last_update = pygame.time.get_ticks()
         elif state == "chase" or state == "scatter":
             self.current_speed = self.speed
+            self.turn_around()
 
         return True
 
     def overwrite_global_state(self, state, time):
-        if self.switch_state(state):
-            self.state_overwrite = True
-            self.overwrite_clock = 0
+        self.switch_state(state)
+        self.state_overwrite = True
+        self.overwrite_clock = 0
+        if time == -1:
+            self.is_permanent_overwrite = True
+        else:
+            self.is_permanent_overwrite = False
             self.overwrite_time = time * self.fps
 
     def update_overwritten_state(self):
@@ -663,6 +752,15 @@ class Ghost(pygame.sprite.Sprite):
             return
 
         self.overwrite_clock += 1
-        if self.overwrite_clock >= self.overwrite_time:
+        if self.overwrite_clock >= self.overwrite_time and not self.is_permanent_overwrite:
             self.state_overwrite = False
             self.switch_state(self.global_state)
+
+    def set_force_goal(self, goal):
+        self.force_goal = goal
+        # self.change_direction_to_closest_tile(["right", "left", "up", "down"], self.force_goal,
+        #                                       utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale,
+        #                                                                          self.window_width,
+        #                                                                          self.window_height),
+        #                                       self.empty_maze_data,
+        #                                       False)

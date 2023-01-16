@@ -208,6 +208,9 @@ class Pacman(pygame.sprite.Sprite):
                         maze_data[position_int[1]][position_int[0]] = 0
                         # TODO: add score
                         self.consumed_power_pellet = True
+                    elif consumable.type == "bonus_fruit":
+                        consumable.consume()
+                        # TODO: add score
 
         return maze_data
 

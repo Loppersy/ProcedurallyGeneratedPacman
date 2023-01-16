@@ -2,6 +2,7 @@ import pygame
 import os
 
 import utilities
+from BonusFruit import BonusFruit
 from Ghost import Ghost
 from GhostHouse import GhostHouse
 from Pacman import Pacman
@@ -26,6 +27,7 @@ PACMAN_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pacman.png")).con
 EYES_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "eyes.png")).convert_alpha()
 PELLETS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pallets.png")).convert_alpha()
 FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frightened_ghost.png")).convert_alpha()
+BONUS_FRUIT_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "bonus_fruit.png")).convert_alpha()
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
@@ -33,12 +35,32 @@ MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 LEVEL_STATE_TIMES = [
     # [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
     #  ("scatter", 5), ("chase", -1)],  # level 1
-    [("scatter", 5), ("chase", 5), ("scatter", 5), ("chase", 5), ("scatter", 5), ("chase", 5),
+    [("scatter", 1), ("chase", 50), ("scatter", 5), ("chase", 5), ("scatter", 5), ("chase", 5),
      ("scatter", 5), ("chase", -1)],  # level 1
     [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 1033),
      ("scatter", 1), ("chase", -1)],  # level 2 - 4
     [("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 1037),
      ("scatter", 1), ("chase", -1)]]  # level 5+
+
+# What bonus fruit will appear in each level (repeat last level's bonus fruit if there are more levels than bonus fruits)
+BONUS_FRUIT = [["cherry", "strawberry"],  # level 1
+               ["strawberry", "strawberry"],  # level 2
+               ["peach", "peach"],  # level 3
+               ["peach", "peach"],  # level 4
+               ["apple", "apple"],  # level 5
+               ["apple", "apple"],  # level 6
+               ["melon", "melon"],  # level 7
+               ["melon", "melon"],  # level 8
+               ["galaxian", "galaxian"],  # level 9
+               ["galaxian", "galaxian"],  # level 10
+               ["bell", "bell"],  # level 11
+               ["bell", "bell"],  # level 12
+               ["key", "key"]]  # level 13
+# After how many dots the fruits will appear as percentage of the total dots
+FRUIT_SPAWN_TRIGGER = [0.1, 0.2]
+
+# For how long the fruit will remain on the screen (in seconds)
+FRUIT_DURATION = 10
 
 global_state_stop_time = []
 
@@ -67,6 +89,8 @@ def register_keys(event):
 
 
 power_pellet_debug = False
+invisibility_debug = True
+debug = [power_pellet_debug, invisibility_debug]
 
 
 # last_keys[0] is the current direction that all pacmans are moving and will continue to move in that direction unless
@@ -313,7 +337,10 @@ def update_sprites(maze_data, pacmans, ghosts, consumables, ghost_houses):
         ghost_house.update(pacmans, maze_data)
 
     for ghost in ghosts:
-        ghost.update(pacmans, maze_data)
+        ghost.update(maze_data, pacmans, ghosts, debug)
+
+    for consumable in consumables:
+        consumable.update(maze_data)
 
     return maze_data
 
@@ -336,7 +363,6 @@ def update_states(level_times, current_time, ghosts):
 
     for ghost in ghosts:
         ghost.set_global_state(state)
-
 
 def main():
     clock = pygame.time.Clock()
@@ -361,6 +387,9 @@ def main():
             # If the pixel is blue, add a 5 to the maze_data list (representing the player's starting position)
             elif MAZE1.get_at((x, y)) == (0, 0, 255):
                 maze_data[y].append(5)
+            # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
+            elif MAZE1.get_at((x, y)) == (255, 128, 0):
+                maze_data[y].append(6)
             # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
             else:
                 maze_data[y].append(1)
@@ -372,6 +401,7 @@ def main():
     ghost_houses = pygame.sprite.Group()
     ghosts = pygame.sprite.Group()
     pacmans = pygame.sprite.Group()
+    bonus_fruits = pygame.sprite.Group()
 
     # Destroy the surrounding objects of the ghost house to prevent the ghosts from getting stuck
     # pellets and power pellets are fine, but walls, pacmans and other ghost houses are not
@@ -425,7 +455,9 @@ def main():
                                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), WIDTH,
                                          HEIGHT, SCALE, FPS)
                 ghost_houses.add(ghost_house)
-                ghost_house_entrance = utilities.get_position_in_window(ghost_house.get_entrance()[0],ghost_house.get_entrance()[1], SCALE, WIDTH, HEIGHT)
+                ghost_house_entrance = utilities.get_position_in_window(ghost_house.get_entrance()[0],
+                                                                        ghost_house.get_entrance()[1], SCALE, WIDTH,
+                                                                        HEIGHT)
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                                  utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
@@ -435,12 +467,12 @@ def main():
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
                                  HEIGHT, SCALE, FPS, 1.9, ghost_house, 1))
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                                 utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
+                                 utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
                                  HEIGHT, SCALE, FPS, 1.9, ghost_house, 2))
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                                 utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
+                                 utilities.load_ghost_sheet(CLYDE_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "clyde", WIDTH,
                                  HEIGHT, SCALE, FPS, 1.9, ghost_house, 3))
                 # TODO: add the entrance to the ghost house
 
@@ -473,6 +505,9 @@ def main():
                            PACMAN_SHEET_IMAGE,
                            SCALE,
                            2))
+            elif maze_data[y][x] == 6:
+                bonus_fruits.add(BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                                 SCALE, WIDTH, HEIGHT, utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE,1,9,16,16), FPS, BONUS_FRUIT[0], FRUIT_SPAWN_TRIGGER, len(utilities.get_occurrences_in_maze(maze_data, 2) + utilities.get_occurrences_in_maze(maze_data, 3)), FRUIT_DURATION))
 
     # TEST: ghosts
     # ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
@@ -525,8 +560,8 @@ def main():
 
         last_keys = move_pacmans(last_keys, pacmans, maze_data)
 
-        maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets], ghost_houses)
-        draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses], maze_data)
+        maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits], ghost_houses)
+        draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
 
         if len(global_state_stop_time) > 0:
             global_state_stop_time[0] = (global_state_stop_time[0][0] + 1, global_state_stop_time[0][1])
@@ -535,6 +570,8 @@ def main():
         else:
             current_tim += 1
         update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
+
+#        spawn_fruit(current_level, BONUS_FRUIT, FRUIT_SPAWN_TRIGGER, maze_data)
 
     pygame.quit()
 

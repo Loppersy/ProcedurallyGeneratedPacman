@@ -52,3 +52,12 @@ def is_centered(float_pos, int_pos):
     if float_pos is None or int_pos is None:
         return False
     return abs(float_pos[0] - float(int_pos[0])) <= 0.02 and abs(float_pos[1] - float(int_pos[1])) <= 0.02
+
+
+def get_occurrences_in_maze(maze_data, object_to_find):
+    occurrences = []
+    for i in range(len(maze_data)):
+        for j in range(len(maze_data[i])):
+            if maze_data[i][j] == object_to_find:
+                occurrences.append((i, j))
+    return occurrences

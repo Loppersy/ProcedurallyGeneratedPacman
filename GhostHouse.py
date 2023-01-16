@@ -10,7 +10,7 @@ class GhostHouse(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.Surface((1, 1))
         self.image.fill((0, 0, 0, 0))
-        self.ghosts = pygame.sprite.Group()
+        self.ghosts = []
         self.rect = pygame.Rect(x, y, 1, 1)
         self.int_pos = (int(utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)[0]),
                         int(utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)[1]))
@@ -45,3 +45,10 @@ class GhostHouse(pygame.sprite.Sprite):
 
     def get_entrance(self):
         return self.int_pos[0] + 3, self.int_pos[1] - 1
+
+    def get_ghosts(self):
+        return self.ghosts
+
+    def add_ghost(self, ghost):
+        self.ghosts.append(ghost)
+

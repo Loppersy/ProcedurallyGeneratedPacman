@@ -11,3 +11,6 @@ class PowerPellet(Consumable):
         super().__init__(x, y, width, height, pellets_sheet_image)
         self.image = pygame.transform.scale(load_sheet(pellets_sheet_image, 2, 2, 16, 16)[1], (width, height))
         self.type = "power_pellet"
+
+    def update(self, maze_data):
+        pass

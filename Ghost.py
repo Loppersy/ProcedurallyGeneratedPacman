@@ -139,6 +139,7 @@ class Ghost(pygame.sprite.Sprite):
 
         # change ghosts goal depending on the state
         if self.state == "spawn":
+            self.current_speed = self.speed * 0.7
             self.spawn_clock += 1
             ghost_house_entrance = self.ghost_house.get_entrance()
             if self.spawn_clock >= self.time_to_spawn * self.fps and self.exit_house is False:

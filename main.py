@@ -28,6 +28,7 @@ EYES_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "eyes.png")).convert
 PELLETS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pallets.png")).convert_alpha()
 FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frightened_ghost.png")).convert_alpha()
 BONUS_FRUIT_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "bonus_fruit.png")).convert_alpha()
+WALLS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls.png")).convert_alpha()
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
@@ -57,7 +58,7 @@ BONUS_FRUIT = [["cherry", "strawberry"],  # level 1
                ["bell", "bell"],  # level 12
                ["key", "key"]]  # level 13
 # After how many dots the fruits will appear as percentage of the total dots
-FRUIT_SPAWN_TRIGGER = [0.1, 0.2]
+FRUIT_SPAWN_TRIGGER = [0.3, 0.7]
 
 # For how long the fruit will remain on the screen (in seconds)
 FRUIT_DURATION = 10
@@ -364,6 +365,7 @@ def update_states(level_times, current_time, ghosts):
     for ghost in ghosts:
         ghost.set_global_state(state)
 
+
 def main():
     clock = pygame.time.Clock()
     run = True
@@ -481,7 +483,8 @@ def main():
         for x in range(32):
             if maze_data[y][x] == 1:
                 walls.add(
-                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, SCALE))
+                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
+                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16)))
             elif maze_data[y][x] == 2:
                 pellets.add(
                     Pellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, SCALE,
@@ -494,7 +497,8 @@ def main():
                 # if (somehow) there is a ghost house in the maze data still, replace it with a wall
                 maze_data[y][x] = 1
                 walls.add(
-                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, SCALE))
+                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
+                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16)))
             elif maze_data[y][x] == 5:
                 # pacmans.add( Pacman(x * SCALE + (WIDTH - 31 * SCALE) / 2, y * SCALE + (HEIGHT - 32.4 * SCALE) / 2,
                 # SCALE, SCALE, 2))
@@ -507,7 +511,12 @@ def main():
                            2))
             elif maze_data[y][x] == 6:
                 bonus_fruits.add(BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                                 SCALE, WIDTH, HEIGHT, utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE,1,9,16,16), FPS, BONUS_FRUIT[0], FRUIT_SPAWN_TRIGGER, len(utilities.get_occurrences_in_maze(maze_data, 2) + utilities.get_occurrences_in_maze(maze_data, 3)), FRUIT_DURATION))
+                                            SCALE, WIDTH, HEIGHT,
+                                            utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16), FPS,
+                                            BONUS_FRUIT[0], FRUIT_SPAWN_TRIGGER,
+                                            len(utilities.get_occurrences_in_maze(maze_data,
+                                                                                  2) + utilities.get_occurrences_in_maze(
+                                                maze_data, 3)), FRUIT_DURATION))
 
     # TEST: ghosts
     # ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
@@ -522,9 +531,14 @@ def main():
     last_keys = ["none", "none", "none", "none"]
     current_tim = 0
     current_level = 0
+    wall_change = True  # To update the wall connections when needed
 
     while run:
         clock.tick(FPS)
+
+        if wall_change:
+            walls.update(maze_data)
+            wall_change = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -571,7 +585,7 @@ def main():
             current_tim += 1
         update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
 
-#        spawn_fruit(current_level, BONUS_FRUIT, FRUIT_SPAWN_TRIGGER, maze_data)
+    #        spawn_fruit(current_level, BONUS_FRUIT, FRUIT_SPAWN_TRIGGER, maze_data)
 
     pygame.quit()
 

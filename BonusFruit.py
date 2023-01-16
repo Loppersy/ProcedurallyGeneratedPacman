@@ -30,10 +30,14 @@ class BonusFruit(Consumable):
         self.current_fruit_type = None
         self.fruit_duration = fruit_duration
         self.fruit_clock = 0
+        self.queue_cooldown = 3
+        self.queue_clock = 0
 
     def update(self, maze_data):
         current_pellet_number = utilities.get_occurrences_in_maze(maze_data, 2) + utilities.get_occurrences_in_maze(
             maze_data, 3)
+
+
 
         # print(len(current_pellet_number), self.starting_pellet_number,
         #       1 - (float(len(current_pellet_number)) / float(self.starting_pellet_number)),
@@ -46,7 +50,8 @@ class BonusFruit(Consumable):
             self.fruit_queue.append(self.fruit_to_spawn[self.current_fruit])
             self.current_fruit += 1
 
-        if len(self.fruit_queue) > 0 and self.consumable is False:
+        self.queue_clock += 1
+        if len(self.fruit_queue) > 0 and self.consumable is False and self.queue_clock > self.queue_cooldown * self.fps:
             self.spawn_fruit(self.fruit_queue.pop(0))
 
         if self.consumable:
@@ -89,6 +94,7 @@ class BonusFruit(Consumable):
         if not self.consumable:
             return
         print("Consumed fruit")
+        self.queue_clock = 0
         self.consumable = False
         self.current_fruit_type = None
         self.image = pygame.transform.scale(self.fruit_images[0], (self.scale, self.scale))

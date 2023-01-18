@@ -178,23 +178,23 @@ class Pacman(pygame.sprite.Sprite):
         # if it is the end of the maze, check the tile in the other side of the maze.
         if direction == "left":
             if direction == "left":
-                if position_int[0] == 0:
-                    return maze_data[position_int[1]][position_int[0] + 31] != 1 or centerness[0] > min_threshold[0]
+                if position_int[0] <= 0:
+                    return maze_data[position_int[1]][31] != 1 or centerness[0] > min_threshold[0]
                 else:
                     return maze_data[position_int[1]][position_int[0] - 1] != 1 or centerness[0] > min_threshold[0]
         elif direction == "right":
-            if position_int[0] == 31:
-                return maze_data[position_int[1]][position_int[0] - 31] != 1 or centerness[0] > min_threshold[0]
+            if position_int[0] >= 31:
+                return maze_data[position_int[1]][0] != 1 or centerness[0] > min_threshold[0]
             else:
                 return maze_data[position_int[1]][position_int[0] + 1] != 1 or centerness[0] > min_threshold[0]
         elif direction == "up":
-            if position_int[1] == 0:
-                return maze_data[position_int[1] + 31][position_int[0]] != 1 or centerness[1] > min_threshold[1]
+            if position_int[1] <= 0:
+                return maze_data[31][position_int[0]] != 1 or centerness[1] > min_threshold[1]
             else:
                 return maze_data[position_int[1] - 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
         elif direction == "down":
-            if position_int[1] == 31:
-                return maze_data[position_int[1] - 31][position_int[0]] != 1 or centerness[1] > min_threshold[1]
+            if position_int[1] >= 31:
+                return maze_data[0][position_int[0]] != 1 or centerness[1] > min_threshold[1]
             else:
                 return maze_data[position_int[1] + 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
 
@@ -220,8 +220,10 @@ class Pacman(pygame.sprite.Sprite):
                         maze_data[position_int[1]][position_int[0]] = 0
                         # TODO: add score
                         self.consumed_power_pellet = True
-                    elif consumable.type == "bonus_fruit":
-                        consumable.consume()
+
+                # check collision with bonus fruit and pacman
+                if consumable.type == "bonus_fruit" and consumable.rect.colliderect(self.rect):
+                    consumable.consume()
                         # TODO: add score
 
         return maze_data

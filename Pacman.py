@@ -8,14 +8,14 @@ class Pacman(pygame.sprite.Sprite):
     def __init__(self, x, y, window_width, window_height, pacman_sheet_image, scale, speed):
         super().__init__()
         self.consumed_power_pellet = False
-        self.x = x
-        self.y = y
         self.images = load_sheet(pacman_sheet_image, 2, 11, 16, 16)
         self.current_image = 0
-        self.image = pygame.transform.scale(self.images[self.current_image], (scale * 1, scale * 1))
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
+        self.image = pygame.Surface((scale * 1, scale * 1), pygame.SRCALPHA)  # Do not update this surface
+        self.rect = pygame.transform.scale(self.image, (scale * 0.5, scale * 0.5)).get_rect()
+        self.image_scale = 1.5
+        self.my_image = pygame.transform.scale(self.images[self.current_image],
+                                               (scale * self.image_scale, scale * self.image_scale))
+
         self.last_update = pygame.time.get_ticks()
 
         self.current_speed = speed
@@ -25,6 +25,9 @@ class Pacman(pygame.sprite.Sprite):
         self.window_height = window_height
         self.moving = False
 
+        self.move(x, y)
+        self.logic_pos = int(round(x)), int(round(y))
+
         self.animation_cooldown = 50
         self.dying_animation_cooldown = 150
         self.dying_animation_start_cooldown = 1000
@@ -32,17 +35,25 @@ class Pacman(pygame.sprite.Sprite):
         self.start_animation_completed = False
         self.dead_animation_completed = False
 
+    def move(self, x, y):
+        #print("Pacman move: ", x, y)
+        self.logic_pos = int(x), int(y)
+        self.rect.x = int(x + self.scale * 0.25)
+        self.rect.y = int(y + self.scale * 0.25)
+
+    def get_pos(self):
+        return self.logic_pos
+
     def update(self, maze_data, consumables):
         if self.direction == "dead":
             self.kill()
-        self.draw_pacman()
 
         # consume any consumable in the current position
         maze_data = self.check_consumables(maze_data, consumables)
 
         return maze_data
 
-    def draw_pacman(self):
+    def my_draw(self, screen):
         now = pygame.time.get_ticks()
         if self.direction == "dying":
             if not self.start_animation_completed:
@@ -63,7 +74,8 @@ class Pacman(pygame.sprite.Sprite):
                 else:
                     self.dead_animation_completed = True
 
-            self.image = pygame.transform.scale(self.images[self.current_image], (self.scale * 1, self.scale * 1))
+            self.my_image = pygame.transform.scale(self.images[self.current_image],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
 
         elif now - self.last_update > self.animation_cooldown and self.moving:
             self.last_update = now
@@ -96,17 +108,23 @@ class Pacman(pygame.sprite.Sprite):
                 else:
                     self.current_image = self.current_image + 1
 
-            # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
-            self.image = pygame.transform.scale(self.images[self.current_image], (self.scale * 1, self.scale * 1))
+            self.my_image = pygame.transform.scale(self.images[self.current_image],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
+
+        screen.blit(self.my_image, (self.rect.x - self.scale * 0.5, self.rect.y - self.scale * 0.5))
+
+        # visualize rect boundaries
+        pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)
 
     # check collision with walls in a given direction
     def can_change_direction(self, maze_data, direction):
-        position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
+        position = utilities.get_position_in_maze_int(self.get_pos()[0], self.get_pos()[1], self.scale,
+                                                      self.window_width,
                                                       self.window_height)
         min_threshold = (.07, .07)
-        centerness = (abs(position[0] - (self.rect.x - (self.window_width - self.scale * 32) / 2) / self.scale),
-                      abs(position[1] - (self.rect.y - (self.window_height - self.scale * 32) / 2) / self.scale))
-        # print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (window_height - self.scale * 32) / 2)/ self.scale), centerness)
+        centerness = (abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
+                      abs(position[1] - (self.get_pos()[1] - (self.window_height - self.scale * 32) / 2) / self.scale))
+        #        print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (window_height - self.scale * 32) / 2)/ self.scale), centerness)
 
         # if the pacman is not in the center of the tile, it can't change direction. if pacman is in the edge of the
         # maze, check if it can change direction by looking at the other side of the maze to account for the wrapping
@@ -156,9 +174,10 @@ class Pacman(pygame.sprite.Sprite):
         # return False
 
     def check_open_path(self, maze_data, direction):
-        position_int = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
+        temp_pos = self.get_pos()
+        position_int = utilities.get_position_in_maze_int(temp_pos[0], temp_pos[1], self.scale, self.window_width,
                                                           self.window_height)
-        position_float = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale, self.window_width,
+        position_float = utilities.get_position_in_maze_float(temp_pos[0], temp_pos[1], self.scale, self.window_width,
                                                               self.window_height)
         min_threshold = (.07, .07)
         centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
@@ -192,7 +211,7 @@ class Pacman(pygame.sprite.Sprite):
                 position_int = utilities.get_position_in_maze_int(consumable.rect.x, consumable.rect.y, self.scale,
                                                                   self.window_width,
                                                                   self.window_height)
-                position_float = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale,
+                position_float = utilities.get_position_in_maze_float(self.logic_pos[0], self.logic_pos[1], self.scale,
                                                                       self.window_width,
                                                                       self.window_height)
                 min_threshold = (.2, .2)

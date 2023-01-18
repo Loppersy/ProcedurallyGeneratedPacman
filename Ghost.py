@@ -11,6 +11,8 @@ class Ghost(pygame.sprite.Sprite):
                  ghost_house, ghost_number):
         super().__init__()
 
+        self.image_scale = 1.5
+        self.my_image = None
         self.closest_pacman = None
         self.exited_house = False
         self.time_to_spawn = None
@@ -57,7 +59,8 @@ class Ghost(pygame.sprite.Sprite):
         self.type = ghost_type
         self.images = images
         self.current_image = 0
-        self.image = pygame.transform.scale(self.images[self.current_image], (scale * 1, scale * 1))
+        # self.image = pygame.transform.scale(self.images[self.current_image], (scale * 1, scale * 1))
+        self.image = pygame.Surface((scale * 1, scale * 1), pygame.SRCALPHA)  # Do not update this surface
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -195,15 +198,17 @@ class Ghost(pygame.sprite.Sprite):
             self.closest_pacman = None
             for pacman in pacmans:
                 if not self.closest_pacman or utilities.get_distance(self.rect.x, self.rect.y, pacman.rect.x,
-                                                                pacman.rect.y) < utilities.get_distance(self.rect.x,
-                                                                                                        self.rect.y,
-                                                                                                        self.closest_pacman.rect.x,
-                                                                                                        self.closest_pacman.rect.y):
+                                                                     pacman.rect.y) < utilities.get_distance(
+                    self.rect.x,
+                    self.rect.y,
+                    self.closest_pacman.rect.x,
+                    self.closest_pacman.rect.y):
                     self.closest_pacman = pacman
             if self.type == "blinky":  # get the closest pacman and set its position as the goal
 
                 if self.closest_pacman is not None:
-                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x, self.closest_pacman.rect.y,
+                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
+                                                                   self.closest_pacman.rect.y,
                                                                    self.scale,
                                                                    self.window_width, self.window_height)
                 else:
@@ -213,7 +218,8 @@ class Ghost(pygame.sprite.Sprite):
                 # moving as the goal
 
                 if self.closest_pacman is not None:
-                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x, self.closest_pacman.rect.y,
+                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
+                                                                   self.closest_pacman.rect.y,
                                                                    self.scale,
                                                                    self.window_width, self.window_height)
                     if self.closest_pacman.direction == "up":
@@ -230,7 +236,8 @@ class Ghost(pygame.sprite.Sprite):
             elif self.type == "inky":  # get the closest pacman and set its position
 
                 if self.closest_pacman is not None:
-                    self.pivot = utilities.get_position_in_maze_int(self.closest_pacman.rect.x, self.closest_pacman.rect.y,
+                    self.pivot = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
+                                                                    self.closest_pacman.rect.y,
                                                                     self.scale,
                                                                     self.window_width, self.window_height)
                     if self.closest_pacman.direction == "up":
@@ -272,9 +279,10 @@ class Ghost(pygame.sprite.Sprite):
                     self.goal = None
             elif self.type == "clyde":
                 if self.closest_pacman is not None and utilities.get_distance(self.rect.x, self.rect.y,
-                                                                         self.closest_pacman.rect.x,
-                                                                         self.closest_pacman.rect.y) > 8 * self.scale:
-                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x, self.closest_pacman.rect.y,
+                                                                              self.closest_pacman.rect.x,
+                                                                              self.closest_pacman.rect.y) > 8 * self.scale:
+                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
+                                                                   self.closest_pacman.rect.y,
                                                                    self.scale,
                                                                    self.window_width, self.window_height)
                 elif self.closest_pacman is not None:
@@ -307,7 +315,6 @@ class Ghost(pygame.sprite.Sprite):
                 self.force_goal = None
         else:
             self.move_ghost_classic(self.goal, maze_data)
-        self.draw()
 
     def move(self):
 
@@ -493,28 +500,29 @@ class Ghost(pygame.sprite.Sprite):
                                                            self.window_height))
             return shortest_path, goal
 
-    def draw(self):
+    def my_draw(self, screen):
         now = pygame.time.get_ticks()
         if self.state == "chase" or self.state == "scatter" or self.state == "spawn":
             if now - self.last_update > self.animation_cooldown:
                 self.last_update = now
                 self.current_image = (self.current_image + 1) % 2
 
-            self.image = pygame.Surface.copy(self.images[self.current_image])
+            self.my_image = pygame.Surface.copy(self.images[self.current_image])
             # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
 
             # add eyes on top of image depending on which direction the ghost is facing.
             # if no direction is given, the eyes are removed
             if self.direction == "right" or self.direction == "stay":
-                self.image.blit(self.images[4], (0, 0))
+                self.my_image.blit(self.images[4], (0, 0))
             elif self.direction == "left":
-                self.image.blit(self.images[5], (0, 0))
+                self.my_image.blit(self.images[5], (0, 0))
             elif self.direction == "up":
-                self.image.blit(self.images[6], (0, 0))
+                self.my_image.blit(self.images[6], (0, 0))
             elif self.direction == "down":
-                self.image.blit(self.images[7], (0, 0))
+                self.my_image.blit(self.images[7], (0, 0))
 
-            self.image = pygame.transform.scale(self.image, (self.scale * 1, self.scale * 1))
+            self.my_image = pygame.transform.scale(self.my_image,
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
 
         elif self.state == "frightened":
             if now - self.flash_last_update > self.flash_cooldown:
@@ -524,29 +532,34 @@ class Ghost(pygame.sprite.Sprite):
                 self.last_update = now
                 self.current_image = (self.current_image + 1) % 2
                 if now - self.flash_timer > self.flash_start and self.flash_white:
-                    self.image = pygame.transform.scale(self.frightened_images[self.current_image + 2],
-                                                        (self.scale * 1, self.scale * 1))
+                    self.my_image = pygame.transform.scale(self.frightened_images[self.current_image + 2],
+                                                           (self.scale * self.image_scale,
+                                                            self.scale * self.image_scale))
                 else:
-                    self.image = pygame.transform.scale(self.frightened_images[self.current_image],
-                                                        (self.scale * 1, self.scale * 1))
+                    self.my_image = pygame.transform.scale(self.frightened_images[self.current_image],
+                                                           (self.scale * self.image_scale,
+                                                            self.scale * self.image_scale))
+
         elif self.state == "dead":
 
-            self.image = pygame.Surface.copy(
+            self.my_image = pygame.Surface.copy(
                 self.images[self.current_image])  # changed to 3 in trigger_dead_state method
-            # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
 
             # add eyes on top of image depending on which direction the ghost is facing.
             # if no direction is given, the eyes are removed
             if self.direction == "right":
-                self.image.blit(self.images[4], (0, 0))
+                self.my_image.blit(self.images[4], (0, 0))
             elif self.direction == "left":
-                self.image.blit(self.images[5], (0, 0))
+                self.my_image.blit(self.images[5], (0, 0))
             elif self.direction == "up":
-                self.image.blit(self.images[6], (0, 0))
+                self.my_image.blit(self.images[6], (0, 0))
             elif self.direction == "down":
-                self.image.blit(self.images[7], (0, 0))
+                self.my_image.blit(self.images[7], (0, 0))
 
-            self.image = pygame.transform.scale(self.image, (self.scale * 1, self.scale * 1))
+            self.my_image = pygame.transform.scale(self.my_image,
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
+
+        screen.blit(self.my_image, (self.rect.x - self.scale * 0.25, self.rect.y - self.scale * 0.25))
 
     # Move the ghost towards the goal the way it worked in the original game
     def move_ghost_classic(self, goal, maze_data):
@@ -813,7 +826,7 @@ class Ghost(pygame.sprite.Sprite):
         if self.type == "clyde" and self.closest_pacman is not None and self.state == "chase":
             # Draw circle around closest pacman to indicate where clyde is not chasing pacman
 
-            pacman_position = (self.closest_pacman.rect.x + self.scale/2, self.closest_pacman.rect.y + self.scale/2)
+            pacman_position = (self.closest_pacman.rect.x + self.scale / 2, self.closest_pacman.rect.y + self.scale / 2)
             pygame.draw.circle(screen, color, pacman_position, 8 * self.scale, 1)
 
     def turn_around(self):
@@ -876,8 +889,8 @@ class Ghost(pygame.sprite.Sprite):
         if state == "dead":
             self.current_speed = self.speed
             self.current_image = 3
-            self.image = pygame.transform.scale(self.images[self.current_image],
-                                                (self.scale * 1, self.scale * 1))
+            self.my_image = pygame.transform.scale(self.images[self.current_image],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
         elif state == "frightened":
             # change the ghost's state to frightened
 
@@ -886,8 +899,8 @@ class Ghost(pygame.sprite.Sprite):
             self.turn_around()
 
             self.current_image = 0
-            self.image = pygame.transform.scale(self.frightened_images[self.current_image],
-                                                (self.scale * 1, self.scale * 1))
+            self.my_image = pygame.transform.scale(self.frightened_images[self.current_image],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.flash_timer = pygame.time.get_ticks()
             self.flash_last_update = pygame.time.get_ticks()
         elif state == "chase" or state == "scatter":

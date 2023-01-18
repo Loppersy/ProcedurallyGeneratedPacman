@@ -75,6 +75,11 @@ def draw_window(sprite_list, maze_data):
     # display the path of the ghosts
     for ghost in sprite_list[1]:
         ghost.draw_classic_path(screen, maze_data)
+        ghost.my_draw(screen)
+
+    for pacman in sprite_list[0]:
+        pacman.my_draw(screen)
+
     pygame.display.update()
 
 
@@ -90,7 +95,7 @@ def register_keys(event):
 
 
 power_pellet_debug = False
-invisibility_debug = True
+invisibility_debug = False
 debug = [power_pellet_debug, invisibility_debug]
 
 
@@ -251,73 +256,69 @@ def move_pacmans(last_keys, pacmans, maze_data):
             elif pacman.can_change_direction(maze_data, "down"):
                 pacman.direction = "down"
 
-        temp_pos_x = pacman.rect.x
-        temp_pos_y = pacman.rect.y
+        old_pos = pacman.get_pos()
+        new_pos = pacman.get_pos()
         # Move pacman in the direction he is facing by adding the speed to the x or y position.
         # If pacman is at the edge of the maze, move him to the other side taking into account the size of the maze
         # and its offset (using SCALE and WIDTH and HEIGHT).
+
+        #print(last_keys)
+        #print(old_pos, pacman.logic_pos)
+        #print(pacman.check_open_path(maze_data, "left"), pacman.check_open_path(maze_data, "right"), pacman.check_open_path(maze_data, "up"), pacman.check_open_path(maze_data, "down"))
+        #print(pacman.can_change_direction(maze_data, "left"), pacman.can_change_direction(maze_data, "right"), pacman.can_change_direction(maze_data, "up"), pacman.can_change_direction(maze_data, "down"))
         if pacman.direction != "stay":
             if pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
-                pacman.rect.x -= pacman.current_speed
-                if pacman.rect.x < utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                          pacman.rect.y,
+                #pacman.get_pos()[0] -= pacman.current_speed
+
+                pacman.move(old_pos[0] - pacman.current_speed, old_pos[1])
+                #print(old_pos[0] - pacman.current_speed)
+                if pacman.get_pos()[0] < utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                                          pacman.get_pos()[1],
                                                                                                           SCALE, WIDTH,
                                                                                                           HEIGHT)[1],
                                                                     SCALE, WIDTH, HEIGHT)[0]:
-                    pacman.rect.x = \
-                        utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                pacman.rect.y, SCALE,
-                                                                                                WIDTH, HEIGHT)[1],
-                                                         SCALE, WIDTH, HEIGHT)[0]
+
+                    new_pos = utilities.get_position_in_maze_int(31, pacman.get_pos()[1], SCALE, WIDTH, HEIGHT)
+                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
             elif pacman.direction == "right" and pacman.check_open_path(maze_data, "right"):
-                pacman.rect.x += pacman.current_speed
-                if pacman.rect.x > \
-                        utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                pacman.rect.y,
+                #pacman.get_pos()[0] += pacman.current_speed
+                pacman.move(old_pos[0] + pacman.current_speed, old_pos[1])
+                if pacman.get_pos()[0] > \
+                        utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                                pacman.get_pos()[1],
                                                                                                 SCALE, WIDTH,
                                                                                                 HEIGHT)[1],
                                                          SCALE, WIDTH, HEIGHT)[0]:
-                    pacman.rect.x = \
-                        utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                               pacman.rect.y, SCALE,
-                                                                                               WIDTH, HEIGHT)[1], SCALE,
-                                                         WIDTH, HEIGHT)[0]
+
+                    new_pos = utilities.get_position_in_maze_int(0, pacman.get_pos()[1], SCALE, WIDTH, HEIGHT)
+                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
+
             elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
-                pacman.rect.y -= pacman.current_speed
-                if pacman.rect.y < utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                       pacman.rect.y,
+                #pacman.get_pos()[1] -= pacman.current_speed
+                pacman.move(old_pos[0], old_pos[1] - pacman.current_speed)
+                if pacman.get_pos()[1] < utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                                       pacman.get_pos()[1],
                                                                                                        SCALE, WIDTH,
                                                                                                        HEIGHT)[0], 0,
                                                                     SCALE, WIDTH, HEIGHT)[1]:
-                    pacman.rect.y = \
-                        utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                            pacman.rect.y, SCALE,
-                                                                                            WIDTH, HEIGHT)[0], 31,
-                                                         SCALE, WIDTH, HEIGHT)[1]
+
+                    new_pos = utilities.get_position_in_maze_int(pacman.get_pos()[0], 31, SCALE, WIDTH, HEIGHT)
+                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
+
             elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
-                pacman.rect.y += pacman.current_speed
-                if pacman.rect.y > utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                                       pacman.rect.y,
+                #pacman.get_pos()[1] += pacman.current_speed
+                pacman.move(old_pos[0], old_pos[1] + pacman.current_speed)
+                if pacman.get_pos()[1] > utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                                       pacman.get_pos()[1],
                                                                                                        SCALE, WIDTH,
                                                                                                        HEIGHT)[0], 31,
                                                                     SCALE, WIDTH, HEIGHT)[1]:
-                    pacman.rect.y = \
-                        utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.rect.x,
-                                                                                            pacman.rect.y, SCALE,
-                                                                                            WIDTH, HEIGHT)[0], 0, SCALE,
-                                                         WIDTH, HEIGHT)[1]
 
-        # if pacman.direction != "stay":
-        #     if pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
-        #         pacman.rect.x -= pacman.speed
-        #     elif pacman.direction == "right" and pacman.check_open_path(maze_data, "right"):
-        #         pacman.rect.x += pacman.speed
-        #     elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
-        #         pacman.rect.y -= pacman.speed
-        #     elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
-        #         pacman.rect.y += pacman.speed
+                    new_pos = utilities.get_position_in_maze_int(pacman.get_pos()[0], 0, SCALE, WIDTH, HEIGHT)
+                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
 
-        pacman.moving = not (temp_pos_x == pacman.rect.x and pacman.rect.y == temp_pos_y)
+
+        pacman.moving = not (old_pos[0] == pacman.get_pos()[0] and pacman.get_pos()[1] == old_pos[1])
     # print(last_keys)
     return last_keys
 

@@ -14,3 +14,6 @@ class PowerPellet(Consumable):
 
     def update(self, maze_data):
         pass
+
+    def my_draw(self, surface):
+        pass

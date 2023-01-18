@@ -11,15 +11,20 @@ class BonusFruit(Consumable):
         super().__init__(x, y, scale, scale, fruit_images[0])
         self.fruit_queue = []
         self.fruit_images = fruit_images
-        self.image = pygame.transform.scale(self.fruit_images[0], (scale, scale))
+        self.image_scale = 1.5
+
+        self.image = pygame.Surface((scale, scale), pygame.SRCALPHA)  # Do not update this surface
         self.rect = self.image.get_rect()
+        self.my_image = pygame.transform.scale(self.fruit_images[0],
+                                               (scale * self.image_scale, scale * self.image_scale))
         self.int_pos = (int(utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)[0]),
                         int(utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)[1]))
-        self.rect.x = x
-        self.rect.y = y
+
         self.window_width = window_width
         self.window_height = window_height
         self.scale = scale
+        self.rect.x = x
+        self.rect.y = y
         self.fps = fps
         self.fruit_to_spawn = fruit_to_spawn
         self.starting_pellet_number = starting_pellet_number
@@ -37,22 +42,22 @@ class BonusFruit(Consumable):
         current_pellet_number = utilities.get_occurrences_in_maze(maze_data, 2) + utilities.get_occurrences_in_maze(
             maze_data, 3)
 
-
-
         # print(len(current_pellet_number), self.starting_pellet_number,
         #       1 - (float(len(current_pellet_number)) / float(self.starting_pellet_number)),
         #       self.spawn_trigger[self.current_fruit] if len(self.spawn_trigger) > self.current_fruit else -1, self.fruit_clock / self.fps, self.current_fruit)
 
-        if len(self.spawn_trigger) > self.current_fruit and (1 - (float(len(current_pellet_number)) / float(self.starting_pellet_number)) > self.spawn_trigger[
-            self.current_fruit] and self.current_fruit < len(
+        if len(self.spawn_trigger) > self.current_fruit and (
+                1 - (float(len(current_pellet_number)) / float(self.starting_pellet_number)) > self.spawn_trigger[
+                self.current_fruit] and self.current_fruit < len(
                 self.fruit_to_spawn)):
-
             self.fruit_queue.append(self.fruit_to_spawn[self.current_fruit])
             self.current_fruit += 1
 
-        self.queue_clock += 1
+        if not self.consumable:
+            self.queue_clock += 1
         if len(self.fruit_queue) > 0 and self.consumable is False and self.queue_clock > self.queue_cooldown * self.fps:
             self.spawn_fruit(self.fruit_queue.pop(0))
+            self.queue_clock = 0
 
         if self.consumable:
             self.fruit_clock += 1
@@ -60,34 +65,43 @@ class BonusFruit(Consumable):
                 self.consumable = False
                 self.current_fruit_type = None
                 self.fruit_clock = 0
-                self.image = pygame.transform.scale(self.fruit_images[0], (self.scale, self.scale))
+                self.my_image = pygame.transform.scale(self.fruit_images[0],
+                                                       (self.scale * self.image_scale, self.scale * self.image_scale))
 
     def spawn_fruit(self, fruit_type=None):
         self.fruit_clock = 0
         self.consumable = True
         if fruit_type == "cherry":
-            self.image = pygame.transform.scale(self.fruit_images[1], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[1],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "cherry"
         elif fruit_type == "strawberry":
-            self.image = pygame.transform.scale(self.fruit_images[2], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[2],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "strawberry"
         elif fruit_type == "peach":
-            self.image = pygame.transform.scale(self.fruit_images[3], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[3],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "peach"
         elif fruit_type == "apple":
-            self.image = pygame.transform.scale(self.fruit_images[4], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[4],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "apple"
         elif fruit_type == "melon":
-            self.image = pygame.transform.scale(self.fruit_images[5], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[5],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "melon"
         elif fruit_type == "galaxian":
-            self.image = pygame.transform.scale(self.fruit_images[6], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[6],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "galaxian"
         elif fruit_type == "bell":
-            self.image = pygame.transform.scale(self.fruit_images[7], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[7],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "bell"
         elif fruit_type == "key":
-            self.image = pygame.transform.scale(self.fruit_images[8], (self.scale, self.scale))
+            self.my_image = pygame.transform.scale(self.fruit_images[8],
+                                                   (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "key"
 
     def consume(self):
@@ -97,4 +111,10 @@ class BonusFruit(Consumable):
         self.queue_clock = 0
         self.consumable = False
         self.current_fruit_type = None
-        self.image = pygame.transform.scale(self.fruit_images[0], (self.scale, self.scale))
+        self.my_image = pygame.transform.scale(self.fruit_images[0],
+                                               (self.scale * self.image_scale, self.scale * self.image_scale))
+
+    def my_draw(self, screen):
+        screen.blit(self.my_image, (self.rect.x - self.scale * 0.25, self.rect.y - self.scale * 0.25))
+        # draw hitbox
+        # pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)

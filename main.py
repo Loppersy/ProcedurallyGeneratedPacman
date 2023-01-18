@@ -58,7 +58,7 @@ BONUS_FRUIT = [["cherry", "strawberry"],  # level 1
                ["bell", "bell"],  # level 12
                ["key", "key"]]  # level 13
 # After how many dots the fruits will appear as percentage of the total dots
-FRUIT_SPAWN_TRIGGER = [0.3, 0.7]
+FRUIT_SPAWN_TRIGGER = [0.1, 0.2]
 
 # For how long the fruit will remain on the screen (in seconds)
 FRUIT_DURATION = 10
@@ -79,6 +79,9 @@ def draw_window(sprite_list, maze_data):
 
     for pacman in sprite_list[0]:
         pacman.my_draw(screen)
+
+    for bonus_fruit in sprite_list[6]:
+        bonus_fruit.my_draw(screen)
 
     pygame.display.update()
 
@@ -278,8 +281,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
                                                                                                SCALE, WIDTH,
                                                                                                HEIGHT)[1],
                                                          SCALE, WIDTH, HEIGHT)[0]:
-                    new_pos = utilities.get_position_in_maze_int(31, pacman.get_pos()[1], SCALE, WIDTH, HEIGHT)
-                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
+                    pacman.move(utilities.get_position_in_window(31, 0, SCALE, WIDTH, HEIGHT)[0],
+                                pacman.get_pos()[1])  # Teleport to other side if needed
             elif pacman.direction == "right" and pacman.check_open_path(maze_data, "right"):
                 # pacman.get_pos()[0] += pacman.current_speed
                 pacman.move(old_pos[0] + pacman.current_speed, old_pos[1])
@@ -289,8 +292,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
                                                                                                 SCALE, WIDTH,
                                                                                                 HEIGHT)[1],
                                                          SCALE, WIDTH, HEIGHT)[0]:
-                    new_pos = utilities.get_position_in_maze_int(0, pacman.get_pos()[1], SCALE, WIDTH, HEIGHT)
-                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
+
+                    pacman.move(utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[0],pacman.get_pos()[1])
 
             elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
                 # pacman.get_pos()[1] -= pacman.current_speed
@@ -301,8 +304,8 @@ def move_pacmans(last_keys, pacmans, maze_data):
                                                                                             SCALE, WIDTH,
                                                                                             HEIGHT)[0], 0,
                                                          SCALE, WIDTH, HEIGHT)[1]:
-                    new_pos = utilities.get_position_in_maze_int(pacman.get_pos()[0], 31, SCALE, WIDTH, HEIGHT)
-                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
+                    pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 31, SCALE, WIDTH, HEIGHT)[1])
+
 
             elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
                 # pacman.get_pos()[1] += pacman.current_speed
@@ -313,8 +316,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
                                                                                             SCALE, WIDTH,
                                                                                             HEIGHT)[0], 31,
                                                          SCALE, WIDTH, HEIGHT)[1]:
-                    new_pos = utilities.get_position_in_maze_int(pacman.get_pos()[0], 0, SCALE, WIDTH, HEIGHT)
-                    pacman.move(new_pos[0], new_pos[1])  # Teleport to other side if needed
+                    pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[1])
 
         pacman.moving = not (old_pos[0] == pacman.get_pos()[0] and pacman.get_pos()[1] == old_pos[1])
     # print(last_keys)
@@ -502,14 +504,14 @@ def main():
                 # pacmans.add( Pacman(x * SCALE + (WIDTH - 31 * SCALE) / 2, y * SCALE + (HEIGHT - 32.4 * SCALE) / 2,
                 # SCALE, SCALE, 2))
                 pacmans.add(
-                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2,
+                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2 +1,
                            y * SCALE + (HEIGHT - 32 * SCALE) / 2,
                            WIDTH, HEIGHT,
                            PACMAN_SHEET_IMAGE,
                            SCALE,
                            2))
             elif maze_data[y][x] == 6:
-                bonus_fruits.add(BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                bonus_fruits.add(BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE/2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
                                             SCALE, WIDTH, HEIGHT,
                                             utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16), FPS,
                                             BONUS_FRUIT[0], FRUIT_SPAWN_TRIGGER,

@@ -30,7 +30,7 @@ class Pacman(pygame.sprite.Sprite):
 
         self.animation_cooldown = 50
         self.dying_animation_cooldown = 150
-        self.dying_animation_start_cooldown = 1000
+        self.dying_animation_start_cooldown = 1300
         self.dying_animation_end_cooldown = 75
         self.start_animation_completed = False
         self.dead_animation_completed = False
@@ -114,17 +114,21 @@ class Pacman(pygame.sprite.Sprite):
         screen.blit(self.my_image, (self.rect.x - self.scale * 0.5, self.rect.y - self.scale * 0.5))
 
         # visualize rect boundaries
-        pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)
+        # pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)
 
     # check collision with walls in a given direction
-    def can_change_direction(self, maze_data, direction):
+    def can_change_direction(self, maze_data, direction, ignore_centerness=False):
         position = utilities.get_position_in_maze_int(self.get_pos()[0], self.get_pos()[1], self.scale,
                                                       self.window_width,
                                                       self.window_height)
         min_threshold = (.07, .07)
-        centerness = (abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
+        if ignore_centerness:
+            centerness = (0,0)
+        else:
+            centerness = (abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
                       abs(position[1] - (self.get_pos()[1] - (self.window_height - self.scale * 32) / 2) / self.scale))
-        #        print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (window_height - self.scale * 32) / 2)/ self.scale), centerness)
+        # print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (
+        # window_height - self.scale * 32) / 2)/ self.scale), centerness)
 
         # if the pacman is not in the center of the tile, it can't change direction. if pacman is in the edge of the
         # maze, check if it can change direction by looking at the other side of the maze to account for the wrapping
@@ -161,17 +165,6 @@ class Pacman(pygame.sprite.Sprite):
                 return maze_data[position[1] + 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[
                     1] < \
                     min_threshold[1]
-
-        # elif direction == "right":
-        #     return maze_data[position[1]][position[0] + 1] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
-        #         min_threshold[1]
-        # elif direction == "up":
-        #     return maze_data[position[1] - 1][position[0]] != 1 and centerness[1] < min_threshold[1] and centerness[0] < \
-        #         min_threshold[0]
-        # elif direction == "down":
-        #     return maze_data[position[1] + 1][position[0]] != 1 and centerness[1] < min_threshold[1] and centerness[0] < \
-        #         min_threshold[0]
-        # return False
 
     def check_open_path(self, maze_data, direction):
         temp_pos = self.get_pos()

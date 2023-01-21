@@ -61,3 +61,17 @@ def get_occurrences_in_maze(maze_data, object_to_find):
             if maze_data[i][j] == object_to_find:
                 occurrences.append((i, j))
     return occurrences
+
+
+stop_time = [0]
+
+
+def set_stop_time(var):
+    stop_time[0] = var
+
+
+def get_stop_time():
+    if stop_time[0] > 0:
+        return stop_time[0]
+    else:
+        return False

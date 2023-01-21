@@ -64,6 +64,8 @@ FRUIT_SPAWN_TRIGGER = [0.1, 0.2]
 FRUIT_DURATION = 10
 
 global_state_stop_time = []
+game_over = [False]
+draw_ghosts = [True]
 
 
 def draw_window(sprite_list, maze_data):
@@ -73,9 +75,10 @@ def draw_window(sprite_list, maze_data):
         sprite.draw(screen)
 
     # display the path of the ghosts
-    for ghost in sprite_list[1]:
-        ghost.draw_classic_path(screen, maze_data)
-        ghost.my_draw(screen)
+    if draw_ghosts[0]:
+        for ghost in sprite_list[1]:
+            ghost.draw_classic_path(screen, maze_data)
+            ghost.my_draw(screen)
 
     for pacman in sprite_list[0]:
         pacman.my_draw(screen)
@@ -292,8 +295,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
                                                                                                 SCALE, WIDTH,
                                                                                                 HEIGHT)[1],
                                                          SCALE, WIDTH, HEIGHT)[0]:
-
-                    pacman.move(utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[0],pacman.get_pos()[1])
+                    pacman.move(utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[0], pacman.get_pos()[1])
 
             elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
                 # pacman.get_pos()[1] -= pacman.current_speed
@@ -334,6 +336,10 @@ def update_sprites(maze_data, pacmans, ghosts, consumables, ghost_houses):
             global_state_stop_time.append((0, frightened_time))
             for ghost in ghosts:
                 ghost.overwrite_global_state("frightened", frightened_time)
+        if len(pacmans.sprites()) == 1 and pacman.direction == "dying" and not utilities.get_stop_time() and not game_over[0]:
+            utilities.set_stop_time(1)
+            game_over[0] = True
+
 
     for ghost_house in ghost_houses:
         ghost_house.update(pacmans, maze_data)
@@ -511,13 +517,14 @@ def main():
                            SCALE,
                            2))
             elif maze_data[y][x] == 6:
-                bonus_fruits.add(BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE/2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                                            SCALE, WIDTH, HEIGHT,
-                                            utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16), FPS,
-                                            BONUS_FRUIT[0], FRUIT_SPAWN_TRIGGER,
-                                            len(utilities.get_occurrences_in_maze(maze_data,
-                                                                                  2) + utilities.get_occurrences_in_maze(
-                                                maze_data, 3)), FRUIT_DURATION))
+                bonus_fruits.add(
+                    BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                               SCALE, WIDTH, HEIGHT,
+                               utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16), FPS,
+                               BONUS_FRUIT[0], FRUIT_SPAWN_TRIGGER,
+                               len(utilities.get_occurrences_in_maze(maze_data,
+                                                                     2) + utilities.get_occurrences_in_maze(
+                                   maze_data, 3)), FRUIT_DURATION))
 
     # TEST: ghosts
     # ghosts.add(Ghost(3 * SCALE + (WIDTH - 32 * SCALE) / 2, 2 * SCALE + (HEIGHT - 32 * SCALE) / 2,
@@ -529,11 +536,12 @@ def main():
     current_tim = 0
     current_level = 0
     wall_change = True  # To update the wall connections when needed
+    stop_time_clock = 0  # To keep track of the time when the time is stopped
 
     while run:
         clock.tick(FPS)
 
-        if wall_change:
+        if wall_change:  # needs to be rewritten to only update the walls that have changed
             walls.update(maze_data)
             wall_change = False
 
@@ -569,18 +577,25 @@ def main():
                 elif last_keys[3] == register_keys(event):
                     last_keys[3] = "none"
 
-        last_keys = move_pacmans(last_keys, pacmans, maze_data)
+        if not utilities.get_stop_time():
+            last_keys = move_pacmans(last_keys, pacmans, maze_data)
+            maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits], ghost_houses)
+            draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
 
-        maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits], ghost_houses)
-        draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
-
-        if len(global_state_stop_time) > 0:
-            global_state_stop_time[0] = (global_state_stop_time[0][0] + 1, global_state_stop_time[0][1])
-            if global_state_stop_time[0][0] >= global_state_stop_time[0][1] * FPS:
-                global_state_stop_time.pop(0)
+            if len(global_state_stop_time) > 0:
+                global_state_stop_time[0] = (global_state_stop_time[0][0] + 1, global_state_stop_time[0][1])
+                if global_state_stop_time[0][0] >= global_state_stop_time[0][1] * FPS:
+                    global_state_stop_time.pop(0)
+            else:
+                current_tim += 1
+            update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
+            if game_over[0]:
+                draw_ghosts[0] = False
         else:
-            current_tim += 1
-        update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
+            stop_time_clock += 1
+            if stop_time_clock >= utilities.get_stop_time() * FPS:
+                utilities.set_stop_time(0)
+                stop_time_clock = 0
 
     #        spawn_fruit(current_level, BONUS_FRUIT, FRUIT_SPAWN_TRIGGER, maze_data)
 

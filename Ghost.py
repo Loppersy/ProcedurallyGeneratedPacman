@@ -903,6 +903,7 @@ class Ghost(pygame.sprite.Sprite):
         self.state = state
         # switch the ghost to a state
         if state == "dead":
+            utilities.set_stop_time(0.5)
             self.current_speed = self.speed
             self.current_image = 3
             self.my_image = pygame.transform.scale(self.images[self.current_image],

@@ -504,7 +504,7 @@ def main():
                 # pacmans.add( Pacman(x * SCALE + (WIDTH - 31 * SCALE) / 2, y * SCALE + (HEIGHT - 32.4 * SCALE) / 2,
                 # SCALE, SCALE, 2))
                 pacmans.add(
-                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2 +1,
+                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2,
                            y * SCALE + (HEIGHT - 32 * SCALE) / 2,
                            WIDTH, HEIGHT,
                            PACMAN_SHEET_IMAGE,
@@ -520,14 +520,10 @@ def main():
                                                 maze_data, 3)), FRUIT_DURATION))
 
     # TEST: ghosts
-    # ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
-    #                  utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-    #                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-    #                  HEIGHT, SCALE, FPS, 1.9, None))
-    # ghosts.add(Ghost(15 * SCALE + (WIDTH - 32 * SCALE) / 2, 12 * SCALE + (HEIGHT - 32 * SCALE) / 2,
-    #                  utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-    #                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-    #                  HEIGHT, SCALE, FPS, 1.9, None))
+    # ghosts.add(Ghost(3 * SCALE + (WIDTH - 32 * SCALE) / 2, 2 * SCALE + (HEIGHT - 32 * SCALE) / 2,
+    #                  utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+    #                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
+    #                  HEIGHT, SCALE, FPS, 1.9, None, 0))
 
     last_keys = ["none", "none", "none", "none"]
     current_tim = 0

@@ -19,36 +19,41 @@ class Ghost(pygame.sprite.Sprite):
         self.float_position = None
         self.exit_house = False
         self.ghost_number = ghost_number
-        ghost_house_entrance = ghost_house.get_entrance()
-        print(ghost_house_entrance)
-        if self.ghost_number == 0:
-            starting_position = utilities.get_position_in_window(ghost_house_entrance[0], ghost_house_entrance[1],
-                                                                 scale, window_width, window_height)
-            x = starting_position[0]
-            y = starting_position[1]
-        elif self.ghost_number == 1:
-            starting_position = utilities.get_position_in_window(ghost_house_entrance[0] - 2,
-                                                                 ghost_house_entrance[1] + 3,
-                                                                 scale, window_width, window_height)
-            x = starting_position[0]
-            y = starting_position[1]
-        elif self.ghost_number == 2:
-            starting_position = utilities.get_position_in_window(ghost_house_entrance[0], ghost_house_entrance[1] + 3,
-                                                                 scale, window_width, window_height)
-            x = starting_position[0]
-            y = starting_position[1]
-        elif self.ghost_number == 3:
-            starting_position = utilities.get_position_in_window(ghost_house_entrance[0] + 2,
-                                                                 ghost_house_entrance[1] + 3,
-                                                                 scale, window_width, window_height)
-            x = starting_position[0]
-            y = starting_position[1]
+        self.ghost_house = ghost_house
+        self.starting_position = (x, y)  # in window coordinates
+        if self.ghost_house:
+            ghost_house_entrance = ghost_house.get_entrance()
+            print(ghost_house_entrance)
+            if self.ghost_number == 0:
+                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0],
+                                                                          ghost_house_entrance[1],
+                                                                          scale, window_width, window_height)
+                x = self.starting_position[0]
+                y = self.starting_position[1]
+            elif self.ghost_number == 1:
+                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0] - 2,
+                                                                          ghost_house_entrance[1] + 3,
+                                                                          scale, window_width, window_height)
+                x = self.starting_position[0]
+                y = self.starting_position[1]
+            elif self.ghost_number == 2:
+                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0],
+                                                                          ghost_house_entrance[1] + 3,
+                                                                          scale, window_width, window_height)
+                x = self.starting_position[0]
+                y = self.starting_position[1]
+            elif self.ghost_number == 3:
+                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0] + 2,
+                                                                          ghost_house_entrance[1] + 3,
+                                                                          scale, window_width, window_height)
+                x = self.starting_position[0]
+                y = self.starting_position[1]
+
+            self.ghost_house.add_ghost(self)
 
         print(x, y)
         self.is_permanent_overwrite = False
         self.force_goal = None
-        self.ghost_house = ghost_house
-        self.ghost_house.add_ghost(self)
         self.overwrite_clock = 0
         self.overwrite_time = 0
         self.global_state = None
@@ -265,7 +270,7 @@ class Ghost(pygame.sprite.Sprite):
 
                             self.ghost_to_pivot = ghosts_in_ghost_house[index]
                         else:
-                            self.ghost_to_pivot = random.choice(ghosts)
+                            self.ghost_to_pivot = random.choice(ghosts.sprites())
 
                     # Set the goal by getting the vector from the pivot to the ghost and rotating it by 180 degrees
                     ghost_to_pivot_position = utilities.get_position_in_maze_int(self.ghost_to_pivot.rect.x,
@@ -293,15 +298,26 @@ class Ghost(pygame.sprite.Sprite):
         elif self.state == "frightened":
             self.goal = None
         elif self.state == "dead":
-            self.goal = self.ghost_house.get_entrance()
+            if self.ghost_house is not None:
+                self.goal = self.ghost_house.get_entrance()
+                entrance_int_pos = self.goal
+            else:
+                self.goal = utilities.get_position_in_maze_int(self.starting_position[0],
+                                                               self.starting_position[1],
+                                                               self.scale,
+                                                               self.window_width, self.window_height)
+                entrance_int_pos = self.goal
             float_position = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale,
                                                                   self.window_width,
                                                                   self.window_height)
-            entrance_int_pos = self.ghost_house.get_entrance()
+
             if self.force_goal is None \
                     and self.int_position[0] == entrance_int_pos[0] \
                     and self.int_position[1] == entrance_int_pos[1]:
-                self.set_force_goal((self.goal[0], self.goal[1] + 3))
+                if self.ghost_house is not None:
+                    self.set_force_goal((self.goal[0], self.goal[1] + 3))
+                else:
+                    self.set_force_goal((self.goal[0], self.goal[1]))
             elif utilities.is_centered(float_position, self.force_goal):
                 self.is_permanent_overwrite = False
                 self.set_force_goal(entrance_int_pos)

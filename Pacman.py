@@ -135,36 +135,24 @@ class Pacman(pygame.sprite.Sprite):
         # / teleporting
         if direction == "left":
             if position[0] == 0:
-                return maze_data[position[1]][31] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
-                    min_threshold[1]
+                return maze_data[position[1]][31] != 1 and centerness[1] < min_threshold[1]
             else:
-                return maze_data[position[1]][position[0] - 1] != 1 and centerness[0] < min_threshold[0] and centerness[
-                    1] < \
-                    min_threshold[1]
+                return maze_data[position[1]][position[0] - 1] != 1 and centerness[1] < min_threshold[1]
         elif direction == "right":
             if position[0] == 31:
-                return maze_data[position[1]][0] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
-                    min_threshold[1]
+                return maze_data[position[1]][0] != 1 and centerness[1] < min_threshold[1]
             else:
-                return maze_data[position[1]][position[0] + 1] != 1 and centerness[0] < min_threshold[0] and centerness[
-                    1] < \
-                    min_threshold[1]
+                return maze_data[position[1]][position[0] + 1] != 1 and centerness[1] < min_threshold[1]
         elif direction == "up":
             if position[1] == 0:
-                return maze_data[31][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
-                    min_threshold[1]
+                return maze_data[31][position[0]] != 1 and centerness[0] < min_threshold[0]
             else:
-                return maze_data[position[1] - 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[
-                    1] < \
-                    min_threshold[1]
+                return maze_data[position[1] - 1][position[0]] != 1 and centerness[0] < min_threshold[0]
         elif direction == "down":
             if position[1] == 31:
-                return maze_data[0][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[1] < \
-                    min_threshold[1]
+                return maze_data[0][position[0]] != 1 and centerness[0] < min_threshold[0]
             else:
-                return maze_data[position[1] + 1][position[0]] != 1 and centerness[0] < min_threshold[0] and centerness[
-                    1] < \
-                    min_threshold[1]
+                return maze_data[position[1] + 1][position[0]] != 1 and centerness[0] < min_threshold[0]
 
     def check_open_path(self, maze_data, direction):
         temp_pos = self.get_pos()

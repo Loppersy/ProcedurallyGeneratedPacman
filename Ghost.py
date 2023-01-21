@@ -11,6 +11,7 @@ class Ghost(pygame.sprite.Sprite):
                  ghost_house, ghost_number):
         super().__init__()
 
+        self.respawning = None
         self.image_scale = 1.5
         self.my_image = None
         self.closest_pacman = None
@@ -145,6 +146,10 @@ class Ghost(pygame.sprite.Sprite):
         self.check_collision(pacmans, debug)
         self.update_overwritten_state()
 
+        if self.respawning and not self.force_goal:  # return to normal speed after respawning
+            self.current_speed = self.speed
+            self.respawning = False
+
         # change ghosts goal depending on the state
         if self.state == "spawn":
             self.current_speed = self.speed * 0.7
@@ -174,6 +179,7 @@ class Ghost(pygame.sprite.Sprite):
             if utilities.is_centered(self.float_position, self.force_goal) and self.exit_house:
                 self.set_force_goal(ghost_house_entrance)
                 self.stay_in_house = False
+                self.current_speed = self.speed * 0.5
 
             if self.stay_in_house is False and self.next_node == ghost_house_entrance:
                 self.exit_house = False
@@ -318,10 +324,13 @@ class Ghost(pygame.sprite.Sprite):
                     self.set_force_goal((self.goal[0], self.goal[1] + 3))
                 else:
                     self.set_force_goal((self.goal[0], self.goal[1]))
+
             elif utilities.is_centered(float_position, self.force_goal):
                 self.is_permanent_overwrite = False
                 self.set_force_goal(entrance_int_pos)
                 self.switch_state(self.global_state)
+                self.respawning = True
+                self.current_speed = self.speed * 0.5
 
         # self.change_direction(self.current_path)
         # self.move()

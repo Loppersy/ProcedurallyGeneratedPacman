@@ -8,6 +8,7 @@ from GhostHouse import GhostHouse
 from Pacman import Pacman
 from Pellet import Pellet
 from PowerPellet import PowerPellet
+from ScorePopup import ScorePopup
 from Wall import Wall
 
 WIDTH, HEIGHT = 1080, 720
@@ -58,7 +59,7 @@ BONUS_FRUIT = [["cherry", "strawberry"],  # level 1
                ["bell", "bell"],  # level 12
                ["key", "key"]]  # level 13
 # After how many dots the fruits will appear as percentage of the total dots
-FRUIT_SPAWN_TRIGGER = [0.3, 0.7]
+FRUIT_SPAWN_TRIGGER = [0.1, 0.2]
 
 # For how long the fruit will remain on the screen (in seconds)
 FRUIT_DURATION = 10
@@ -86,7 +87,7 @@ def draw_window(sprite_list, maze_data):
     for bonus_fruit in sprite_list[6]:
         bonus_fruit.my_draw(screen)
 
-    pygame.display.update()
+   # pygame.display.update()
 
 
 def register_keys(event):
@@ -325,7 +326,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
     return last_keys
 
 
-def update_sprites(maze_data, pacmans, ghosts, consumables, ghost_houses):
+def update_sprites(maze_data, pacmans, ghosts, consumables):
     all_pacmans_dead = True
     for pacman in pacmans:
         maze_data = pacman.update(maze_data, consumables)
@@ -344,10 +345,6 @@ def update_sprites(maze_data, pacmans, ghosts, consumables, ghost_houses):
     if all_pacmans_dead and not utilities.get_stop_time() and not game_over[0]:
         utilities.set_stop_time(1)
         game_over[0] = True
-
-
-    for ghost_house in ghost_houses:
-        ghost_house.update(pacmans, maze_data)
 
     for ghost in ghosts:
         ghost.update(maze_data, pacmans, ghosts, debug)
@@ -376,6 +373,17 @@ def update_states(level_times, current_time, ghosts):
 
     for ghost in ghosts:
         ghost.set_global_state(state)
+
+
+def update_score_popups(score_popups):
+    if len(utilities.queued_popups) > 0:
+        popup_info = utilities.queued_popups.pop()
+        score_popups.add(
+            ScorePopup(popup_info[0], popup_info[1], SCALE, WIDTH, HEIGHT, FPS, popup_info[2], popup_info[3],
+                       popup_info[4]))
+
+    for popup in score_popups:
+        popup.update()
 
 
 def main():
@@ -416,6 +424,7 @@ def main():
     ghosts = pygame.sprite.Group()
     pacmans = pygame.sprite.Group()
     bonus_fruits = pygame.sprite.Group()
+    score_popups = pygame.sprite.Group()
 
     # Destroy the surrounding objects of the ghost house to prevent the ghosts from getting stuck
     # pellets and power pellets are fine, but walls, pacmans and other ghost houses are not
@@ -465,8 +474,7 @@ def main():
                                  utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE)]
                 pos_in_window = utilities.get_position_in_window(x, y, SCALE, WIDTH, HEIGHT)
 
-                ghost_house = GhostHouse(pos_in_window[0], pos_in_window[1], ["blinky", "pinky"], ghosts_images,
-                                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), WIDTH,
+                ghost_house = GhostHouse(pos_in_window[0], pos_in_window[1], WIDTH,
                                          HEIGHT, SCALE, FPS)
                 ghost_houses.add(ghost_house)
                 ghost_house_entrance = utilities.get_position_in_window(ghost_house.get_entrance()[0],
@@ -550,6 +558,8 @@ def main():
             walls.update(maze_data)
             wall_change = False
 
+        update_score_popups(score_popups)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -584,7 +594,7 @@ def main():
 
         if not utilities.get_stop_time():
             last_keys = move_pacmans(last_keys, pacmans, maze_data)
-            maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits], ghost_houses)
+            maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits])
             draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
 
             if len(global_state_stop_time) > 0:
@@ -602,7 +612,8 @@ def main():
                 utilities.set_stop_time(0)
                 stop_time_clock = 0
 
-    #        spawn_fruit(current_level, BONUS_FRUIT, FRUIT_SPAWN_TRIGGER, maze_data)
+        score_popups.draw(screen)
+        pygame.display.update()
 
     pygame.quit()
 

@@ -2,6 +2,8 @@ import os
 
 import pygame
 
+queued_popups = []  # list of popups to be displayed, each element is a tuple (x,y,text, color RGB, time in seconds)
+
 
 def load_ghost_sheet(sheet, rows, cols, width, height, EYES_SHEET_IMAGE):
     images = load_sheet(sheet, rows, cols, width, height)
@@ -75,3 +77,9 @@ def get_stop_time():
         return stop_time[0]
     else:
         return False
+
+
+def get_text_image(string, size, color):
+    pygame.font.init()
+    font = pygame.font.Font(os.path.join("assets", "fonts", "PressStart2P.ttf"), size)
+    return font.render(string, False, color)

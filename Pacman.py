@@ -36,7 +36,7 @@ class Pacman(pygame.sprite.Sprite):
         self.dead_animation_completed = False
 
     def move(self, x, y):
-        #print("Pacman move: ", x, y)
+        # print("Pacman move: ", x, y)
         self.logic_pos = int(x), int(y)
         self.rect.x = int(x + self.scale * 0.25)
         self.rect.y = int(y + self.scale * 0.25)
@@ -126,10 +126,11 @@ class Pacman(pygame.sprite.Sprite):
                                                       self.window_height)
         min_threshold = (.07, .07)
         if ignore_centerness:
-            centerness = (0,0)
+            centerness = (0, 0)
         else:
-            centerness = (abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
-                      abs(position[1] - (self.get_pos()[1] - (self.window_height - self.scale * 32) / 2) / self.scale))
+            centerness = (
+            abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
+            abs(position[1] - (self.get_pos()[1] - (self.window_height - self.scale * 32) / 2) / self.scale))
         # print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (
         # window_height - self.scale * 32) / 2)/ self.scale), centerness)
 
@@ -214,8 +215,10 @@ class Pacman(pygame.sprite.Sprite):
 
                 # check collision with bonus fruit and pacman
                 if consumable.type == "bonus_fruit" and consumable.rect.colliderect(self.rect):
-                    consumable.consume()
-                        # TODO: add score
+                    if consumable.consume():
+                        utilities.queued_popups.append(
+                            (consumable.rect.x, consumable.rect.y, consumable.score, (217, 104, 200), 1))
+                        print(utilities.queued_popups)
 
         return maze_data
 

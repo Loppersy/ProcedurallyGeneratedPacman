@@ -37,6 +37,7 @@ class BonusFruit(Consumable):
         self.fruit_clock = 0
         self.queue_cooldown = 3
         self.queue_clock = 0
+        self.score = 404
 
     def update(self, maze_data):
         current_pellet_number = utilities.get_occurrences_in_maze(maze_data, 2) + utilities.get_occurrences_in_maze(
@@ -75,44 +76,53 @@ class BonusFruit(Consumable):
             self.my_image = pygame.transform.scale(self.fruit_images[1],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "cherry"
+            self.score = 100
         elif fruit_type == "strawberry":
             self.my_image = pygame.transform.scale(self.fruit_images[2],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "strawberry"
+            self.score = 300
         elif fruit_type == "peach":
             self.my_image = pygame.transform.scale(self.fruit_images[3],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "peach"
+            self.score = 500
         elif fruit_type == "apple":
             self.my_image = pygame.transform.scale(self.fruit_images[4],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "apple"
+            self.score = 700
         elif fruit_type == "melon":
             self.my_image = pygame.transform.scale(self.fruit_images[5],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "melon"
+            self.score = 1000
         elif fruit_type == "galaxian":
             self.my_image = pygame.transform.scale(self.fruit_images[6],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "galaxian"
+            self.score = 2000
         elif fruit_type == "bell":
             self.my_image = pygame.transform.scale(self.fruit_images[7],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "bell"
+            self.score = 3000
         elif fruit_type == "key":
             self.my_image = pygame.transform.scale(self.fruit_images[8],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             self.current_fruit_type = "key"
+            self.score = 5000
 
     def consume(self):
         if not self.consumable:
-            return
+            return False
         print("Consumed fruit")
         self.queue_clock = 0
         self.consumable = False
         self.current_fruit_type = None
         self.my_image = pygame.transform.scale(self.fruit_images[0],
                                                (self.scale * self.image_scale, self.scale * self.image_scale))
+        return True
 
     def my_draw(self, screen):
         screen.blit(self.my_image, (self.rect.x - self.scale * 0.25, self.rect.y - self.scale * 0.25))

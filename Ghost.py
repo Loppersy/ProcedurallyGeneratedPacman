@@ -116,11 +116,11 @@ class Ghost(pygame.sprite.Sprite):
 
         if self.stay_in_house:
             if self.ghost_number == 1:
-                self.time_to_spawn = 0
-            elif self.ghost_number == 2:
                 self.time_to_spawn = 5
-            elif self.ghost_number == 3:
+            elif self.ghost_number == 2:
                 self.time_to_spawn = 10
+            elif self.ghost_number == 3:
+                self.time_to_spawn = 15
 
             self.overwrite_global_state("spawn", -1)
 
@@ -904,7 +904,7 @@ class Ghost(pygame.sprite.Sprite):
         # switch the ghost to a state
         if state == "dead":
             utilities.set_stop_time(0.5)
-            self.current_speed = self.speed
+            self.current_speed = self.speed * 1.5
             self.current_image = 3
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))

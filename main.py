@@ -58,7 +58,7 @@ BONUS_FRUIT = [["cherry", "strawberry"],  # level 1
                ["bell", "bell"],  # level 12
                ["key", "key"]]  # level 13
 # After how many dots the fruits will appear as percentage of the total dots
-FRUIT_SPAWN_TRIGGER = [0.1, 0.2]
+FRUIT_SPAWN_TRIGGER = [0.3, 0.7]
 
 # For how long the fruit will remain on the screen (in seconds)
 FRUIT_DURATION = 10
@@ -326,6 +326,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
 
 
 def update_sprites(maze_data, pacmans, ghosts, consumables, ghost_houses):
+    all_pacmans_dead = True
     for pacman in pacmans:
         maze_data = pacman.update(maze_data, consumables)
         if pacman.consumed_power_pellet or power_pellet_debug:
@@ -336,9 +337,13 @@ def update_sprites(maze_data, pacmans, ghosts, consumables, ghost_houses):
             global_state_stop_time.append((0, frightened_time))
             for ghost in ghosts:
                 ghost.overwrite_global_state("frightened", frightened_time)
-        if len(pacmans.sprites()) == 1 and pacman.direction == "dying" and not utilities.get_stop_time() and not game_over[0]:
-            utilities.set_stop_time(1)
-            game_over[0] = True
+
+        if pacman.direction != "dying" and pacman.direction != "dead":
+            all_pacmans_dead = False
+
+    if all_pacmans_dead and not utilities.get_stop_time() and not game_over[0]:
+        utilities.set_stop_time(1)
+        game_over[0] = True
 
 
     for ghost_house in ghost_houses:

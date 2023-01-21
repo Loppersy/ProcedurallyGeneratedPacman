@@ -118,6 +118,9 @@ class Pacman(pygame.sprite.Sprite):
 
     # check collision with walls in a given direction
     def can_change_direction(self, maze_data, direction, ignore_centerness=False):
+        if self.direction == "dying" or self.direction == "dead":
+            return False
+
         position = utilities.get_position_in_maze_int(self.get_pos()[0], self.get_pos()[1], self.scale,
                                                       self.window_width,
                                                       self.window_height)

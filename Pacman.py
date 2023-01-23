@@ -56,9 +56,9 @@ class Pacman(pygame.sprite.Sprite):
 
         return maze_data
 
-    def my_draw(self, screen):
+    def my_draw(self, screen, animated=True):
         now = pygame.time.get_ticks()
-        if self.direction == "dying":
+        if self.direction == "dying" and animated:
             if not self.start_animation_completed:
                 self.current_image = 11
 
@@ -80,7 +80,7 @@ class Pacman(pygame.sprite.Sprite):
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
 
-        elif now - self.last_update > self.animation_cooldown and self.moving:
+        elif now - self.last_update > self.animation_cooldown and self.moving and animated:
             self.last_update = now
             if self.direction == "right":
                 if self.current_image >= 2:
@@ -222,7 +222,7 @@ class Pacman(pygame.sprite.Sprite):
                     if consumable.consume():
                         utilities.queued_popups.append(
                             (consumable.rect.x + consumable.rect.width/2, consumable.rect.y + consumable.rect.height/2, consumable.score,
-                             (217, 104, 200), 1))
+                             (217, 104, 200), 1,11))
 
         return maze_data
 

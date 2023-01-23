@@ -32,13 +32,13 @@ class Ghost(pygame.sprite.Sprite):
                 x = self.starting_position[0]
                 y = self.starting_position[1]
             elif self.ghost_number == 1:
-                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0] - 2,
+                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0],
                                                                           ghost_house_entrance[1] + 3,
                                                                           scale, window_width, window_height)
                 x = self.starting_position[0]
                 y = self.starting_position[1]
             elif self.ghost_number == 2:
-                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0],
+                self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0] - 2,
                                                                           ghost_house_entrance[1] + 3,
                                                                           scale, window_width, window_height)
                 x = self.starting_position[0]
@@ -102,6 +102,8 @@ class Ghost(pygame.sprite.Sprite):
             self.stay_in_house = True
 
         self.movement_inside_house = "up"
+        if self.ghost_number == 1:
+            self.movement_inside_house = "down"
         self.spawn_clock = 0
         self.level_state_timer = 0  # in frames
         self.state_overwrite = False
@@ -161,18 +163,18 @@ class Ghost(pygame.sprite.Sprite):
                 self.exit_house = True
             elif self.movement_inside_house == "up" and self.force_goal is None:
                 if self.ghost_number == 1:
-                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 2))
-                elif self.ghost_number == 2:
                     self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 2))
+                elif self.ghost_number == 2:
+                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 2))
                 elif self.ghost_number == 3:
                     self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 2))
 
                 self.movement_inside_house = "down"
             elif self.movement_inside_house == "down" and self.force_goal is None:
                 if self.ghost_number == 1:
-                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 4))
-                elif self.ghost_number == 2:
                     self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 4))
+                elif self.ghost_number == 2:
+                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 4))
                 elif self.ghost_number == 3:
                     self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 4))
                 self.movement_inside_house = "up"
@@ -428,7 +430,7 @@ class Ghost(pygame.sprite.Sprite):
                     utilities.queued_popups.append(
                         (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2,
                          utilities.ghost_eaten_score[0],
-                         (65, 167, 200), 1))
+                         (65, 167, 200), 1,11))
                     utilities.ghost_eaten_score[0] *= 2
 
 
@@ -539,7 +541,6 @@ class Ghost(pygame.sprite.Sprite):
                 self.current_image = (self.current_image + 1) % 2
 
             self.my_image = pygame.Surface.copy(self.images[self.current_image])
-            # TODO: scale image to be 1.5 times bigger than the tile and center it to the middle of the tile
 
             # add eyes on top of image depending on which direction the ghost is facing.
             # if no direction is given, the eyes are removed

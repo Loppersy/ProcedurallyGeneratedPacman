@@ -1,3 +1,5 @@
+import copy
+
 import pygame
 import os
 
@@ -30,22 +32,23 @@ PELLETS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pallets.png")).c
 FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frightened_ghost.png")).convert_alpha()
 BONUS_FRUIT_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "bonus_fruit.png")).convert_alpha()
 WALLS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls.png")).convert_alpha()
+WALLS_WHITE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls_white.png")).convert_alpha()
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
 # times of the different modes for each level. In seconds
 LEVEL_STATE_TIMES = [
-    # [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
-    #  ("scatter", 5), ("chase", -1)],  # level 1
-    [("scatter", 1), ("chase", 50), ("scatter", 5), ("chase", 5), ("scatter", 5), ("chase", 5),
+    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
      ("scatter", 5), ("chase", -1)],  # level 1
+    # [("scatter", 10), ("chase", 7), ("scatter", 5), ("chase", 3), ("scatter", 5), ("chase", 5),
+    #  ("scatter", 5), ("chase", -1)],  # level 1
     [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 1033),
      ("scatter", 1), ("chase", -1)],  # level 2 - 4
     [("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 1037),
      ("scatter", 1), ("chase", -1)]]  # level 5+
 
 # What bonus fruit will appear in each level (repeat last level's bonus fruit if there are more levels than bonus fruits)
-BONUS_FRUIT = [["key", "strawberry"],  # level 1
+BONUS_FRUIT = [["key", "cherry"],  # level 1
                ["strawberry", "strawberry"],  # level 2
                ["peach", "peach"],  # level 3
                ["peach", "peach"],  # level 4
@@ -69,7 +72,7 @@ game_over = [False]
 draw_ghosts = [True]
 
 
-def draw_window(sprite_list, maze_data):
+def draw_window(sprite_list, maze_data, animated=True):
     screen.fill(BLACK)
 
     for sprite in sprite_list:
@@ -82,7 +85,7 @@ def draw_window(sprite_list, maze_data):
             ghost.my_draw(screen)
 
     for pacman in sprite_list[0]:
-        pacman.my_draw(screen)
+        pacman.my_draw(screen, animated)
 
     for bonus_fruit in sprite_list[6]:
         bonus_fruit.my_draw(screen)
@@ -104,6 +107,7 @@ def register_keys(event):
 
 power_pellet_debug = False
 invisibility_debug = False
+classic_mode = True
 debug = [power_pellet_debug, invisibility_debug]
 
 
@@ -265,7 +269,6 @@ def move_pacmans(last_keys, pacmans, maze_data):
             elif pacman.can_change_direction(maze_data, "down"):
                 pacman.direction = "down"
 
-        print(pacman.direction)
         old_pos = pacman.get_pos()  # in window coordinates
         # Move pacman in the direction he is facing by adding the speed to the x or y position.
         # If pacman is at the edge of the maze, move him to the other side taking into account the size of the maze
@@ -404,11 +407,24 @@ def update_score_popups(score_popups):
     if len(utilities.queued_popups) > 0:
         popup_info = utilities.queued_popups.pop()
         score_popups.add(
-            ScorePopup(popup_info[0], popup_info[1], SCALE, WIDTH, HEIGHT, FPS, popup_info[2], popup_info[3],
+            ScorePopup(popup_info[0], popup_info[1], popup_info[5], WIDTH, HEIGHT, FPS, popup_info[2], popup_info[3],
                        popup_info[4]))
 
     for popup in score_popups:
         popup.update()
+
+
+def spawn_pacmans(pacmans, maze_data):
+    for y in range(len(maze_data)):
+        for x in range(len(maze_data[y])):
+            if maze_data[y][x] == 5:
+                pacmans.add(
+                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2,
+                           y * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                           WIDTH, HEIGHT,
+                           PACMAN_SHEET_IMAGE,
+                           SCALE,
+                           2.5))
 
 
 def main():
@@ -416,30 +432,34 @@ def main():
     run = True
 
     maze_data = []
-    for y in range(32):
-        maze_data.append([])
-        for x in range(32):
-            # If the pixel is black, add a 0 to the maze_data list (representing empty space)
-            if MAZE1.get_at((x, y)) == (0, 0, 0):
-                maze_data[y].append(0)
-            # If the pixel is yellow, add a 2 to the maze_data list (representing a pellet)
-            elif MAZE1.get_at((x, y)) == (255, 255, 0):
-                maze_data[y].append(2)
-            # If the pixel is green, add a 3 to the maze_data list (representing a power pellet)
-            elif MAZE1.get_at((x, y)) == (0, 255, 0):
-                maze_data[y].append(3)
-            # If the pixel is red, add a 4 to the maze_data list (representing a ghost house)
-            elif MAZE1.get_at((x, y)) == (255, 0, 0):
-                maze_data[y].append(4)
-            # If the pixel is blue, add a 5 to the maze_data list (representing the player's starting position)
-            elif MAZE1.get_at((x, y)) == (0, 0, 255):
-                maze_data[y].append(5)
-            # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
-            elif MAZE1.get_at((x, y)) == (255, 128, 0):
-                maze_data[y].append(6)
-            # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
-            else:
-                maze_data[y].append(1)
+    if classic_mode:
+        for y in range(32):
+            maze_data.append([])
+            for x in range(32):
+                # If the pixel is black, add a 0 to the maze_data list (representing empty space)
+                if MAZE1.get_at((x, y)) == (0, 0, 0):
+                    maze_data[y].append(0)
+                # If the pixel is yellow, add a 2 to the maze_data list (representing a pellet)
+                elif MAZE1.get_at((x, y)) == (255, 255, 0):
+                    maze_data[y].append(2)
+                # If the pixel is green, add a 3 to the maze_data list (representing a power pellet)
+                elif MAZE1.get_at((x, y)) == (0, 255, 0):
+                    maze_data[y].append(3)
+                # If the pixel is red, add a 4 to the maze_data list (representing a ghost house)
+                elif MAZE1.get_at((x, y)) == (255, 0, 0):
+                    maze_data[y].append(4)
+                # If the pixel is blue, add a 5 to the maze_data list (representing the player's starting position)
+                elif MAZE1.get_at((x, y)) == (0, 0, 255):
+                    maze_data[y].append(5)
+                # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
+                elif MAZE1.get_at((x, y)) == (255, 128, 0):
+                    maze_data[y].append(6)
+                # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
+                else:
+                    maze_data[y].append(1)
+    else:
+        pass
+    # maze_gen = MazeGenerator()
 
     # Create a list for the sprites
     walls = pygame.sprite.Group()
@@ -451,118 +471,7 @@ def main():
     bonus_fruits = pygame.sprite.Group()
     score_popups = pygame.sprite.Group()
 
-    # Destroy the surrounding objects of the ghost house to prevent the ghosts from getting stuck
-    # pellets and power pellets are fine, but walls, pacmans and other ghost houses are not
-    # ghost house is 8x5 tiles
-    ghost_house_placements = []  # list of ghost house placements to stop generation of new ghost houses if they overlap
-
-    ghost_house_dimensions = (8, 5)
-    for y in range(MAZE_SIZE[1]):
-        for x in range(MAZE_SIZE[0]):
-            if maze_data[y][x] == 4:
-                print("Found ghost house at " + str(x) + ", " + str(y))
-                # check if ghost house overlaps with another ghost house
-                if check_ghost_house_overlap(ghost_house_dimensions, ghost_house_placements, x, y):
-                    maze_data[y][x] = 0
-
-                # check if ghost house would generate out of bounds
-                if x + ghost_house_dimensions[0] > MAZE_SIZE[0] or y + ghost_house_dimensions[1] > MAZE_SIZE[1]:
-                    print("Error trying to place ghost house at", x, y, ": Out of bounds")
-                    maze_data[y][x] = 0
-
-                # skip ghost house generation if the above checks failed
-                if maze_data[y][x] != 4:
-                    continue
-
-                # generate ghost house
-                for i in range(ghost_house_dimensions[1]):
-                    for j in range(ghost_house_dimensions[0]):
-
-                        # check if another ghost would be generated in the location and log an error before deleting it
-                        if maze_data[y + i][x + j] == 4 and (x + j, y + i) != (x, y):
-                            print("Error trying to place ghost house at", x + j, y + i,
-                                  ": Overlaps with ghost house at", x, y)
-
-                        maze_data[y + i][x + j] = 0
-                        ghost_house_placements.append((y + i, x + j))
-                        # create walls in a hollow square around the ghost house (8x5 tiles) and clear any
-                        # pellets in the square inside
-                        if (i == 0 or i == ghost_house_dimensions[1] - 1) and 0 <= j <= ghost_house_dimensions[
-                            0] - 1:
-                            maze_data[y + i][x + j] = 1
-                        elif (j == 0 or j == ghost_house_dimensions[0] - 1) and 0 <= i <= ghost_house_dimensions[
-                            1] - 1:
-                            maze_data[y + i][x + j] = 1
-
-                # create ghost house instance
-                ghosts_images = [utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                                 utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE)]
-                pos_in_window = utilities.get_position_in_window(x, y, SCALE, WIDTH, HEIGHT)
-
-                ghost_house = GhostHouse(pos_in_window[0], pos_in_window[1], WIDTH,
-                                         HEIGHT, SCALE, FPS)
-                ghost_houses.add(ghost_house)
-                ghost_house_entrance = utilities.get_position_in_window(ghost_house.get_entrance()[0],
-                                                                        ghost_house.get_entrance()[1], SCALE, WIDTH,
-                                                                        HEIGHT)
-                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                                 utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 0))
-                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                                 utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 1))
-                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                                 utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 2))
-                ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                                 utilities.load_ghost_sheet(CLYDE_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                                 utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "clyde", WIDTH,
-                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 3))
-                # TODO: add the entrance to the ghost house
-
-    # populate maze with sprites based on maze_data. Maze centered and scaled to fit screen (using SCALE)
-    for y in range(32):
-        for x in range(32):
-            if maze_data[y][x] == 1:
-                walls.add(
-                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
-                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16)))
-            elif maze_data[y][x] == 2:
-                pellets.add(
-                    Pellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, SCALE,
-                           PELLETS_SHEET_IMAGE))
-            elif maze_data[y][x] == 3:
-                power_pellets.add(
-                    PowerPellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE,
-                                SCALE, PELLETS_SHEET_IMAGE))
-            elif maze_data[y][x] == 4:
-                # if (somehow) there is a ghost house in the maze data still, replace it with a wall
-                maze_data[y][x] = 1
-                walls.add(
-                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
-                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16)))
-            elif maze_data[y][x] == 5:
-                # pacmans.add( Pacman(x * SCALE + (WIDTH - 31 * SCALE) / 2, y * SCALE + (HEIGHT - 32.4 * SCALE) / 2,
-                # SCALE, SCALE, 2))
-                pacmans.add(
-                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2,
-                           y * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                           WIDTH, HEIGHT,
-                           PACMAN_SHEET_IMAGE,
-                           SCALE,
-                           2.5))
-            elif maze_data[y][x] == 6:
-                bonus_fruits.add(
-                    BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                               SCALE, WIDTH, HEIGHT,
-                               utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16), FPS,
-                               BONUS_FRUIT[0], FRUIT_SPAWN_TRIGGER,
-                               len(utilities.get_occurrences_in_maze(maze_data,
-                                                                     2) + utilities.get_occurrences_in_maze(
-                                   maze_data, 3)), FRUIT_DURATION))
+    sprite_groups = [walls, pellets, power_pellets, ghost_houses, ghosts, pacmans, bonus_fruits, score_popups]
 
     # TEST: ghosts
     # ghosts.add(Ghost(3 * SCALE + (WIDTH - 32 * SCALE) / 2, 2 * SCALE + (HEIGHT - 32 * SCALE) / 2,
@@ -573,11 +482,107 @@ def main():
     last_keys = ["none", "none", "none", "none"]
     current_tim = 0
     current_level = 0
-    wall_change = True  # To update the wall connections when needed
+    wall_change = False  # To update the wall connections when needed
     stop_time_clock = 0  # To keep track of the time when the time is stopped
+    generate_new_maze = True  # To generate a new maze when needed
+    generate_old_maze = False  # To generate the old maze when needed
+    new_maze_animation_clock = 0  # To keep track of the time when the new maze animation is playing
+    NEW_MAZE_ANIMATION_TIME = 5  # The time the new maze animation takes (in seconds)
+    OLD_MAZE_ANIMATION_TIME = 3
+    maze_animation_time = 0
+    win_animation = False
+    win_animation_clock = 0
+    WIN_ANIMATION_STOP_TIME = 2
+    WIN_ANIMATION_TIME = 5
+
+    og_maze_data = copy.deepcopy(maze_data)
+
+    lives = 3
 
     while run:
         clock.tick(FPS)
+        if win_animation:
+            win_animation_clock += 1
+            if win_animation_clock >= WIN_ANIMATION_STOP_TIME * FPS:
+
+                if win_animation_clock % 25 * FPS == 0:
+                    for wall in walls:
+                        wall.switch_color()
+
+                ghosts.empty()
+                bonus_fruits.empty()
+                draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data,
+                            False)
+                pygame.display.update()
+
+            if win_animation_clock >= WIN_ANIMATION_TIME * FPS:
+                win_animation = False
+                win_animation_clock = 0
+                current_level += 1
+                if current_level % 4 == 0:
+                    lives += 1
+                generate_new_maze = True
+            continue
+
+        if generate_new_maze:
+            # kill all sprites
+            maze_data = copy.deepcopy(og_maze_data)
+            for group in sprite_groups:
+                group.empty()
+            populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellets, power_pellets, walls,
+                          current_level)
+            walls.update(maze_data)
+            new_maze_animation_clock = 0
+            maze_animation_time = NEW_MAZE_ANIMATION_TIME
+            ready_text_pos = utilities.get_position_in_window(16, 18, SCALE, WIDTH, HEIGHT)
+            utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + SCALE / 2,
+                                            "READY!", (255, 255, 0), NEW_MAZE_ANIMATION_TIME, 20))
+
+            generate_new_maze = False
+            game_over[0] = False
+            draw_ghosts[0] = True
+            current_tim = 0
+            stop_time_clock = 0
+            continue
+
+        if generate_old_maze:
+            # respawn ghosts and pacmans
+            ghosts.empty()
+            pacmans.empty()
+            spawn_ghosts(ghosts, ghost_houses)
+            spawn_pacmans(pacmans, maze_data)
+            new_maze_animation_clock = 0
+            maze_animation_time = OLD_MAZE_ANIMATION_TIME
+            ready_text_pos = utilities.get_position_in_window(16, 18, SCALE, WIDTH, HEIGHT)
+            utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + SCALE / 2,
+                                            "READY!", (255, 255, 0), OLD_MAZE_ANIMATION_TIME, 20))
+
+            generate_old_maze = False
+            game_over[0] = False
+            draw_ghosts[0] = True
+            current_tim = 0
+            stop_time_clock = 0
+            continue
+
+        if new_maze_animation_clock < maze_animation_time * FPS:
+            new_maze_animation_clock += 1
+            draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
+            update_score_popups(score_popups)
+            score_popups.draw(screen)
+            pygame.display.update()
+            continue
+
+        if len(pacmans) == 0 and game_over[0] and lives > 0:
+            generate_old_maze = True
+            lives -= 1
+        elif len(pacmans) == 0 and game_over[0] and lives == 0:
+            generate_new_maze = True
+            lives = 3
+            current_level = 0
+
+        if len(pellets) == 0 and len(power_pellets) == 0:
+            win_animation = True
+            continue
 
         if wall_change:  # needs to be rewritten to only update the walls that have changed
             walls.update(maze_data)
@@ -628,9 +633,16 @@ def main():
                     global_state_stop_time.pop(0)
             else:
                 current_tim += 1
-            update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
+            if current_level == 0:
+                update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
+            elif 0 < current_level < 4:
+                update_states(LEVEL_STATE_TIMES[1], current_tim / FPS, ghosts)
+            else:
+                update_states(LEVEL_STATE_TIMES[2], current_tim / FPS, ghosts)
             if game_over[0]:
                 draw_ghosts[0] = False
+                for bonus_fruit in bonus_fruits:
+                    bonus_fruit.despawn_fruit()
         else:
             stop_time_clock += 1
             if stop_time_clock >= utilities.get_stop_time() * FPS:
@@ -641,6 +653,130 @@ def main():
         pygame.display.update()
 
     pygame.quit()
+
+
+def spawn_ghosts(ghosts, ghost_houses):
+    for ghost_house in ghost_houses:
+        ghost_house_entrance = ghost_house.get_entrance()
+        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                         utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 0))
+        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                         utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1))
+        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                         utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 2))
+        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
+                         utilities.load_ghost_sheet(CLYDE_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
+                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "clyde", WIDTH,
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 3))
+
+
+def populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellets, power_pellets, walls, current_level):
+    # Destroy the surrounding objects of the ghost house to prevent the ghosts from getting stuck
+    # pellets and power pellets are fine, but walls, pacmans and other ghost houses are not
+    # ghost house is 8x5 tiles
+    ghost_house_placements = []  # list of ghost house placements to stop generation of new ghost houses if they overlap
+    ghost_house_dimensions = (8, 5)
+    for y in range(MAZE_SIZE[1]):
+        for x in range(MAZE_SIZE[0]):
+            if maze_data[y][x] == 4:
+                print("Found ghost house at " + str(x) + ", " + str(y))
+                # check if ghost house overlaps with another ghost house
+                if check_ghost_house_overlap(ghost_house_dimensions, ghost_house_placements, x, y):
+                    maze_data[y][x] = 0
+
+                # check if ghost house would generate out of bounds
+                if x + ghost_house_dimensions[0] > MAZE_SIZE[0] or y + ghost_house_dimensions[1] > MAZE_SIZE[1]:
+                    print("Error trying to place ghost house at", x, y, ": Out of bounds")
+                    maze_data[y][x] = 0
+
+                # skip ghost house generation if the above checks failed
+                if maze_data[y][x] != 4:
+                    continue
+
+                # generate ghost house
+                for i in range(ghost_house_dimensions[1]):
+                    for j in range(ghost_house_dimensions[0]):
+
+                        # check if another ghost would be generated in the location and log an error before deleting it
+                        if maze_data[y + i][x + j] == 4 and (x + j, y + i) != (x, y):
+                            print("Error trying to place ghost house at", x + j, y + i,
+                                  ": Overlaps with ghost house at", x, y)
+
+                        maze_data[y + i][x + j] = 0
+                        ghost_house_placements.append((y + i, x + j))
+                        # create walls in a hollow square around the ghost house (8x5 tiles) and clear any
+                        # pellets in the square inside
+                        if (i == 0 or i == ghost_house_dimensions[1] - 1) and 0 <= j <= ghost_house_dimensions[
+                            0] - 1:
+                            maze_data[y + i][x + j] = 1
+                        elif (j == 0 or j == ghost_house_dimensions[0] - 1) and 0 <= i <= ghost_house_dimensions[
+                            1] - 1:
+                            maze_data[y + i][x + j] = 1
+
+                # create ghost house instance
+                pos_in_window = utilities.get_position_in_window(x, y, SCALE, WIDTH, HEIGHT)
+
+                ghost_house = GhostHouse(pos_in_window[0], pos_in_window[1], WIDTH,
+                                         HEIGHT, SCALE, FPS)
+                ghost_houses.add(ghost_house)
+                ghost_house_entrance = utilities.get_position_in_window(ghost_house.get_entrance()[0],
+                                                                        ghost_house.get_entrance()[1], SCALE, WIDTH,
+                                                                        HEIGHT)
+                # TODO: add the entrance to the ghost house
+    # add ghosts to the ghost house
+    spawn_ghosts(ghosts, ghost_houses)
+    # populate maze with sprites based on maze_data. Maze centered and scaled to fit screen (using SCALE)
+    for y in range(32):
+        for x in range(32):
+            if maze_data[y][x] == 1:
+                walls.add(
+                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
+                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16),
+                         utilities.load_sheet(WALLS_WHITE_SHEET_IMAGE, 12, 4, 16, 16)))
+            elif maze_data[y][x] == 2:
+                pellets.add(
+                    Pellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, SCALE,
+                           PELLETS_SHEET_IMAGE))
+            elif maze_data[y][x] == 3:
+                power_pellets.add(
+                    PowerPellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE,
+                                SCALE, PELLETS_SHEET_IMAGE))
+            elif maze_data[y][x] == 4:
+                # if (somehow) there is a ghost house in the maze data still, replace it with a wall
+                maze_data[y][x] = 1
+                walls.add(
+                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
+                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16),
+                         utilities.load_sheet(WALLS_WHITE_SHEET_IMAGE, 12, 4, 16, 16)))
+            elif maze_data[y][x] == 5:
+                # pacmans.add( Pacman(x * SCALE + (WIDTH - 31 * SCALE) / 2, y * SCALE + (HEIGHT - 32.4 * SCALE) / 2,
+                # SCALE, SCALE, 2))
+                pacmans.add(
+                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2,
+                           y * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                           WIDTH, HEIGHT,
+                           PACMAN_SHEET_IMAGE,
+                           SCALE,
+                           2.5))
+            elif maze_data[y][x] == 6:
+                if current_level < len(BONUS_FRUIT):
+                    level = current_level
+                else:
+                    level = len(BONUS_FRUIT) - 1
+                bonus_fruits.add(
+                    BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                               SCALE, WIDTH, HEIGHT,
+                               utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16), FPS,
+                               BONUS_FRUIT[level], FRUIT_SPAWN_TRIGGER,
+                               len(utilities.get_occurrences_in_maze(maze_data,
+                                                                     2) + utilities.get_occurrences_in_maze(
+                                   maze_data, 3)), FRUIT_DURATION))
 
 
 def check_ghost_house_overlap(ghost_house_dimensions, ghost_house_placements, x, y):

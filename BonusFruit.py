@@ -36,7 +36,7 @@ class BonusFruit(Consumable):
         self.fruit_duration = fruit_duration
         self.fruit_clock = 0
         self.queue_cooldown = 3
-        self.queue_clock = 0
+        self.queue_clock = self.queue_cooldown * self.fps
         self.score = 404
 
     def update(self, maze_data):
@@ -63,11 +63,7 @@ class BonusFruit(Consumable):
         if self.consumable:
             self.fruit_clock += 1
             if self.fruit_clock >= self.fruit_duration * self.fps:
-                self.consumable = False
-                self.current_fruit_type = None
-                self.fruit_clock = 0
-                self.my_image = pygame.transform.scale(self.fruit_images[0],
-                                                       (self.scale * self.image_scale, self.scale * self.image_scale))
+                self.despawn_fruit()
 
     def spawn_fruit(self, fruit_type=None):
         self.fruit_clock = 0
@@ -117,12 +113,16 @@ class BonusFruit(Consumable):
         if not self.consumable:
             return False
         print("Consumed fruit")
+        self.despawn_fruit()
+        return True
+
+    def despawn_fruit(self):
         self.queue_clock = 0
         self.consumable = False
         self.current_fruit_type = None
+        self.fruit_clock = 0
         self.my_image = pygame.transform.scale(self.fruit_images[0],
                                                (self.scale * self.image_scale, self.scale * self.image_scale))
-        return True
 
     def my_draw(self, screen):
         screen.blit(self.my_image, (self.rect.x - self.scale * 0.25, self.rect.y - self.scale * 0.25))

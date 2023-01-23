@@ -11,12 +11,12 @@ class ScorePopup(pygame.sprite.Sprite):
         self.scale = scale
         self.window_width = window_width
         self.window_height = window_height
-        self.image = utilities.get_text_image(str(score), int(scale*0.5), color)
+        self.image = utilities.get_text_image(str(score), int(scale), color)
         # blit a rectangle around the image
         # pygame.draw.rect(self.image, color, (0, 0, self.image.get_width(), self.image.get_height()), 1)
         self.rect = self.image.get_rect()
-        self.rect.x = x - self.image.get_width() / 2
-        self.rect.y = y - self.image.get_height() / 2
+        self.rect.x = x - self.rect.width / 2
+        self.rect.y = y - self.rect.height / 2
         self.time = time
         self.clock = 0
         self.fps = fps

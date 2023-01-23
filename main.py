@@ -45,7 +45,7 @@ LEVEL_STATE_TIMES = [
      ("scatter", 1), ("chase", -1)]]  # level 5+
 
 # What bonus fruit will appear in each level (repeat last level's bonus fruit if there are more levels than bonus fruits)
-BONUS_FRUIT = [["cherry", "strawberry"],  # level 1
+BONUS_FRUIT = [["key", "strawberry"],  # level 1
                ["strawberry", "strawberry"],  # level 2
                ["peach", "peach"],  # level 3
                ["peach", "peach"],  # level 4
@@ -87,7 +87,8 @@ def draw_window(sprite_list, maze_data):
     for bonus_fruit in sprite_list[6]:
         bonus_fruit.my_draw(screen)
 
-   # pygame.display.update()
+
+# pygame.display.update()
 
 
 def register_keys(event):
@@ -264,62 +265,84 @@ def move_pacmans(last_keys, pacmans, maze_data):
             elif pacman.can_change_direction(maze_data, "down"):
                 pacman.direction = "down"
 
-        old_pos = pacman.get_pos()
+        print(pacman.direction)
+        old_pos = pacman.get_pos()  # in window coordinates
         # Move pacman in the direction he is facing by adding the speed to the x or y position.
         # If pacman is at the edge of the maze, move him to the other side taking into account the size of the maze
         # and its offset (using SCALE and WIDTH and HEIGHT).
 
-        # print(last_keys)
-        # print(old_pos, pacman.logic_pos)
-        # print(pacman.check_open_path(maze_data, "left"), pacman.check_open_path(maze_data, "right"), pacman.check_open_path(maze_data, "up"), pacman.check_open_path(maze_data, "down"))
-        # print(pacman.can_change_direction(maze_data, "left"), pacman.can_change_direction(maze_data, "right"), pacman.can_change_direction(maze_data, "up"), pacman.can_change_direction(maze_data, "down"))
-        if pacman.direction != "stay":
-            if pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
-                # pacman.get_pos()[0] -= pacman.current_speed
-
+        # print(last_keys) print(old_pos, pacman.logic_pos) print(pacman.check_open_path(maze_data, "left"),
+        # pacman.check_open_path(maze_data, "right"), pacman.check_open_path(maze_data, "up"),
+        # pacman.check_open_path(maze_data, "down")) print(pacman.can_change_direction(maze_data, "left"),
+        # pacman.can_change_direction(maze_data, "right"), pacman.can_change_direction(maze_data, "up"),
+        # pacman.can_change_direction(maze_data, "down"))
+        if pacman.direction == "stay":
+            pass
+        elif pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
+            # position in window of next tile
+            next_tile_pos = utilities.get_position_in_window(
+                pacman.int_pos[0], pacman.int_pos[1], SCALE, WIDTH, HEIGHT)
+            # if pacman where to overshoot the center of the tile, move him back to the center instead
+            if old_pos[0] - pacman.current_speed < next_tile_pos[0] and old_pos[0] != next_tile_pos[0]:
+                pacman.move(next_tile_pos[0], old_pos[1])
+            else:
                 pacman.move(old_pos[0] - pacman.current_speed, old_pos[1])
-                # print(old_pos[0] - pacman.current_speed)
-                if pacman.get_pos()[0] < \
-                        utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.get_pos()[0],
-                                                                                               pacman.get_pos()[1],
-                                                                                               SCALE, WIDTH,
-                                                                                               HEIGHT)[1],
-                                                         SCALE, WIDTH, HEIGHT)[0]:
-                    pacman.move(utilities.get_position_in_window(31, 0, SCALE, WIDTH, HEIGHT)[0],
-                                pacman.get_pos()[1])  # Teleport to other side if needed
-            elif pacman.direction == "right" and pacman.check_open_path(maze_data, "right"):
-                # pacman.get_pos()[0] += pacman.current_speed
+
+            if pacman.get_pos()[0] < \
+                    utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                           pacman.get_pos()[1],
+                                                                                           SCALE, WIDTH,
+                                                                                           HEIGHT)[1],
+                                                     SCALE, WIDTH, HEIGHT)[0]:
+                pacman.move(utilities.get_position_in_window(31, 0, SCALE, WIDTH, HEIGHT)[0],
+                            pacman.get_pos()[1])  # Teleport to other side if needed
+        elif pacman.direction == "right" and pacman.check_open_path(maze_data, "right"):
+            # if pacman where to overshoot the center of the tile, move him back to the center instead
+            next_tile_pos = utilities.get_position_in_window(
+                pacman.int_pos[0] + 1, pacman.int_pos[1], SCALE, WIDTH, HEIGHT)
+            if old_pos[0] + pacman.current_speed > next_tile_pos[0]:
+                pacman.move(next_tile_pos[0], old_pos[1])
+            else:
                 pacman.move(old_pos[0] + pacman.current_speed, old_pos[1])
-                if pacman.get_pos()[0] > \
-                        utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.get_pos()[0],
-                                                                                                pacman.get_pos()[1],
-                                                                                                SCALE, WIDTH,
-                                                                                                HEIGHT)[1],
-                                                         SCALE, WIDTH, HEIGHT)[0]:
-                    pacman.move(utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[0], pacman.get_pos()[1])
+            if pacman.get_pos()[0] > \
+                    utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                            pacman.get_pos()[1],
+                                                                                            SCALE, WIDTH,
+                                                                                            HEIGHT)[1],
+                                                     SCALE, WIDTH, HEIGHT)[0]:
+                pacman.move(utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[0], pacman.get_pos()[1])
 
-            elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
-                # pacman.get_pos()[1] -= pacman.current_speed
+        elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
+            # pacman.get_pos()[1] -= pacman.current_speed
+            next_tile_pos = utilities.get_position_in_window(
+                pacman.int_pos[0], pacman.int_pos[1], SCALE, WIDTH, HEIGHT)
+            if old_pos[1] - pacman.current_speed < next_tile_pos[1] and old_pos[1] != next_tile_pos[1]:
+                pacman.move(old_pos[0], next_tile_pos[1])
+            else:
                 pacman.move(old_pos[0], old_pos[1] - pacman.current_speed)
-                if pacman.get_pos()[1] < \
-                        utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
-                                                                                            pacman.get_pos()[1],
-                                                                                            SCALE, WIDTH,
-                                                                                            HEIGHT)[0], 0,
-                                                         SCALE, WIDTH, HEIGHT)[1]:
-                    pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 31, SCALE, WIDTH, HEIGHT)[1])
+            if pacman.get_pos()[1] < \
+                    utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                        pacman.get_pos()[1],
+                                                                                        SCALE, WIDTH,
+                                                                                        HEIGHT)[0], 0,
+                                                     SCALE, WIDTH, HEIGHT)[1]:
+                pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 31, SCALE, WIDTH, HEIGHT)[1])
 
-
-            elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
-                # pacman.get_pos()[1] += pacman.current_speed
+        elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
+            # pacman.get_pos()[1] += pacman.current_speed
+            next_tile_pos = utilities.get_position_in_window(
+                pacman.int_pos[0], pacman.int_pos[1] + 1, SCALE, WIDTH, HEIGHT)
+            if old_pos[1] + pacman.current_speed > next_tile_pos[1]:
+                pacman.move(old_pos[0], next_tile_pos[1])
+            else:
                 pacman.move(old_pos[0], old_pos[1] + pacman.current_speed)
-                if pacman.get_pos()[1] > \
-                        utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
-                                                                                            pacman.get_pos()[1],
-                                                                                            SCALE, WIDTH,
-                                                                                            HEIGHT)[0], 31,
-                                                         SCALE, WIDTH, HEIGHT)[1]:
-                    pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[1])
+            if pacman.get_pos()[1] > \
+                    utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
+                                                                                        pacman.get_pos()[1],
+                                                                                        SCALE, WIDTH,
+                                                                                        HEIGHT)[0], 31,
+                                                     SCALE, WIDTH, HEIGHT)[1]:
+                pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[1])
 
         pacman.moving = not (old_pos[0] == pacman.get_pos()[0] and pacman.get_pos()[1] == old_pos[1])
     # print(last_keys)
@@ -335,6 +358,8 @@ def update_sprites(maze_data, pacmans, ghosts, consumables):
             frightened_time = 5
             if len(global_state_stop_time) > 0:
                 global_state_stop_time.pop()
+            else:
+                utilities.ghost_eaten_score[0] = 200  # reset score multiplier if power wore off
             global_state_stop_time.append((0, frightened_time))
             for ghost in ghosts:
                 ghost.overwrite_global_state("frightened", frightened_time)
@@ -483,19 +508,19 @@ def main():
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                                  utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 0))
+                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 0))
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                                  utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 1))
+                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 1))
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                                  utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
-                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 2))
+                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 2))
                 ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                                  utilities.load_ghost_sheet(CLYDE_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "clyde", WIDTH,
-                                 HEIGHT, SCALE, FPS, 1.9, ghost_house, 3))
+                                 HEIGHT, SCALE, FPS, 2.3, ghost_house, 3))
                 # TODO: add the entrance to the ghost house
 
     # populate maze with sprites based on maze_data. Maze centered and scaled to fit screen (using SCALE)
@@ -528,7 +553,7 @@ def main():
                            WIDTH, HEIGHT,
                            PACMAN_SHEET_IMAGE,
                            SCALE,
-                           2))
+                           2.5))
             elif maze_data[y][x] == 6:
                 bonus_fruits.add(
                     BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,

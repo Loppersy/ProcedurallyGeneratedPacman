@@ -127,4 +127,4 @@ class BonusFruit(Consumable):
     def my_draw(self, screen):
         screen.blit(self.my_image, (self.rect.x - self.scale * 0.25, self.rect.y - self.scale * 0.25))
         # draw hitbox
-        # pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)
+        #pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)

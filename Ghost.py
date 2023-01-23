@@ -300,7 +300,6 @@ class Ghost(pygame.sprite.Sprite):
                     self.goal = (0, 31)
                 else:
                     self.goal = None
-
         elif self.state == "frightened":
             self.goal = None
         elif self.state == "dead":
@@ -423,8 +422,15 @@ class Ghost(pygame.sprite.Sprite):
                     pacman.die()
         elif self.state == "frightened":
             for pacman in pacmans:
-                if self.rect.colliderect(pacman.rect):
+                if self.rect.colliderect(pacman.rect) and (pacman.direction != "dying" and pacman.direction != "dead"):
                     self.overwrite_global_state("dead", -1)
+
+                    utilities.queued_popups.append(
+                        (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2,
+                         utilities.ghost_eaten_score[0],
+                         (65, 167, 200), 1))
+                    utilities.ghost_eaten_score[0] *= 2
+
 
     def change_direction(self, path):
         # find in what direction is the next node in the path by comparing path[0] with path[1]

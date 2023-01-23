@@ -26,7 +26,8 @@ class Pacman(pygame.sprite.Sprite):
         self.moving = False
 
         self.move(x, y)
-        self.logic_pos = int(round(x)), int(round(y))
+        self.logic_pos = round(x), round(y)
+        self.int_pos = utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)
 
         self.animation_cooldown = 50
         self.dying_animation_cooldown = 150
@@ -37,9 +38,11 @@ class Pacman(pygame.sprite.Sprite):
 
     def move(self, x, y):
         # print("Pacman move: ", x, y)
-        self.logic_pos = int(x), int(y)
-        self.rect.x = int(x + self.scale * 0.25)
-        self.rect.y = int(y + self.scale * 0.25)
+        self.logic_pos = x, y
+        self.int_pos = utilities.get_position_in_maze_int(x, y, self.scale, self.window_width, self.window_height)
+        # self.rect.x = int(x + self.scale * 0.25)
+        # self.rect.y = int(y + self.scale * 0.25)
+        self.rect.topleft = round(x + self.scale * 0.25), round(y + self.scale * 0.25)
 
     def get_pos(self):
         return self.logic_pos
@@ -124,13 +127,14 @@ class Pacman(pygame.sprite.Sprite):
         position = utilities.get_position_in_maze_int(self.get_pos()[0], self.get_pos()[1], self.scale,
                                                       self.window_width,
                                                       self.window_height)
+
         min_threshold = (.07, .07)
         if ignore_centerness:
             centerness = (0, 0)
         else:
             centerness = (
-            abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
-            abs(position[1] - (self.get_pos()[1] - (self.window_height - self.scale * 32) / 2) / self.scale))
+                abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
+                abs(position[1] - (self.get_pos()[1] - (self.window_height - self.scale * 32) / 2) / self.scale))
         # print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (
         # window_height - self.scale * 32) / 2)/ self.scale), centerness)
 
@@ -217,8 +221,8 @@ class Pacman(pygame.sprite.Sprite):
                 if consumable.type == "bonus_fruit" and consumable.rect.colliderect(self.rect):
                     if consumable.consume():
                         utilities.queued_popups.append(
-                            (consumable.rect.x, consumable.rect.y, consumable.score, (217, 104, 200), 1))
-                        print(utilities.queued_popups)
+                            (consumable.rect.x + consumable.rect.width/2, consumable.rect.y + consumable.rect.height/2, consumable.score,
+                             (217, 104, 200), 1))
 
         return maze_data
 

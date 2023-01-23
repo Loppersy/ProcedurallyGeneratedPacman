@@ -3,6 +3,7 @@ import os
 import pygame
 
 queued_popups = []  # list of popups to be displayed, each element is a tuple (x,y,text, color RGB, time in seconds)
+ghost_eaten_score = [200]
 
 
 def load_ghost_sheet(sheet, rows, cols, width, height, EYES_SHEET_IMAGE):
@@ -26,7 +27,7 @@ def load_sheet(sheet, rows, cols, width, height):
 # get position of the player inside the maze taking into account the scale of the tiles and the offset of the maze
 # rounded to the nearest integer
 def get_position_in_maze_int(x, y, scale, window_width, window_height):
-    return (x - (window_width - scale * 32) // 2) // scale, ((y - (window_height - scale * 32) // 2) // scale)
+    return int((x - (window_width - scale * 32) // 2) // scale), int(((y - (window_height - scale * 32) // 2) // scale))
 
 
 def get_position_in_maze_float(x, y, scale, window_width, window_height):

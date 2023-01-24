@@ -7,6 +7,7 @@ import utilities
 from BonusFruit import BonusFruit
 from Ghost import Ghost
 from GhostHouse import GhostHouse
+from MazeGenerator import MazeGenerator
 from Pacman import Pacman
 from Pellet import Pellet
 from PowerPellet import PowerPellet
@@ -107,7 +108,7 @@ def register_keys(event):
 
 power_pellet_debug = False
 invisibility_debug = False
-classic_mode = True
+classic_mode = False
 debug = [power_pellet_debug, invisibility_debug]
 
 
@@ -458,8 +459,9 @@ def main():
                 else:
                     maze_data[y].append(1)
     else:
-        pass
-    # maze_gen = MazeGenerator()
+        maze_gen = MazeGenerator(32,32)
+        maze_gen.generate()
+        maze_data = maze_gen.get_maze_data()
 
     # Create a list for the sprites
     walls = pygame.sprite.Group()

@@ -49,7 +49,7 @@ LEVEL_STATE_TIMES = [
      ("scatter", 1), ("chase", -1)]]  # level 5+
 
 # What bonus fruit will appear in each level (repeat last level's bonus fruit if there are more levels than bonus fruits)
-BONUS_FRUIT = [["key", "cherry"],  # level 1
+BONUS_FRUIT = [["cherry", "cherry"],  # level 1
                ["strawberry", "strawberry"],  # level 2
                ["peach", "peach"],  # level 3
                ["peach", "peach"],  # level 4

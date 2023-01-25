@@ -19,7 +19,6 @@ class AStar(object):
     # The path is the shortest path from the start to the end.
     # The path can take any direction as long as there is not a wall in the way (id 1 in grid).
     def get_path(self, start, goal, maze_data, use_wrap_around=True):
-        print("get_path start", start)
         self.start = start
         self.goal = goal
         self.grid = maze_data
@@ -74,8 +73,9 @@ class AStar(object):
 
         closest_node = self.closed[0]
         for node in self.closed:
-            if self.heuristic(node.position, self.goal.position,use_wrap_around) < self.heuristic(closest_node.position,
-                                                                                  self.goal.position, use_wrap_around):
+            if self.heuristic(node.position, self.goal.position, use_wrap_around) < self.heuristic(
+                    closest_node.position,
+                    self.goal.position, use_wrap_around):
                 closest_node = node
 
         # Then, make a path to that node
@@ -134,7 +134,6 @@ class AStar(object):
         # utilities.add_highlighted_tile(start.position, color)
         # utilities.add_highlighted_tile(goal.position, color)
         self.start = start
-        print("true start: ", self.start.position)
         self.goal = goal
         self.grid = maze_data
         self.open = []
@@ -202,41 +201,44 @@ class AStar(object):
     def update_surrounding_nodes_tunel(self, node):
         # Checking "up" node
         if node.position[1] - 1 >= 0:
-            if not self.is_in_closed(
-                    (node.position[0], node.position[1] - 1)) and self.does_not_create_2x2(node.position[0],
-                                                                                           node.position[1] -1, False):
+            if (not self.is_in_closed((node.position[0], node.position[1] - 1))
+                    and self.does_not_create_2x2(node.position[0],node.position[1] - 1))\
+                    or (node.position[0], node.position[1] - 1) == self.goal.position:
                 self.calculate_values(node.position[0], node.position[1] - 1, node, False)
 
         # Checking "down" node
         if node.position[1] + 1 <= len(self.grid[0]):
-            if not self.is_in_closed(
+            if (not self.is_in_closed(
                     (node.position[0], node.position[1] + 1)) and self.does_not_create_2x2(node.position[0],
-                                                                                           node.position[1]+1, False):
+                                                                                           node.position[1] + 1))\
+                    or (node.position[0], node.position[1] + 1) == self.goal.position:
                 self.calculate_values(node.position[0], node.position[1] + 1, node, False)
 
         # Checking "left" node
         if node.position[0] - 1 >= 0:
-            if not self.is_in_closed(
-                    (node.position[0] - 1, node.position[1])) and self.does_not_create_2x2(node.position[0]-1,
-                                                                                           node.position[1] , False):
+            if (not self.is_in_closed(
+                    (node.position[0] - 1, node.position[1])) and self.does_not_create_2x2(node.position[0] - 1,
+                                                                                           node.position[1]))\
+                    or (node.position[0] - 1, node.position[1]) == self.goal.position:
                 self.calculate_values(node.position[0] - 1, node.position[1], node, False)
 
         # Checking "right" node
         if node.position[0] + 1 <= len(self.grid) // 2:
-            if not self.is_in_closed(
-                    (node.position[0] + 1, node.position[1])) and self.does_not_create_2x2(node.position[0]+1,
-                                                                                           node.position[1], False):
+            if (not self.is_in_closed(
+                    (node.position[0] + 1, node.position[1])) and self.does_not_create_2x2(node.position[0] + 1,
+                                                                                           node.position[1]))\
+                    or (node.position[0] + 1, node.position[1]) == self.goal.position:
                 self.calculate_values(node.position[0] + 1, node.position[1], node, False)
 
-    def does_not_create_2x2(self, current_x, current_y, wrap_around=False):
+    def does_not_create_2x2(self, current_x, current_y):
 
         new_x = current_x
         new_y = current_y
 
         height = len(self.grid[0])
-        width = len(self.grid)
+        width = len(self.grid)//2
 
-        if (new_x < 1 or new_x >= width - 1 or new_y < 1 or new_y >= height - 1) and not wrap_around:
+        if new_x < 1 or new_x >= width - 1 or new_y < 1 or new_y >= height - 1:
             return False
 
         # check that the new position wont result in a 2x2 area of walkable tiles
@@ -244,24 +246,11 @@ class AStar(object):
         walkable_tiles = [False] * 9
         for i in range(-1, 2):
             for j in range(-1, 2):
-                if wrap_around:
-                    temp_y = new_y + j
-                    if temp_y < 0:
-                        temp_y += height
-                    elif temp_y >= height:
-                        temp_y -= height
-                    temp_x = new_x + i
-                    if temp_x < 0:
-                        temp_x += width
-                    elif temp_x >= width:
-                        temp_x -= width
-
-                    if self.grid[temp_y][temp_x] != 1:
-                        walkable_tiles[(j + 1) * 3 + i + 1] = True
-                else:
-                    if 0 <= new_y + j < height and 0 <= new_x + i < width and self.grid[new_y + j][
-                            new_x + i] != 1:
-                        walkable_tiles[(j + 1) * 3 + i + 1] = True
+                if 0 <= new_y + j < height and 0 <= new_x + i < width and self.grid[new_y + j][
+                        new_x + i] != 1:
+                    walkable_tiles[(j + 1) * 3 + i + 1] = True
+                # else:
+                #     utilities.add_highlighted_tile((new_x + i, new_y + j), (0, 0, 255))
 
         walkable_tiles[4] = True
         if walkable_tiles[0] and walkable_tiles[1] and walkable_tiles[3] and walkable_tiles[4] \

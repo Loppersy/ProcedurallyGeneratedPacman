@@ -2,6 +2,7 @@ import random
 
 # TODO: ensure connection between ghost house, pacman and bonus fruit
 # TODO: Distribute power pellets evenly
+# TODO: There are sometimes dead ends on edges of maze
 # TODO: Restore A* algorithm
 class MazeGenerator:
     def __init__(self, width, height):
@@ -241,6 +242,26 @@ class MazeGenerator:
                     else:
                         same_direction_count = 0
                         my_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
+
+            new_x = current_x
+            new_y = current_y
+            debug_counter = 0
+            while self.no_empty_neighbors(new_x, new_y, my_direction):
+                debug_counter += 1
+
+                new_x, new_y = self.add_direction(new_x, new_y, my_direction)
+
+                if new_x < 0:
+                    new_x = self.width - 1
+                if new_x >= self.width:
+                    new_x = 0
+                if new_y < 0:
+                    new_y = self.height - 1
+                if new_y >= self.height:
+                    new_y = 0
+
+                self.maze_data[new_y][new_x] = 2
+                self.visited[new_y][new_x] = True
 
     def change_direction(self, current_x, current_y, direction, backtracking=True):
         old_direction = direction

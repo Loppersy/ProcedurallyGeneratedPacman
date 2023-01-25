@@ -149,7 +149,7 @@ class Ghost(pygame.sprite.Sprite):
         self.update_overwritten_state()
 
         if self.respawning and not self.force_goal:  # return to normal speed after respawning
-            self.current_speed = self.speed
+            self.apply_speed(self.state)
             self.respawning = False
 
         # change ghosts goal depending on the state
@@ -913,21 +913,23 @@ class Ghost(pygame.sprite.Sprite):
         self.global_state = state
 
     def switch_state(self, state):
-        if state is None or state == self.state or (state == "frightened" and self.state == "dead") or (
+        if state is None or (state == "frightened" and self.state == "dead") or (
                 self.exited_house is False and self.state == "spawn"):
+            return False
+        if state == self.state: # reapply some state specific things
+            self.apply_speed(state)
+            if state == "frightened":
+                self.flash_timer = pygame.time.get_ticks()
+                self.flash_last_update = pygame.time.get_ticks()
             return False
         self.state = state
         # switch the ghost to a state
         if state == "dead":
             utilities.set_stop_time(0.5)
-            self.current_speed = self.speed * 1.5
             self.current_image = 3
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
         elif state == "frightened":
-            # change the ghost's state to frightened
-
-            self.current_speed = self.frightened_speed
             # reverse ghosts current direction
             self.turn_around()
 
@@ -937,9 +939,9 @@ class Ghost(pygame.sprite.Sprite):
             self.flash_timer = pygame.time.get_ticks()
             self.flash_last_update = pygame.time.get_ticks()
         elif state == "chase" or state == "scatter":
-            self.current_speed = self.speed
             self.turn_around()
 
+        self.apply_speed(state)
         return True
 
     def overwrite_global_state(self, state, time):
@@ -970,3 +972,12 @@ class Ghost(pygame.sprite.Sprite):
         #                                                                          self.window_height),
         #                                       self.empty_maze_data,
         #                                       False)
+
+    def apply_speed(self, state):
+        if state == "frightened":
+            self.current_speed = self.frightened_speed
+        elif state == "dead":
+            self.current_speed = self.speed * 1.5
+        else:
+            self.current_speed = self.speed
+

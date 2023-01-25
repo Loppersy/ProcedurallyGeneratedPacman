@@ -5,7 +5,6 @@ import pygame
 import utilities
 from AStar import AStar, Node
 
-# TODO: Distribute power pellets evenly
 # TODO: Restore A* algorithm
 
 BRANCH_LENGTH = 40

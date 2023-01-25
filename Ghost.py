@@ -24,7 +24,6 @@ class Ghost(pygame.sprite.Sprite):
         self.starting_position = (x, y)  # in window coordinates
         if self.ghost_house:
             ghost_house_entrance = ghost_house.get_entrance()
-            print(ghost_house_entrance)
             if self.ghost_number == 0:
                 self.starting_position = utilities.get_position_in_window(ghost_house_entrance[0],
                                                                           ghost_house_entrance[1],
@@ -52,7 +51,6 @@ class Ghost(pygame.sprite.Sprite):
 
             self.ghost_house.add_ghost(self)
 
-        print(x, y)
         self.is_permanent_overwrite = False
         self.force_goal = None
         self.overwrite_clock = 0

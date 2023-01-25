@@ -91,6 +91,16 @@ def draw_window(sprite_list, maze_data, animated=True):
     for bonus_fruit in sprite_list[6]:
         bonus_fruit.my_draw(screen)
 
+    size = 5
+    last_color = None
+    for int_pos in utilities.highlighted_tiles:
+        window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], SCALE, WIDTH, HEIGHT)
+        pygame.draw.rect(screen, int_pos[1], (window_pos[0] + SCALE/2 -size/2, window_pos[1] +SCALE/2-size/2, size, size), 2)
+        if last_color is not None and last_color != int_pos[1] or size > SCALE:
+            size = 5
+        last_color = int_pos[1]
+        size += 1
+
 
 # pygame.display.update()
 
@@ -108,8 +118,9 @@ def register_keys(event):
 
 power_pellet_debug = False
 invisibility_debug = False
+new_maze = True  # Hit R to load a new maze
 classic_mode = False
-debug = [power_pellet_debug, invisibility_debug]
+debug = [power_pellet_debug, invisibility_debug, new_maze]
 
 
 # last_keys[0] is the current direction that all pacmans are moving and will continue to move in that direction unless
@@ -433,6 +444,7 @@ def main():
     run = True
 
     maze_data = []
+    maze_gen = MazeGenerator(32, 32)
     if classic_mode:
         for y in range(32):
             maze_data.append([])
@@ -459,7 +471,6 @@ def main():
                 else:
                     maze_data[y].append(1)
     else:
-        maze_gen = MazeGenerator(32,32)
         maze_gen.generate()
         maze_data = maze_gen.get_maze_data()
 
@@ -528,9 +539,15 @@ def main():
 
         if generate_new_maze:
             # kill all sprites
-            maze_data = copy.deepcopy(og_maze_data)
+            utilities.empty_highlighted_tiles()
+            if not classic_mode:
+                maze_gen.generate()
+                maze_data = maze_gen.get_maze_data()
+            else:
+                maze_data = copy.deepcopy(og_maze_data)
             for group in sprite_groups:
                 group.empty()
+
             populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellets, power_pellets, walls,
                           current_level)
             walls.update(maze_data)
@@ -572,6 +589,14 @@ def main():
             update_score_popups(score_popups)
             score_popups.draw(screen)
             pygame.display.update()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r and debug[2]:
+                        generate_new_maze = True
             continue
 
         if len(pacmans) == 0 and game_over[0] and lives > 0:
@@ -607,6 +632,9 @@ def main():
                     last_keys[2] = register_keys(event)
                 elif last_keys[3] == "none":
                     last_keys[3] = register_keys(event)
+
+                if event.key == pygame.K_r and debug[2]:
+                    generate_new_maze = True
 
             elif event.type == pygame.KEYUP:
                 if last_keys[0] == register_keys(event):

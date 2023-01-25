@@ -4,6 +4,7 @@ import pygame
 
 queued_popups = []  # list of popups to be displayed, each element is a tuple (x,y,text, color RGB, time in seconds)
 ghost_eaten_score = [200]
+highlighted_tiles = []  # list of tiles to be highlighted, each element is a tuple (x,y, color RGB, time in seconds)
 
 
 def load_ghost_sheet(sheet, rows, cols, width, height, EYES_SHEET_IMAGE):
@@ -84,3 +85,11 @@ def get_text_image(string, size, color):
     pygame.font.init()
     font = pygame.font.Font(os.path.join("assets", "fonts", "PressStart2P.ttf"), size)
     return font.render(string, False, color)
+
+
+def add_highlighted_tile(int_pos, color):
+    highlighted_tiles.append((int_pos, color))
+
+
+def empty_highlighted_tiles():
+    highlighted_tiles.clear()

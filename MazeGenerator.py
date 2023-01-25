@@ -1,9 +1,15 @@
 import random
 
+import utilities
+from AStar import AStar, Node
+
 # TODO: ensure connection between ghost house, pacman and bonus fruit
 # TODO: Distribute power pellets evenly
-# TODO: There are sometimes dead ends on edges of maze
 # TODO: Restore A* algorithm
+
+BRANCH_LENGTH = 40
+
+
 class MazeGenerator:
     def __init__(self, width, height):
         self.width = width
@@ -17,10 +23,13 @@ class MazeGenerator:
         # First, a ghost house is placed in the maze_data at a random location in the vertical middle(keeping in mind that
         # the ghost house is 8x5 and that the surrounding tiles are empty, and that these empty tiles are not on the
         # edge of the maze_data)
+        self.maze_data = [[1 for _ in range(self.width)] for _ in range(self.height)]
+        self.visited = [[False for _ in range(self.width)] for _ in range(self.height)]
         ghost_house_pos = self.find_available_position(self.visited, self.width // 2 - 5, -1, 10, 7)
-        # ghost_house_pos = (self.width // 2 - 5 , self.height - 8)
+        # ghost_house_pos = (self.width // 2 - 5 , 2)
 
         # now we add the empty tiles around the ghost house (the walls will be added during the maze_data population)
+        print(ghost_house_pos)
         for i in range(ghost_house_pos[0], ghost_house_pos[0] + 10):
             for j in range(ghost_house_pos[1], ghost_house_pos[1] + 7):
                 self.maze_data[j][i] = 0
@@ -31,6 +40,7 @@ class MazeGenerator:
         # Now we select a random tile that has not been visited yet and place pacman there. (it must not be on the
         # edge of the maze_data)
         pacman_pos = self.find_available_position(self.visited, self.width // 2 - 1, -1, 2, 1)
+        # pacman_pos = (self.width // 2 - 1, 10)
         self.maze_data[pacman_pos[1]][pacman_pos[0]] = 5
         self.maze_data[pacman_pos[1]][pacman_pos[0] + 1] = 0
         self.visited[pacman_pos[1]][pacman_pos[0]] = True
@@ -43,6 +53,7 @@ class MazeGenerator:
         # Now we select a random tile that has not been visited yet and place a bonus fruit. (it must not be on the
         # edge of the maze_data)
         bonus_pos = self.find_available_position(self.visited, self.width // 2 - 1, -1, 2, 1)
+        # bonus_pos = (self.width // 2 - 1, 12)
         self.maze_data[bonus_pos[1]][bonus_pos[0]] = 6
         self.maze_data[bonus_pos[1]][bonus_pos[0] + 1] = 0
         self.visited[bonus_pos[1]][bonus_pos[0]] = True
@@ -53,8 +64,8 @@ class MazeGenerator:
         self.visited[bonus_pos[1] - 1][bonus_pos[0] + 1] = True
 
         # Generate "branches" starting from the ghost house, bonus fruit and pacman positions
-        self.generate_branch(pacman_pos[0] - 1, pacman_pos[1], "left", 40, False, True)
-        self.generate_branch(bonus_pos[0] - 1, bonus_pos[1], "left", 40, False, True)
+        self.generate_branch(pacman_pos[0] - 1, pacman_pos[1], "left", BRANCH_LENGTH, False, True)
+        self.generate_branch(bonus_pos[0] - 1, bonus_pos[1], "left", BRANCH_LENGTH, False, True)
 
         possible_ghost_house_branches = [(-1, 0, "left"), (-1, 1, "left"), (-1, 2, "left"), (-1, 3, "left"),
                                          (-1, 4, "left"), (-1, 5, "left"), (-1, 6, "left"),
@@ -64,36 +75,37 @@ class MazeGenerator:
         branches_count = random.randint(2, 5)
         for i in range(branches_count):
             index = random.randint(0, len(possible_ghost_house_branches) - 1)
-            while ghost_house_pos[0] + possible_ghost_house_branches[index][0] < 1 or \
-                    ghost_house_pos[0] + possible_ghost_house_branches[index][0] >= self.width - 1 or \
-                    ghost_house_pos[1] + possible_ghost_house_branches[index][1] < 1 or \
-                    ghost_house_pos[1] + possible_ghost_house_branches[index][1] >= self.height - 1:
+            while (ghost_house_pos[0] + possible_ghost_house_branches[index][0] < 1 or \
+                   ghost_house_pos[0] + possible_ghost_house_branches[index][0] >= self.width - 1 or \
+                   ghost_house_pos[1] + possible_ghost_house_branches[index][1] < 1 or \
+                   ghost_house_pos[1] + possible_ghost_house_branches[index][1] >= self.height - 1) \
+                    and len(possible_ghost_house_branches) > 1:
+                possible_ghost_house_branches.pop(index)
                 index = random.randint(0, len(possible_ghost_house_branches) - 1)
 
+            if len(possible_ghost_house_branches) < 1: print(" No possible branches left")
             chosen_ghost_house_branches.append(possible_ghost_house_branches[index])
 
-            if index == 0 or index == len(possible_ghost_house_branches) - 2:
+            if (index == 0 or index == len(possible_ghost_house_branches) - 2) and len(
+                    possible_ghost_house_branches) > 2:
                 for j in range(2):
                     possible_ghost_house_branches.pop(index)
-            elif index == len(possible_ghost_house_branches) - 1:
+            elif index == len(possible_ghost_house_branches) - 1 and len(possible_ghost_house_branches) > 1:
                 possible_ghost_house_branches.pop(index)
-            else:
+            elif len(possible_ghost_house_branches) > 3:
                 for j in range(3):
                     possible_ghost_house_branches.pop(index - 1)
 
         for i in range(branches_count):
             self.generate_branch(ghost_house_pos[0] + chosen_ghost_house_branches[i][0],
                                  ghost_house_pos[1] + chosen_ghost_house_branches[i][1],
-                                 chosen_ghost_house_branches[i][2], 40, False)
-
-
+                                 chosen_ghost_house_branches[i][2], BRANCH_LENGTH, False)
 
         # for i in range(len(possible_ghost_house_branches)):
         #     self.generate_branch(ghost_house_pos[0] + possible_ghost_house_branches[i][0],
         #                          ghost_house_pos[1] + possible_ghost_house_branches[i][1],
         #                          possible_ghost_house_branches[i][2], 40, False)
 
-    def get_maze_data(self):
         # Mirror the left side of the maze_data to the right side
         for i in range(self.height):
             for j in range(self.width // 2):
@@ -101,6 +113,85 @@ class MazeGenerator:
                         self.maze_data[i][j] == 3:
                     self.maze_data[i][self.width - j - 1] = self.maze_data[i][j]
 
+        # ensure that all tiles are accessible. if not, create a tunnel between the ghost house and pacman and the bonus
+        # fruit
+
+        # find which object has the highest y value
+        positions = [(pacman_pos[0] - 1, pacman_pos[1]), (bonus_pos[0] - 1, bonus_pos[1]), ghost_house_pos]
+        lowest_y = min(positions, key=lambda x: x[1])[1]
+        highest_y = max(positions, key=lambda x: x[1])[1]
+        middle_y = 0
+        lowest_pos = None
+        middle_pos = None
+        highest_pos = None
+        for i in range(len(positions)):
+            if positions[i][1] != lowest_y and positions[i][1] != highest_y:
+                middle_y = positions[i][1]
+                break
+
+        for i in range(len(positions)):
+            if positions[i][1] == lowest_y:
+                lowest_pos = positions[i]
+            elif positions[i][1] == middle_y:
+                middle_pos = positions[i]
+            elif positions[i][1] == highest_y:
+                highest_pos = positions[i]
+
+        # utilities.add_highlighted_tile(lowest_pos, (255, 0, 0))
+        # utilities.add_highlighted_tile(middle_pos, (255, 255, 0))
+        # utilities.add_highlighted_tile(highest_pos, (255, 255, 255))
+
+        path_finder = AStar()
+        if path_finder.is_reachable(Node(lowest_pos), Node(middle_pos), self.maze_data):
+            path = path_finder.get_path(Node(lowest_pos), Node(middle_pos), self.maze_data, True)
+            for i in range(len(path)):
+                utilities.add_highlighted_tile(path[i], (255, 0, 255))
+
+        if not path_finder.is_reachable(Node(lowest_pos), Node(middle_pos), self.maze_data):
+            closest_node_lowest_pos = path_finder.get_path(Node(lowest_pos), Node(middle_pos), self.maze_data, False)[
+                -1]
+            closest_node_middle_pos = \
+                path_finder.get_path(Node(middle_pos), Node(closest_node_lowest_pos), self.maze_data, False)[-1]
+
+            utilities.add_highlighted_tile(closest_node_lowest_pos, (255, 0, 0))
+            utilities.add_highlighted_tile(closest_node_middle_pos, (0, 255, 0))
+
+            # if closest_node_middle_pos == closest_node_lowest_pos:
+            #     closest_node_middle_pos = middle_pos
+            self.create_tunel(path_finder.get_tunel(Node(closest_node_lowest_pos),
+                                                    Node(closest_node_middle_pos),
+                                                    self.maze_data))
+
+        if path_finder.is_reachable(Node(middle_pos), Node(highest_pos), self.maze_data):
+            path = path_finder.get_path(Node(middle_pos), Node(highest_pos), self.maze_data, True)
+            for i in range(len(path)):
+                utilities.add_highlighted_tile(path[i], (255, 255, 255))
+
+        if not path_finder.is_reachable(Node(middle_pos), Node(highest_pos), self.maze_data):
+            closest_node_middle_pos = path_finder.get_path(Node(middle_pos), Node(highest_pos), self.maze_data, False)[
+                -1]
+
+            closest_node_highest_pos = \
+                path_finder.get_path(Node(highest_pos), Node(closest_node_middle_pos), self.maze_data, False)[-1]
+
+            utilities.add_highlighted_tile(closest_node_middle_pos, (255, 255, 0))
+            utilities.add_highlighted_tile(closest_node_highest_pos, (0, 255, 255))
+
+            # if closest_node_middle_pos == closest_node_highest_pos:
+            #     closest_node_highest_pos = highest_pos
+            self.create_tunel(path_finder.get_tunel(Node(closest_node_middle_pos),
+                                                    Node(closest_node_highest_pos),
+                                                    self.maze_data))
+
+        # mirror the changes once again
+        # Mirror the left side of the maze_data to the right side
+        for i in range(self.height):
+            for j in range(self.width // 2):
+                if self.maze_data[i][j] == 0 or self.maze_data[i][j] == 1 or self.maze_data[i][j] == 2 or \
+                        self.maze_data[i][j] == 3:
+                    self.maze_data[i][self.width - j - 1] = self.maze_data[i][j]
+
+    def get_maze_data(self):
         return self.maze_data
 
     def find_available_position(self, visited, x_lock, y_lock, width, height, object_spacing=1):
@@ -169,69 +260,33 @@ class MazeGenerator:
         else:
             my_direction = direction
 
-        if (not self.visited[current_y][current_x] and self.is_valid_direction(current_x, current_y, "stay")) or force_first_tile:
+        if (not self.visited[current_y][current_x] and self.does_not_create_2x2(current_x, current_y,
+                                                                                "stay", True)) or force_first_tile:
             self.visited[current_y][current_x] = True
-            self.maze_data[current_y][current_x] = 3
+            self.maze_data[current_y][current_x] = 2
             same_direction_count = 0
             while True:
-                if branch_length <= 0:
-                    new_x = current_x
-                    new_y = current_y
-                    debug_counter = 0
-                    while self.no_empty_neighbors(new_x, new_y, my_direction):
-                        debug_counter += 1
 
-                        new_x, new_y = self.add_direction(new_x, new_y, my_direction)
-
-                        if new_x < 0:
-                            new_x = self.width - 1
-                        if new_x >= self.width:
-                            new_x = 0
-                        if new_y < 0:
-                            new_y = self.height - 1
-                        if new_y >= self.height:
-                            new_y = 0
-
-                        self.maze_data[new_y][new_x] = 2
-                        self.visited[new_y][new_x] = True
-                    print("Break by length")
-                    break
-
-                if self.is_valid_direction(current_x, current_y, my_direction):
-                    current_x, current_y = self.add_direction(current_x, current_y, my_direction)
+                if self.does_not_create_2x2(current_x, current_y, my_direction, False):
+                    current_x, current_y = self.add_direction(current_x, current_y, my_direction, True)
                     same_direction_count += 1
                 else:
                     old_direction = my_direction
                     my_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
                     same_direction_count = 0
                     if old_direction == my_direction:
-                        new_x = current_x
-                        new_y = current_y
-                        debug_counter = 0
-                        while self.no_empty_neighbors(new_x, new_y, my_direction):
-                            debug_counter += 1
-
-                            new_x, new_y = self.add_direction(new_x, new_y, my_direction)
-
-                            if new_x < 0:
-                                new_x = self.width - 1
-                            if new_x >= self.width:
-                                new_x = 0
-                            if new_y < 0:
-                                new_y = self.height - 1
-                            if new_y >= self.height:
-                                new_y = 0
-
-                            self.maze_data[new_y][new_x] = 2
-                            self.visited[new_y][new_x] = True
-                        print("Break by direction", self.no_empty_neighbors(current_x, current_y, my_direction))
+                        self.continue_tunel_until_connection(current_x, current_y, my_direction)
                         break
 
                 self.maze_data[current_y][current_x] = 2
                 self.visited[current_y][current_x] = True
                 branch_length -= 1
 
-                if random.randint(0, 100) < 20 * same_direction_count and same_direction_count > 3 and not (
+                if branch_length <= 0:
+                    self.continue_tunel_until_connection(current_x, current_y, my_direction)
+                    break
+
+                if random.randint(0, 100) < 30 * same_direction_count and same_direction_count > 3 and not (
                         current_x == 0 or current_x == self.width - 1 or current_y == 0 or current_y == self.height - 1):
                     if random.randint(0, 2) == 0:
                         new_branch_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
@@ -243,34 +298,27 @@ class MazeGenerator:
                         same_direction_count = 0
                         my_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
 
-            new_x = current_x
-            new_y = current_y
-            debug_counter = 0
-            while self.no_empty_neighbors(new_x, new_y, my_direction):
-                debug_counter += 1
+    def continue_tunel_until_connection(self, x, y, direction):
+        current_x = x
+        current_y = y
+        my_direction = direction
+        while self.no_empty_neighbors(current_x, current_y, my_direction):
+            if not self.does_not_create_2x2(current_x, current_y, my_direction, True) or self.visited[self.add_direction(current_x, current_y, my_direction, True)[0]][
+                    self.add_direction(current_x, current_y, my_direction, True)[1]]:
+                my_direction = self.change_direction(current_x, current_y, my_direction, False, True)
 
-                new_x, new_y = self.add_direction(new_x, new_y, my_direction)
+            current_x, current_y = self.add_direction(current_x, current_y, my_direction, True)
+            self.visited[current_y][current_x] = True
+            self.maze_data[current_y][current_x] = 2
 
-                if new_x < 0:
-                    new_x = self.width - 1
-                if new_x >= self.width:
-                    new_x = 0
-                if new_y < 0:
-                    new_y = self.height - 1
-                if new_y >= self.height:
-                    new_y = 0
-
-                self.maze_data[new_y][new_x] = 2
-                self.visited[new_y][new_x] = True
-
-    def change_direction(self, current_x, current_y, direction, backtracking=True):
+    def change_direction(self, current_x, current_y, direction, backtracking=True, wrap_around=False):
         old_direction = direction
         if direction == "up" or direction == "down":
             my_direction = random.choice(["left", "right"])
         else:
             my_direction = random.choice(["up", "down"])
         continue_prev_direction = True
-        if not self.is_valid_direction(current_x, current_y, my_direction):
+        if not self.does_not_create_2x2(current_x, current_y, my_direction):
             if my_direction == "up":
                 my_direction = "down"
             elif my_direction == "down":
@@ -281,7 +329,7 @@ class MazeGenerator:
                 my_direction = "left"
         else:
             continue_prev_direction = False
-        if not self.is_valid_direction(current_x, current_y, my_direction):
+        if not self.does_not_create_2x2(current_x, current_y, my_direction):
             if my_direction == "up":
                 my_direction = "down"
             elif my_direction == "down":
@@ -302,7 +350,7 @@ class MazeGenerator:
             return old_direction
 
         new_x, new_y = self.add_direction(current_x, current_y, my_direction)
-        if new_x < 1 or new_x >= self.width // 2 - 1 or new_y < 1 or new_y >= self.height - 1:
+        if (new_x < 1 or new_x >= self.width // 2 - 1 or new_y < 1 or new_y >= self.height - 1) and not wrap_around:
             return old_direction
 
         if continue_prev_direction:
@@ -310,7 +358,7 @@ class MazeGenerator:
         else:
             return my_direction
 
-    def add_direction(self, current_x, current_y, my_direction):
+    def add_direction(self, current_x, current_y, my_direction, wrap_around=False):
         if my_direction == "up":
             current_y -= 1
         elif my_direction == "down":
@@ -319,15 +367,26 @@ class MazeGenerator:
             current_x -= 1
         elif my_direction == "right":
             current_x += 1
+
+        if wrap_around:
+            if current_x < 0:
+                current_x = self.width - 1
+            if current_x >= self.width:
+                current_x = 0
+            if current_y < 0:
+                current_y = self.height - 1
+            if current_y >= self.height:
+                current_y = 0
         return current_x, current_y
 
-    def is_valid_direction(self, current_x, current_y, my_direction):
+    def does_not_create_2x2(self, current_x, current_y, my_direction, wrap_around=False):
         if my_direction != "stay":
-            new_x, new_y = self.add_direction(current_x, current_y, my_direction)
+            new_x, new_y = self.add_direction(current_x, current_y, my_direction, True)
         else:
             new_x = current_x
             new_y = current_y
-        if new_x < 1 or new_x >= self.width - 1 or new_y < 1 or new_y >= self.height - 1:
+
+        if (new_x < 1 or new_x >= self.width - 1 or new_y < 1 or new_y >= self.height - 1) and not wrap_around:
             return False
         if self.visited[new_y][new_x]:
             return False
@@ -337,8 +396,24 @@ class MazeGenerator:
         walkable_tiles = [False] * 9
         for i in range(-1, 2):
             for j in range(-1, 2):
-                if 0 <= new_y + j < self.height and 0 <= new_x + i < self.width and self.visited[new_y + j][new_x + i]:
-                    walkable_tiles[(j + 1) * 3 + i + 1] = True
+                if wrap_around:
+                    temp_y = new_y + j
+                    if temp_y < 0:
+                        temp_y += self.height
+                    elif temp_y >= self.height:
+                        temp_y -= self.height
+                    temp_x = new_x + i
+                    if temp_x < 0:
+                        temp_x += self.width
+                    elif temp_x >= self.width:
+                        temp_x -= self.width
+
+                    if self.maze_data[temp_y][temp_x] != 1:
+                        walkable_tiles[(j + 1) * 3 + i + 1] = True
+                else:
+                    if 0 <= new_y + j < self.height and 0 <= new_x + i < self.width and self.visited[new_y + j][
+                        new_x + i]:
+                        walkable_tiles[(j + 1) * 3 + i + 1] = True
 
         walkable_tiles[4] = True
         if walkable_tiles[0] and walkable_tiles[1] and walkable_tiles[3] and walkable_tiles[4] \
@@ -349,48 +424,94 @@ class MazeGenerator:
 
         return True
 
-    def no_empty_neighbors(self, current_x, current_y, my_direction):
+    def no_empty_neighbors(self, current_x, current_y, my_direction, ignore_visited_walls=False):
 
         neighbors_to_check = []
         if my_direction == "up":
             if current_x - 1 < 0:
-                neighbors_to_check = [(self.width -1, current_y), (current_x, current_y - 1), (current_x + 1, current_y)]
+                neighbors_to_check = [(self.width - 1, current_y), (current_x, current_y - 1),
+                                      (current_x + 1, current_y)]
             elif current_x + 1 >= self.width:
                 neighbors_to_check = [(current_x - 1, current_y), (current_x, current_y - 1), (0, current_y)]
             elif current_y - 1 < 0:
-                neighbors_to_check = [(current_x - 1, current_y), (current_x, self.height - 1), (current_x + 1, current_y)]
+                neighbors_to_check = [(current_x - 1, current_y), (current_x, self.height - 1),
+                                      (current_x + 1, current_y)]
             else:
-                neighbors_to_check = [(current_x - 1, current_y), (current_x, current_y - 1), (current_x + 1, current_y)]
+                neighbors_to_check = [(current_x - 1, current_y), (current_x, current_y - 1),
+                                      (current_x + 1, current_y)]
         elif my_direction == "down":
             if current_x - 1 < 0:
-                neighbors_to_check = [(self.width -1, current_y), (current_x, current_y + 1), (current_x + 1, current_y)]
+                neighbors_to_check = [(self.width - 1, current_y), (current_x, current_y + 1),
+                                      (current_x + 1, current_y)]
             elif current_x + 1 >= self.width:
                 neighbors_to_check = [(current_x - 1, current_y), (current_x, current_y + 1), (0, current_y)]
             elif current_y + 1 >= self.height:
                 neighbors_to_check = [(current_x - 1, current_y), (current_x, 0), (current_x + 1, current_y)]
             else:
-                neighbors_to_check = [(current_x - 1, current_y), (current_x, current_y + 1), (current_x + 1, current_y)]
+                neighbors_to_check = [(current_x - 1, current_y), (current_x, current_y + 1),
+                                      (current_x + 1, current_y)]
         elif my_direction == "left":
             if current_y - 1 < 0:
-                neighbors_to_check = [(current_x, self.height - 1), (current_x - 1, current_y), (current_x, current_y + 1)]
+                neighbors_to_check = [(current_x, self.height - 1), (current_x - 1, current_y),
+                                      (current_x, current_y + 1)]
             elif current_y + 1 >= self.height:
                 neighbors_to_check = [(current_x, current_y - 1), (current_x - 1, current_y), (current_x, 0)]
             elif current_x - 1 < 0:
-                neighbors_to_check = [(self.width - 1, current_y), (current_x, current_y - 1), (current_x, current_y + 1)]
+                neighbors_to_check = [(self.width - 1, current_y), (current_x, current_y - 1),
+                                      (current_x, current_y + 1)]
             else:
-                neighbors_to_check = [(current_x, current_y - 1), (current_x - 1, current_y), (current_x, current_y + 1)]
+                neighbors_to_check = [(current_x, current_y - 1), (current_x - 1, current_y),
+                                      (current_x, current_y + 1)]
         elif my_direction == "right":
             if current_y - 1 < 0:
-                neighbors_to_check = [(current_x, self.height - 1), (current_x + 1, current_y), (current_x, current_y + 1)]
+                neighbors_to_check = [(current_x, self.height - 1), (current_x + 1, current_y),
+                                      (current_x, current_y + 1)]
             elif current_y + 1 >= self.height:
                 neighbors_to_check = [(current_x, current_y - 1), (current_x + 1, current_y), (current_x, 0)]
             elif current_x + 1 >= self.width:
                 neighbors_to_check = [(0, current_y), (current_x, current_y - 1), (current_x, current_y + 1)]
             else:
-                neighbors_to_check = [(current_x, current_y - 1), (current_x + 1, current_y), (current_x, current_y + 1)]
+                neighbors_to_check = [(current_x, current_y - 1), (current_x + 1, current_y),
+                                      (current_x, current_y + 1)]
 
         for x, y in neighbors_to_check:
-            if self.visited[y][x]:
+            if ignore_visited_walls:
+                if self.maze_data[y][x] != 1:
+                    return False
+            else:
+                if self.visited[y][x]:
+                    return False
+
+        return True
+
+    def ensure_all_tiles_accessible(self, pacman_pos):
+        positions_to_check = []
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.maze_data[y][x] != 1 and self.visited[y][x]:
+                    positions_to_check.append((x, y))
+
+        path_finder = AStar()
+        while len(positions_to_check) > 1:
+            old_len = len(positions_to_check)
+            # TODO: make a star function that returns a path trough walls if no path is found
+            path = path_finder.get_path(Node((pacman_pos[0], pacman_pos[1])),
+                                        Node((positions_to_check[1][0], positions_to_check[1][1])), self.maze_data)
+            for x, y in path:
+                for i, j in positions_to_check:
+                    if i == x and j == y:
+                        positions_to_check.remove((i, j))
+                        break
+
+            if len(positions_to_check) == old_len:
                 return False
 
         return True
+
+    def create_tunel(self, path):
+        if not path:
+            return
+        print("path", path)
+        for x, y in path:
+            utilities.add_highlighted_tile((x, y), (0, 255, 0))
+            self.maze_data[y][x] = 2

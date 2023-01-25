@@ -13,6 +13,7 @@ BRANCH_MIN_LENGTH = 3
 BRANCH_CHANCE_PER_LENGTH = 15
 BRANCH_DIRCHANGE_CHANCE = 25
 BRANCH_CAN_WRAP_AROUND = False
+POWER_PELLETS_PER_SIDE = 2
 
 
 class MazeGenerator:
@@ -110,6 +111,9 @@ class MazeGenerator:
         #     self.generate_branch(ghost_house_pos[0] + possible_ghost_house_branches[i][0],
         #                          ghost_house_pos[1] + possible_ghost_house_branches[i][1],
         #                          possible_ghost_house_branches[i][2], 40, False)
+
+        # Add two power pellets in the maze_data
+        self.add_power_pellets(POWER_PELLETS_PER_SIDE)
 
         # Mirror the left side of the maze_data to the right side
         for i in range(self.height):
@@ -298,7 +302,8 @@ class MazeGenerator:
                     self.continue_tunel_until_connection(current_x, current_y, my_direction)
                     break
 
-                if random.randint(0, 100) < BRANCH_CHANCE_PER_LENGTH * same_direction_count and same_direction_count > BRANCH_MIN_LENGTH and not (
+                if random.randint(0,
+                                  100) < BRANCH_CHANCE_PER_LENGTH * same_direction_count and same_direction_count > BRANCH_MIN_LENGTH and not (
                         current_x == 0 or current_x == self.width - 1 or current_y == 0 or current_y == self.height - 1):
                     if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE:
                         new_branch_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
@@ -318,7 +323,9 @@ class MazeGenerator:
         # utilities.add_highlighted_tile(self.add_direction(current_x, current_y, my_direction, True), (255, 0, 0))
 
         while self.no_empty_neighbors(current_x, current_y, my_direction):
-            if not self.does_not_create_2x2(current_x, current_y, my_direction, True) or self.visited[self.add_direction(current_x, current_y, my_direction, True)[1]][self.add_direction(current_x, current_y, my_direction, True)[0]]:
+            if not self.does_not_create_2x2(current_x, current_y, my_direction, True) or \
+                    self.visited[self.add_direction(current_x, current_y, my_direction, True)[1]][
+                        self.add_direction(current_x, current_y, my_direction, True)[0]]:
                 my_direction = self.change_direction(current_x, current_y, my_direction, False, True)
                 print("change direction", my_direction)
 
@@ -413,7 +420,6 @@ class MazeGenerator:
         color = (pygame.Color('white'))
         color.hsva = (random.randint(0, 360), 100, 100, 100)
 
-
         walkable_tiles = [False] * 9
         for i in range(-1, 2):
             for j in range(-1, 2):
@@ -433,7 +439,8 @@ class MazeGenerator:
                         walkable_tiles[(j + 1) * 3 + i + 1] = True
 
                 else:
-                    if 0 <= new_y + j < self.height and 0 <= new_x + i < self.width and self.maze_data[new_y + j][new_x + i] != 1:
+                    if 0 <= new_y + j < self.height and 0 <= new_x + i < self.width and self.maze_data[new_y + j][
+                        new_x + i] != 1:
                         walkable_tiles[(j + 1) * 3 + i + 1] = True
 
         walkable_tiles[4] = True
@@ -535,3 +542,49 @@ class MazeGenerator:
             # utilities.add_highlighted_tile((x, y), (0, 255, 0))
             if self.maze_data[y][x] == 1:
                 self.maze_data[y][x] = 2
+
+    def add_power_pellets(self, number_of_power_pellets):
+        power_pellets_pos = []
+        attempted_positions = []
+        power_pellets_added = 0
+        while power_pellets_added < number_of_power_pellets:
+            x = random.randint(0, self.width // 3 - 1)
+            y = random.randint(0, self.height - 1)
+            attempted_positions.append((x, y))
+            if len(attempted_positions) > self.get_number_of_pellets():
+                print("Could not add all power pellets")
+                return
+            if self.maze_data[y][x] == 2:
+                pick_new = False
+                if len(power_pellets_pos) > 0:
+                    for i, j in power_pellets_pos:
+                        if abs(j - y) < self.get_diff_between_h_l_pellet() // (number_of_power_pellets + 1):
+                            pick_new = True
+                            break
+                if pick_new:
+                    continue
+                power_pellets_pos.append((x, y))
+                self.maze_data[y][x] = 3
+                power_pellets_added += 1
+
+
+    def get_number_of_pellets(self):
+        number_of_pellets = 0
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.maze_data[y][x] == 2:
+                    number_of_pellets += 1
+
+        return number_of_pellets
+    def get_diff_between_h_l_pellet(self):
+        lowest_y = self.height
+        highest_y = 0
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.maze_data[y][x] == 2:
+                    if y < lowest_y:
+                        lowest_y = y
+                    if y > highest_y:
+                        highest_y = y
+
+        return highest_y - lowest_y

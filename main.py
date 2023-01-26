@@ -100,6 +100,7 @@ def draw_window(sprite_list, maze_data, animated=True):
             size = 5
         last_color = int_pos[1]
         size += 1
+    utilities.empty_highlighted_tiles()
 
 
 # pygame.display.update()
@@ -120,6 +121,7 @@ power_pellet_debug = False
 invisibility_debug = False
 new_maze = True  # Hit R to load a new maze
 classic_mode = False
+AStarMode = True
 debug = [power_pellet_debug, invisibility_debug, new_maze]
 
 
@@ -683,19 +685,19 @@ def spawn_ghosts(ghosts, ghost_houses):
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 0))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 0, AStarMode))
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1,AStarMode))
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 2))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 2, AStarMode))
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(CLYDE_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "clyde", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 3))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 3, AStarMode))
 
 
 def populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellets, power_pellets, walls, current_level):

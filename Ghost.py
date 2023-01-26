@@ -8,9 +8,11 @@ from AStar import AStar, Node
 
 class Ghost(pygame.sprite.Sprite):
     def __init__(self, x, y, images, fright_images, ghost_type, window_width, window_height, scale, fps, speed,
-                 ghost_house, ghost_number):
+                 ghost_house, ghost_number, AStarMode):
         super().__init__()
 
+        self.AStarMode = AStarMode
+        self.pathfinder = AStar()
         self.respawning = None
         self.image_scale = 1.5
         self.my_image = None
@@ -76,7 +78,6 @@ class Ghost(pygame.sprite.Sprite):
         self.window_width = window_width
         self.window_height = window_height
         self.scale = scale
-        self.pathfinder = AStar()
         self.current_path = []
         self.current_speed = speed
         self.speed = speed
@@ -199,11 +200,6 @@ class Ghost(pygame.sprite.Sprite):
                 print("Error: ghost type not found when trying to scatter: " + self.type)
                 self.goal = (0, 0)
 
-            # fix A* bug eventually
-            # self.current_path = self.pathfinder.get_path(Node(
-            #     utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
-            #                                        self.window_height)), Node(
-            #     (self.goal[0], self.goal[1])), maze_data)
         elif self.state == "chase":
             # self.current_path, self.goal = self.update_path_to_pacman(pacmans, maze_data)
             self.closest_pacman = None
@@ -338,7 +334,11 @@ class Ghost(pygame.sprite.Sprite):
             if utilities.is_centered(self.float_position, self.force_goal):
                 self.force_goal = None
         else:
-            self.move_ghost_classic(self.goal, maze_data)
+            if self.AStarMode:
+                use_wrap_around = self.state != "scatter"
+                self.move_ghost_astar(self.goal, maze_data, use_wrap_around)
+            else:
+                self.move_ghost_classic(self.goal, maze_data)
 
     def move(self):
 
@@ -512,24 +512,21 @@ class Ghost(pygame.sprite.Sprite):
         else:
             self.direction = "stay"
 
-    def update_path_to_pacman(self, pacmans, maze_data):
+    def move_ghost_astar(self, goal, maze_data, use_wrap_around):
+        start = Node((self.int_position[0], self.int_position[1]))
+        if goal:
+            goal = Node((goal[0], goal[1]))
+        else:
+            self.move_ghost_classic(goal, maze_data)
+            return
+        path = self.pathfinder.get_path(start, goal, maze_data, use_wrap_around)
+        # for node in path:
+        #     utilities.add_highlighted_tile((node[0],node[1]), (255,128,0))
+        if len(path) > 1:
+            self.move_ghost_classic(path[1], maze_data)
+        else:
+            self.move_ghost_classic(path[0], maze_data)
 
-        if self.type == "blinky":
-            # take the shortest path to any pacman
-            shortest_path = []
-            goal = None
-            for pacman in pacmans:
-                path = self.pathfinder.get_path(Node(
-                    utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
-                                                       self.window_height)), Node(
-                    utilities.get_position_in_maze_int(pacman.rect.x, pacman.rect.y, self.scale, self.window_width,
-                                                       self.window_height)), maze_data)
-                if not shortest_path or len(path) < len(shortest_path):
-                    shortest_path = path
-                    goal = (
-                        utilities.get_position_in_maze_int(pacman.rect.x, pacman.rect.y, self.scale, self.window_width,
-                                                           self.window_height))
-            return shortest_path, goal
 
     def my_draw(self, screen):
         now = pygame.time.get_ticks()

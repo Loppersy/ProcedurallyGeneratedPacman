@@ -7,10 +7,11 @@ from AStar import AStar, Node
 
 # TODO: Restore A* algorithm
 
-BRANCH_LENGTH = 40
-BRANCH_MIN_LENGTH = 3
-BRANCH_CHANCE_PER_LENGTH = 15
-BRANCH_DIRCHANGE_CHANCE = 25
+BRANCH_LENGTH = 60
+BRANCH_MIN_LENGTH = 2
+BRANCH_CHANCE_PER_LENGTH = 20
+BRANCH_CHANCE_PENALTY_PER_BRANCH = 10
+BRANCH_DIRCHANGE_CHANCE = 40
 BRANCH_CAN_WRAP_AROUND = False
 POWER_PELLETS_PER_SIDE = 2
 
@@ -77,7 +78,7 @@ class MazeGenerator:
                                          (0, -1, "up"), (1, -1, "up"), (2, -1, "up"), (3, -1, "up"),
                                          (0, 7, "down"), (1, 7, "down"), (2, 7, "down"), (3, 7, "down")]
         chosen_ghost_house_branches = []
-        branches_count = random.randint(2, 5)
+        branches_count = random.randint(2, 3)
         for i in range(branches_count):
             index = random.randint(0, len(possible_ghost_house_branches) - 1)
             while (ghost_house_pos[0] + possible_ghost_house_branches[index][0] < 1 or \
@@ -266,9 +267,10 @@ class MazeGenerator:
 
         return x, y
 
-    def generate_branch(self, x, y, direction=None, branch_length=50, backtracking=True, force_first_tile=False):
+    def generate_branch(self, x, y, direction=None, branch_length=50, backtracking=True, force_first_tile=False, branch_number=1):
         current_x = x
         current_y = y
+        og_length = branch_length
         if direction is None:
             my_direction = random.choice(self.directions)
         else:
@@ -301,15 +303,15 @@ class MazeGenerator:
                     self.continue_tunel_until_connection(current_x, current_y, my_direction)
                     break
 
-                if random.randint(0,
-                                  100) < BRANCH_CHANCE_PER_LENGTH * same_direction_count and same_direction_count > BRANCH_MIN_LENGTH and not (
-                        current_x == 0 or current_x == self.width - 1 or current_y == 0 or current_y == self.height - 1):
-                    if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE:
+                if random.randint(0,100) < BRANCH_CHANCE_PER_LENGTH * same_direction_count \
+                        and same_direction_count > BRANCH_MIN_LENGTH \
+                        and not (current_x == 0 or current_x == self.width - 1 or current_y == 0 or current_y == self.height - 1):
+                    if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE - BRANCH_CHANCE_PENALTY_PER_BRANCH * (branch_number - 1):
                         new_branch_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
                         new_branch_x, new_branch_y = self.add_direction(current_x, current_y, new_branch_direction)
                         same_direction_count = 0
                         self.generate_branch(new_branch_x, new_branch_y, new_branch_direction, branch_length,
-                                             True)
+                                             True, False, branch_number + 1)
                     else:
                         same_direction_count = 0
                         my_direction = self.change_direction(current_x, current_y, my_direction, backtracking)

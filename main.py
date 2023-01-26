@@ -63,7 +63,7 @@ BONUS_FRUIT = [["cherry", "cherry"],  # level 1
                ["bell", "bell"],  # level 12
                ["key", "key"]]  # level 13
 # After how many dots the fruits will appear as percentage of the total dots
-FRUIT_SPAWN_TRIGGER = [0.1, 0.2]
+FRUIT_SPAWN_TRIGGER = [0.3, 0.7]
 
 # For how long the fruit will remain on the screen (in seconds)
 FRUIT_DURATION = 10
@@ -589,14 +589,6 @@ def main():
             update_score_popups(score_popups)
             score_popups.draw(screen)
             pygame.display.update()
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    run = False
-
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_r and debug[2]:
-                        generate_new_maze = True
             continue
 
         if len(pacmans) == 0 and game_over[0] and lives > 0:

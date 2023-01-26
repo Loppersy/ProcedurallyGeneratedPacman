@@ -11,6 +11,7 @@ class Ghost(pygame.sprite.Sprite):
                  ghost_house, ghost_number, AStarMode):
         super().__init__()
 
+        self.path = None
         self.AStarMode = AStarMode
         self.pathfinder = AStar()
         self.respawning = None
@@ -87,6 +88,8 @@ class Ghost(pygame.sprite.Sprite):
         self.next_node = None
         self.previous_node = None
         self.empty_maze_data = []
+
+        self.clyde_fleeing = False
 
         # test var for dead state
         self.dead_time = 5
@@ -292,8 +295,10 @@ class Ghost(pygame.sprite.Sprite):
                                                                    self.closest_pacman.rect.y,
                                                                    self.scale,
                                                                    self.window_width, self.window_height)
+                    self.clyde_fleeing = False
                 elif self.closest_pacman is not None:
                     self.goal = (0, 31)
+                    self.clyde_fleeing = True
                 else:
                     self.goal = None
         elif self.state == "frightened":
@@ -335,7 +340,7 @@ class Ghost(pygame.sprite.Sprite):
                 self.force_goal = None
         else:
             if self.AStarMode:
-                use_wrap_around = self.state != "scatter"
+                use_wrap_around = not (self.state == "scatter" or (self.type == "clyde" and self.clyde_fleeing))
                 self.move_ghost_astar(self.goal, maze_data, use_wrap_around)
             else:
                 self.move_ghost_classic(self.goal, maze_data)
@@ -383,7 +388,18 @@ class Ghost(pygame.sprite.Sprite):
 
     # draw the path to the objective on the screen, taking into account the scale of the maze and the position of the
     # maze in the window. Drawn with a thin red line
-    def draw_path(self, screen):
+    def draw_astar_path(self, screen, maze_data):
+        if self.goal is None:
+            return
+        color = self.get_ghost_color()
+        offset = 0
+        if color == (255, 255, 0):
+            offset = 3
+        elif color == (255, 0, 255):
+            offset = 6
+        elif color == (255, 128, 0):
+            offset = -3
+
         if self.current_path:
             for node in self.current_path:
                 (x, y) = utilities.get_position_in_window(node[0], node[1], self.scale, self.window_width,
@@ -397,22 +413,79 @@ class Ghost(pygame.sprite.Sprite):
                         self.scale, self.window_width,
                         self.window_height)
                     if node[0] == self.current_path[self.current_path.index(node) + 1][0]:
-                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
-                                         (x + self.scale / 2, next_y + self.scale / 2), 3)
+                        # if the next_y wraps around the maze, skip the line
+                        if abs(y - next_y) > len(maze_data) / 2 * self.scale:
+                            continue
+                        pygame.draw.line(screen, color,
+                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                         (x + self.scale / 2 + offset, next_y + self.scale / 2 + offset),
+                                         3)
                     elif node[1] == self.current_path[self.current_path.index(node) + 1][1]:
-                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
-                                         (next_x + self.scale / 2, y + self.scale / 2), 3)
+                        # if the next_x wraps around the maze, skip the line
+                        if abs(x - next_x) > len(maze_data[0]) / 2 * self.scale:
+                            continue
+                        pygame.draw.line(screen, color,
+                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                         (next_x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                         3)
                     else:
-                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
-                                         (x + self.scale / 2, y + self.scale / 2), 3)
-                        pygame.draw.line(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2),
-                                         (next_x + self.scale / 2, next_y + self.scale / 2), 3)
+                        # if the next_x wraps around the maze, skip the line
+                        if abs(x - next_x) > len(maze_data[0]) / 2 * self.scale:
+                            continue
+                        pygame.draw.line(screen, color,
+                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                         3)
+                        # if the next_y wraps around the maze, skip the line
+                        if abs(y - next_y) > len(maze_data) / 2 * self.scale:
+                            continue
+                        pygame.draw.line(screen, color,
+                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                         (next_x + self.scale / 2 + offset, next_y + self.scale / 2 + offset),
+                                         3)
             # finally, draw a circle at current goal
+            (x, y) = utilities.get_position_in_window(self.current_path[-1][0], self.current_path[-1][1], self.scale, self.window_width,
+                                                      self.window_height)
+            pygame.draw.circle(screen, color, (x + self.scale / 2, y + self.scale / 2), 5)
+            # and an x at the true current goal
             (x, y) = utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
                                                       self.window_height)
-            pygame.draw.circle(screen, (255, 0, 0), (x + self.scale / 2, y + self.scale / 2), 5)
+            pygame.draw.line(screen, color, (x + self.scale / 2 - 5, y + self.scale / 2 - 5),
+                             (x + self.scale / 2 + 5, y + self.scale / 2 + 5), 3)
+            pygame.draw.line(screen, color, (x + self.scale / 2 - 5, y + self.scale / 2 + 5),
+                                (x + self.scale / 2 + 5, y + self.scale / 2 - 5), 3)
 
-        # draw the path using the classic greedy algorithm
+            self.draw_pivot(color, screen)
+            # draw line from current tile to goal
+            if self.type == "clyde" and self.closest_pacman is not None and self.state == "chase":
+                # Draw circle around closest pacman to indicate where clyde is not chasing pacman
+
+                pacman_position = (
+                self.closest_pacman.rect.x + self.scale / 2, self.closest_pacman.rect.y + self.scale / 2)
+                pygame.draw.circle(screen, color, pacman_position, 8 * self.scale, 1)
+
+    def draw_pivot(self, color, screen):
+        if self.pivot is not None:
+            # draw a circle at the pivot
+            pygame.draw.circle(screen, color, (
+                utilities.get_position_in_window(self.pivot[0], self.pivot[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    0] + self.scale // 2,
+                utilities.get_position_in_window(self.pivot[0], self.pivot[1], self.scale, self.window_width,
+                                                 self.window_height)[
+                    1] + self.scale // 2), 2)
+
+    def get_ghost_color(self):
+        color = (255, 255, 255)
+        if self.type == "blinky":
+            color = (255, 0, 0)
+        elif self.type == "pinky":
+            color = (255, 0, 255)
+        elif self.type == "inky":
+            color = (0, 255, 255)
+        elif self.type == "clyde":
+            color = (255, 128, 0)
+        return color
 
     # Check collision with pacman. If collision, that pacman dies
     def check_collision(self, pacmans, debug):
@@ -428,9 +501,8 @@ class Ghost(pygame.sprite.Sprite):
                     utilities.queued_popups.append(
                         (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2,
                          utilities.ghost_eaten_score[0],
-                         (65, 167, 200), 1,11))
+                         (65, 167, 200), 1, 11))
                     utilities.ghost_eaten_score[0] *= 2
-
 
     def change_direction(self, path):
         # find in what direction is the next node in the path by comparing path[0] with path[1]
@@ -513,20 +585,20 @@ class Ghost(pygame.sprite.Sprite):
             self.direction = "stay"
 
     def move_ghost_astar(self, goal, maze_data, use_wrap_around):
-        start = Node((self.int_position[0], self.int_position[1]))
-        if goal:
-            goal = Node((goal[0], goal[1]))
-        else:
+        # To optimize the pathfinding, we only check the path every time the ghost is in the middle of a tile
+        if goal is None:
             self.move_ghost_classic(goal, maze_data)
             return
-        path = self.pathfinder.get_path(start, goal, maze_data, use_wrap_around)
-        # for node in path:
-        #     utilities.add_highlighted_tile((node[0],node[1]), (255,128,0))
-        if len(path) > 1:
-            self.move_ghost_classic(path[1], maze_data)
-        else:
-            self.move_ghost_classic(path[0], maze_data)
 
+        if utilities.is_centered(self.float_position, self.int_position):
+            start = Node((self.int_position[0], self.int_position[1]))
+            goal = Node((goal[0], goal[1]))
+            self.current_path = self.pathfinder.get_path(start, goal, maze_data, use_wrap_around, [self.previous_node])
+
+        if len(self.current_path) > 1:
+            self.move_ghost_classic(self.current_path[1], maze_data)
+        else:
+            self.move_ghost_classic(self.current_path[0], maze_data)
 
     def my_draw(self, screen):
         now = pygame.time.get_ticks()
@@ -785,22 +857,10 @@ class Ghost(pygame.sprite.Sprite):
                     else:
                         self.next_node = (int_position[0], len(maze_data) - 1)
 
-    def draw_classic_path(self, screen, maze_data):
-        # draw a red line that predicts the path that the ghost is going to take.
-        current_tile = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
-                                                          self.window_height)
-        temp_direction = self.direction
+    def draw_classic_path(self, screen):
 
         # draw circle at goal
-        color = (255, 255, 255)
-        if self.type == "blinky":
-            color = (255, 0, 0)
-        elif self.type == "pinky":
-            color = (255, 0, 255)
-        elif self.type == "inky":
-            color = (0, 255, 255)
-        elif self.type == "clyde":
-            color = (255, 128, 0)
+        color = self.get_ghost_color()
 
         if self.goal is not None:
             pygame.draw.circle(screen, color, (
@@ -840,15 +900,10 @@ class Ghost(pygame.sprite.Sprite):
                                                                   self.window_width, self.window_height)[
                                      1] + self.scale // 2 + 5), 5)
 
-        if self.pivot is not None:
-            # draw a circle at the pivot
-            pygame.draw.circle(screen, color, (
-                utilities.get_position_in_window(self.pivot[0], self.pivot[1], self.scale, self.window_width,
-                                                 self.window_height)[
-                    0] + self.scale // 2,
-                utilities.get_position_in_window(self.pivot[0], self.pivot[1], self.scale, self.window_width,
-                                                 self.window_height)[
-                    1] + self.scale // 2), 2)
+        self.draw_pivot(color, screen)
+        self.draw_clyde_circle(color, screen)
+
+    def draw_clyde_circle(self, color, screen):
         # draw line from current tile to goal
         if self.type == "clyde" and self.closest_pacman is not None and self.state == "chase":
             # Draw circle around closest pacman to indicate where clyde is not chasing pacman
@@ -911,7 +966,7 @@ class Ghost(pygame.sprite.Sprite):
         if state is None or (state == "frightened" and self.state == "dead") or (
                 self.exited_house is False and self.state == "spawn"):
             return False
-        if state == self.state: # reapply some state specific things
+        if state == self.state:  # reapply some state specific things
             self.apply_speed(state)
             if state == "frightened":
                 self.flash_timer = pygame.time.get_ticks()
@@ -975,4 +1030,3 @@ class Ghost(pygame.sprite.Sprite):
             self.current_speed = self.speed * 1.5
         else:
             self.current_speed = self.speed
-

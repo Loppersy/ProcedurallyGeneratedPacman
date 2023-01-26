@@ -18,9 +18,16 @@ class AStar(object):
     # Return a list of tuples as a path from the given start to the given end in the given maze.
     # The path is the shortest path from the start to the end.
     # The path can take any direction as long as there is not a wall in the way (id 1 in grid).
-    def get_path(self, start, goal, maze_data, use_wrap_around=True):
+    def get_path(self, start, goal, maze_data, use_wrap_around=True, blocked_positions=None):
+
         self.start = start
         self.goal = goal
+
+        new_x, new_y = utilities.get_closest_walkable_tile(self.goal.position[0], self.goal.position[1], maze_data)
+
+        # utilities.add_highlighted_tile((new_x, new_y), (255, 0, 0))
+        self.goal.position = (new_x, new_y)
+
         self.grid = maze_data
         self.open = []
         self.closed = []
@@ -29,6 +36,11 @@ class AStar(object):
 
         # Add the start node to the open list
         # and update its values as well as the surrounding nodes
+        if blocked_positions is not None:
+            for blocked_position in blocked_positions:
+                if blocked_position is not None:
+                    blocked_node = Node((blocked_position[0], blocked_position[1]), 0, 0, 100000, None)
+                    self.closed.append(blocked_node)
         self.calculate_values(self.start.position[0], self.start.position[1], Node(None, 0, 0, 0, None),
                               use_wrap_around)
         self.update_surrounding_nodes(self.start, use_wrap_around)
@@ -202,7 +214,7 @@ class AStar(object):
         # Checking "up" node
         if node.position[1] - 1 >= 0:
             if (not self.is_in_closed((node.position[0], node.position[1] - 1))
-                    and self.does_not_create_2x2(node.position[0],node.position[1] - 1))\
+                and self.does_not_create_2x2(node.position[0], node.position[1] - 1)) \
                     or (node.position[0], node.position[1] - 1) == self.goal.position:
                 self.calculate_values(node.position[0], node.position[1] - 1, node, False)
 
@@ -210,7 +222,7 @@ class AStar(object):
         if node.position[1] + 1 <= len(self.grid[0]):
             if (not self.is_in_closed(
                     (node.position[0], node.position[1] + 1)) and self.does_not_create_2x2(node.position[0],
-                                                                                           node.position[1] + 1))\
+                                                                                           node.position[1] + 1)) \
                     or (node.position[0], node.position[1] + 1) == self.goal.position:
                 self.calculate_values(node.position[0], node.position[1] + 1, node, False)
 
@@ -218,7 +230,7 @@ class AStar(object):
         if node.position[0] - 1 >= 0:
             if (not self.is_in_closed(
                     (node.position[0] - 1, node.position[1])) and self.does_not_create_2x2(node.position[0] - 1,
-                                                                                           node.position[1]))\
+                                                                                           node.position[1])) \
                     or (node.position[0] - 1, node.position[1]) == self.goal.position:
                 self.calculate_values(node.position[0] - 1, node.position[1], node, False)
 
@@ -226,7 +238,7 @@ class AStar(object):
         if node.position[0] + 1 <= len(self.grid) // 2:
             if (not self.is_in_closed(
                     (node.position[0] + 1, node.position[1])) and self.does_not_create_2x2(node.position[0] + 1,
-                                                                                           node.position[1]))\
+                                                                                           node.position[1])) \
                     or (node.position[0] + 1, node.position[1]) == self.goal.position:
                 self.calculate_values(node.position[0] + 1, node.position[1], node, False)
 
@@ -236,7 +248,7 @@ class AStar(object):
         new_y = current_y
 
         height = len(self.grid[0])
-        width = len(self.grid)//2
+        width = len(self.grid) // 2
 
         if new_x < 1 or new_x >= width - 1 or new_y < 1 or new_y >= height - 1:
             return False
@@ -247,7 +259,7 @@ class AStar(object):
         for i in range(-1, 2):
             for j in range(-1, 2):
                 if 0 <= new_y + j < height and 0 <= new_x + i < width and self.grid[new_y + j][
-                        new_x + i] != 1:
+                    new_x + i] != 1:
                     walkable_tiles[(j + 1) * 3 + i + 1] = True
                 # else:
                 #     utilities.add_highlighted_tile((new_x + i, new_y + j), (0, 0, 255))

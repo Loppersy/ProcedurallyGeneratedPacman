@@ -1,6 +1,7 @@
 import os
 
 import pygame
+import numpy as np
 
 queued_popups = []  # list of popups to be displayed, each element is a tuple (x,y,text, color RGB, time in seconds)
 ghost_eaten_score = [200]
@@ -93,3 +94,22 @@ def add_highlighted_tile(int_pos, color):
 
 def empty_highlighted_tiles():
     highlighted_tiles.clear()
+
+
+def get_closest_walkable_tile(x, y, maze_data):
+    # get the closest walkable tile to the given position, even if outside the maze
+    walkable_tiles = []
+    for i in range(len(maze_data)):
+        for j in range(len(maze_data[i])):
+            if maze_data[i][j] != 1:
+                walkable_tiles.append((j, i))
+                # add_highlighted_tile((j, i), (255, 255, 255))
+
+
+
+    np.array(walkable_tiles)
+    # get the closest tile using numpy and the euclidean distance
+    closest_tile = walkable_tiles[np.argmin(np.sqrt((np.array(walkable_tiles)[:, 0] - x) ** 2 + (
+            np.array(walkable_tiles)[:, 1] - y) ** 2))]
+    return closest_tile
+

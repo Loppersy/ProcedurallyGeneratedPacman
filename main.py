@@ -82,7 +82,11 @@ def draw_window(sprite_list, maze_data, animated=True):
     # display the path of the ghosts
     if draw_ghosts[0]:
         for ghost in sprite_list[1]:
-            ghost.draw_classic_path(screen, maze_data)
+            if AStarMode:
+                ghost.draw_astar_path(screen, maze_data)
+            else:
+                ghost.draw_classic_path(screen, maze_data)
+
             ghost.my_draw(screen)
 
     for pacman in sprite_list[0]:
@@ -100,7 +104,7 @@ def draw_window(sprite_list, maze_data, animated=True):
             size = 5
         last_color = int_pos[1]
         size += 1
-    utilities.empty_highlighted_tiles()
+    # utilities.empty_highlighted_tiles()
 
 
 # pygame.display.update()
@@ -118,7 +122,7 @@ def register_keys(event):
 
 
 power_pellet_debug = False
-invisibility_debug = False
+invisibility_debug = True
 new_maze = True  # Hit R to load a new maze
 classic_mode = False
 AStarMode = True

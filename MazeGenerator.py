@@ -7,7 +7,7 @@ from AStar import AStar, Node
 
 # TODO: Restore A* algorithm
 
-BRANCH_LENGTH = 60
+BRANCH_LENGTH = 30
 BRANCH_MIN_LENGTH = 2
 BRANCH_CHANCE_PER_LENGTH = 20
 BRANCH_CHANCE_PENALTY_PER_BRANCH = 10
@@ -324,9 +324,10 @@ class MazeGenerator:
         # utilities.add_highlighted_tile(self.add_direction(current_x, current_y, my_direction, True), (255, 0, 0))
 
         while self.no_empty_neighbors(current_x, current_y, my_direction):
-            if not self.does_not_create_2x2(current_x, current_y, my_direction, True) or \
+            if (not self.does_not_create_2x2(current_x, current_y, my_direction, True) or \
                     self.visited[self.add_direction(current_x, current_y, my_direction, True)[1]][
-                        self.add_direction(current_x, current_y, my_direction, True)[0]]:
+                        self.add_direction(current_x, current_y, my_direction, True)[0]]) or \
+                    my_direction == "up" or my_direction == "down":
                 my_direction = self.change_direction(current_x, current_y, my_direction, False, True)
                 print("change direction", my_direction)
 

@@ -11,6 +11,7 @@ from MazeGenerator import MazeGenerator
 from Pacman import Pacman
 from Pellet import Pellet
 from PowerPellet import PowerPellet
+from SFXHandler import SFXHandler
 from ScorePopup import ScorePopup
 from Wall import Wall
 
@@ -72,6 +73,14 @@ global_state_stop_time = []
 game_over = [False]
 draw_ghosts = [True]
 
+# Music and SFX
+SFX_NAMES = ["credit.wav", "death_1.wav", "death_2.wav", "eat_fruit.wav", "eat_ghost.wav", "extend.wav",
+             "game_start.wav",
+             "intermission.wav", "munch_1.wav", "munch_2.wav"]
+
+MUSIC_NAMES = ["power_pellet.wav", "retreating.wav", "siren_1.wav",
+               "siren_2.wav", "siren_3.wav", "siren_4.wav", "siren_5.wav"]
+
 
 def draw_window(sprite_list, maze_data, animated=True):
     screen.fill(BLACK)
@@ -82,9 +91,10 @@ def draw_window(sprite_list, maze_data, animated=True):
     # display the path of the ghosts
     if draw_ghosts[0]:
         for ghost in sprite_list[1]:
-            if AStarMode:
+
+            if AStarMode and draw_paths:
                 ghost.draw_astar_path(screen, maze_data)
-            else:
+            elif draw_paths:
                 ghost.draw_classic_path(screen, maze_data)
 
             ghost.my_draw(screen)
@@ -95,16 +105,19 @@ def draw_window(sprite_list, maze_data, animated=True):
     for bonus_fruit in sprite_list[6]:
         bonus_fruit.my_draw(screen)
 
-    size = 5
-    last_color = None
-    for int_pos in utilities.highlighted_tiles:
-        window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], SCALE, WIDTH, HEIGHT)
-        pygame.draw.rect(screen, int_pos[1], (window_pos[0] + SCALE/2 -size/2, window_pos[1] +SCALE/2-size/2, size, size), 2)
-        if last_color is not None and last_color != int_pos[1] or size > SCALE:
-            size = 5
-        last_color = int_pos[1]
-        size += 1
-    # utilities.empty_highlighted_tiles()
+    if draw_highlighted_tiles:
+        size = 5
+        last_color = None
+        for int_pos in utilities.highlighted_tiles:
+            window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], SCALE, WIDTH, HEIGHT)
+            pygame.draw.rect(screen, int_pos[1],
+                             (window_pos[0] + SCALE / 2 - size / 2, window_pos[1] + SCALE / 2 - size / 2, size, size),
+                             2)
+            if last_color is not None and last_color != int_pos[1] or size > SCALE:
+                size = 5
+            last_color = int_pos[1]
+            size += 1
+        # utilities.empty_highlighted_tiles()
 
 
 # pygame.display.update()
@@ -126,6 +139,8 @@ invisibility_debug = True
 new_maze = True  # Hit R to load a new maze
 classic_mode = False
 AStarMode = True
+draw_paths = True
+draw_highlighted_tiles = False
 debug = [power_pellet_debug, invisibility_debug, new_maze]
 
 
@@ -370,12 +385,13 @@ def move_pacmans(last_keys, pacmans, maze_data):
     return last_keys
 
 
-def update_sprites(maze_data, pacmans, ghosts, consumables):
+def update_sprites(maze_data, pacmans, ghosts, consumables, sfx_handler):
     all_pacmans_dead = True
     for pacman in pacmans:
         maze_data = pacman.update(maze_data, consumables)
         if pacman.consumed_power_pellet or power_pellet_debug:
             pacman.consumed_power_pellet = False
+
             frightened_time = 5
             if len(global_state_stop_time) > 0:
                 global_state_stop_time.pop()
@@ -476,9 +492,6 @@ def main():
                 # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
                 else:
                     maze_data[y].append(1)
-    else:
-        maze_gen.generate()
-        maze_data = maze_gen.get_maze_data()
 
     # Create a list for the sprites
     walls = pygame.sprite.Group()
@@ -518,9 +531,14 @@ def main():
 
     lives = 3
 
+    # Initialize sfx and music handlers
+    sfx_handler = SFXHandler(SFX_NAMES, MUSIC_NAMES, FPS)
+    og_pellet_count = 0
+
     while run:
         clock.tick(FPS)
         if win_animation:
+            sfx_handler.stop_music()
             win_animation_clock += 1
             if win_animation_clock >= WIN_ANIMATION_STOP_TIME * FPS:
 
@@ -544,6 +562,7 @@ def main():
             continue
 
         if generate_new_maze:
+            sfx_handler.stop_music()
             # kill all sprites
             utilities.empty_highlighted_tiles()
             if not classic_mode:
@@ -556,6 +575,8 @@ def main():
 
             populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellets, power_pellets, walls,
                           current_level)
+
+            og_pellet_count = len(utilities.get_occurrences_in_maze(maze_data, 2))
             walls.update(maze_data)
             new_maze_animation_clock = 0
             maze_animation_time = NEW_MAZE_ANIMATION_TIME
@@ -568,9 +589,12 @@ def main():
             draw_ghosts[0] = True
             current_tim = 0
             stop_time_clock = 0
+
+            sfx_handler.play_sfx("game_start.wav")
             continue
 
         if generate_old_maze:
+            sfx_handler.stop_music()
             # respawn ghosts and pacmans
             ghosts.empty()
             pacmans.empty()
@@ -615,6 +639,8 @@ def main():
 
         update_score_popups(score_popups)
 
+        update_music(sfx_handler, maze_data, og_pellet_count, ghosts)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -652,7 +678,7 @@ def main():
 
         if not utilities.get_stop_time():
             last_keys = move_pacmans(last_keys, pacmans, maze_data)
-            maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits])
+            maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits], sfx_handler)
             draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
 
             if len(global_state_stop_time) > 0:
@@ -683,6 +709,39 @@ def main():
     pygame.quit()
 
 
+def update_music(sfx_handler, maze_data, og_pellets_count, ghosts):
+    sfx_handler.play_sfx(utilities.get_next_sfx())
+
+
+    current_state = None
+    for ghost in ghosts:
+        if ghost.get_state() == "dead":
+            current_state = "dead"
+
+        if ghost.get_state() == "frightened" and current_state != "dead":
+            current_state = "frightened"
+
+
+    if current_state == "dead":
+        sfx_handler.play_music("retreating.wav")
+        return
+    elif current_state == "frightened":
+        sfx_handler.play_music("power_pellet.wav")
+        return
+
+    pellets_left = len(utilities.get_occurrences_in_maze(maze_data, 2))
+    if pellets_left / og_pellets_count > 0.8:
+        sfx_handler.play_music("siren_1.wav")
+    elif pellets_left / og_pellets_count > 0.6:
+        sfx_handler.play_music("siren_2.wav")
+    elif pellets_left / og_pellets_count > 0.4:
+        sfx_handler.play_music("siren_3.wav")
+    elif pellets_left / og_pellets_count > 0.2:
+        sfx_handler.play_music("siren_4.wav")
+    else:
+        sfx_handler.play_music("siren_5.wav")
+
+
 def spawn_ghosts(ghosts, ghost_houses):
     for ghost_house in ghost_houses:
         ghost_house_entrance = ghost_house.get_entrance()
@@ -693,7 +752,7 @@ def spawn_ghosts(ghosts, ghost_houses):
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1,AStarMode))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1, AStarMode))
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,

@@ -6,6 +6,25 @@ import numpy as np
 queued_popups = []  # list of popups to be displayed, each element is a tuple (x,y,text, color RGB, time in seconds)
 ghost_eaten_score = [200]
 highlighted_tiles = []  # list of tiles to be highlighted, each element is a tuple (x,y, color RGB, time in seconds)
+sfx_queue = []  # list of sfx to be played
+munch = [False]
+
+
+def add_sfx_to_queue(sfx):
+    if sfx == "munch":
+        if munch[0]:
+            sfx = "munch_1.wav"
+        else:
+            sfx = "munch_2.wav"
+        munch[0] = not munch[0]
+    sfx_queue.append(sfx)
+
+
+def get_next_sfx():
+    if len(sfx_queue) > 0:
+        return sfx_queue.pop(0)
+    else:
+        return None
 
 
 def load_ghost_sheet(sheet, rows, cols, width, height, EYES_SHEET_IMAGE):
@@ -105,11 +124,8 @@ def get_closest_walkable_tile(x, y, maze_data):
                 walkable_tiles.append((j, i))
                 # add_highlighted_tile((j, i), (255, 255, 255))
 
-
-
     np.array(walkable_tiles)
     # get the closest tile using numpy and the euclidean distance
     closest_tile = walkable_tiles[np.argmin(np.sqrt((np.array(walkable_tiles)[:, 0] - x) ** 2 + (
             np.array(walkable_tiles)[:, 1] - y) ** 2))]
     return closest_tile
-

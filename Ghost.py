@@ -11,6 +11,7 @@ class Ghost(pygame.sprite.Sprite):
                  ghost_house, ghost_number, AStarMode):
         super().__init__()
 
+        self.is_dead = False
         self.path = None
         self.AStarMode = AStarMode
         self.pathfinder = AStar()
@@ -444,7 +445,8 @@ class Ghost(pygame.sprite.Sprite):
                                          (next_x + self.scale / 2 + offset, next_y + self.scale / 2 + offset),
                                          3)
             # finally, draw a circle at current goal
-            (x, y) = utilities.get_position_in_window(self.current_path[-1][0], self.current_path[-1][1], self.scale, self.window_width,
+            (x, y) = utilities.get_position_in_window(self.current_path[-1][0], self.current_path[-1][1], self.scale,
+                                                      self.window_width,
                                                       self.window_height)
             pygame.draw.circle(screen, color, (x + self.scale / 2, y + self.scale / 2), 5)
             # and an x at the true current goal
@@ -453,7 +455,7 @@ class Ghost(pygame.sprite.Sprite):
             pygame.draw.line(screen, color, (x + self.scale / 2 - 5, y + self.scale / 2 - 5),
                              (x + self.scale / 2 + 5, y + self.scale / 2 + 5), 3)
             pygame.draw.line(screen, color, (x + self.scale / 2 - 5, y + self.scale / 2 + 5),
-                                (x + self.scale / 2 + 5, y + self.scale / 2 - 5), 3)
+                             (x + self.scale / 2 + 5, y + self.scale / 2 - 5), 3)
 
             self.draw_pivot(color, screen)
             # draw line from current tile to goal
@@ -461,7 +463,7 @@ class Ghost(pygame.sprite.Sprite):
                 # Draw circle around closest pacman to indicate where clyde is not chasing pacman
 
                 pacman_position = (
-                self.closest_pacman.rect.x + self.scale / 2, self.closest_pacman.rect.y + self.scale / 2)
+                    self.closest_pacman.rect.x + self.scale / 2, self.closest_pacman.rect.y + self.scale / 2)
                 pygame.draw.circle(screen, color, pacman_position, 8 * self.scale, 1)
 
     def draw_pivot(self, color, screen):
@@ -497,7 +499,7 @@ class Ghost(pygame.sprite.Sprite):
             for pacman in pacmans:
                 if self.rect.colliderect(pacman.rect) and (pacman.direction != "dying" and pacman.direction != "dead"):
                     self.overwrite_global_state("dead", -1)
-
+                    utilities.add_sfx_to_queue("ghost_eaten.wav")
                     utilities.queued_popups.append(
                         (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2,
                          utilities.ghost_eaten_score[0],
@@ -597,8 +599,10 @@ class Ghost(pygame.sprite.Sprite):
 
         if len(self.current_path) > 1:
             self.move_ghost_classic(self.current_path[1], maze_data)
-        else:
+        elif len(self.current_path) == 1:
             self.move_ghost_classic(self.current_path[0], maze_data)
+        else:
+            self.move_ghost_classic(None, maze_data)
 
     def my_draw(self, screen):
         now = pygame.time.get_ticks()
@@ -979,6 +983,7 @@ class Ghost(pygame.sprite.Sprite):
             self.current_image = 3
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
+            utilities.add_sfx_to_queue("eat_ghost.wav")
         elif state == "frightened":
             # reverse ghosts current direction
             self.turn_around()
@@ -1030,3 +1035,6 @@ class Ghost(pygame.sprite.Sprite):
             self.current_speed = self.speed * 1.5
         else:
             self.current_speed = self.speed
+
+    def get_state(self):
+        return self.state

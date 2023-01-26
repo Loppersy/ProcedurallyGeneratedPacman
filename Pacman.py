@@ -210,8 +210,11 @@ class Pacman(pygame.sprite.Sprite):
                     if consumable.type == "pellet":
                         consumable.kill()
                         maze_data[position_int[1]][position_int[0]] = 0
+
+                        utilities.add_sfx_to_queue("munch")
                         # TODO: add score
                     elif consumable.type == "power_pellet":
+                        utilities.add_sfx_to_queue("munch")
                         consumable.kill()
                         maze_data[position_int[1]][position_int[0]] = 0
                         # TODO: add score
@@ -220,9 +223,10 @@ class Pacman(pygame.sprite.Sprite):
                 # check collision with bonus fruit and pacman
                 if consumable.type == "bonus_fruit" and consumable.rect.colliderect(self.rect):
                     if consumable.consume():
+                        utilities.add_sfx_to_queue("eat_fruit.wav")
                         utilities.queued_popups.append(
                             (consumable.rect.x + consumable.rect.width/2, consumable.rect.y + consumable.rect.height/2, consumable.score,
-                             (217, 104, 200), 1,11))
+                             (217, 104, 200), 2,11))
 
         return maze_data
 

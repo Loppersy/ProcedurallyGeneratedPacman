@@ -13,6 +13,7 @@ from Pellet import Pellet
 from PowerPellet import PowerPellet
 from SFXHandler import SFXHandler
 from ScorePopup import ScorePopup
+from UIHandler import UIHandler
 from Wall import Wall
 
 WIDTH, HEIGHT = 1080, 720
@@ -35,6 +36,26 @@ FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frighte
 BONUS_FRUIT_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "bonus_fruit.png")).convert_alpha()
 WALLS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls.png")).convert_alpha()
 WALLS_WHITE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls_white.png")).convert_alpha()
+
+REGENERATE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "regen_button.png")).convert_alpha()
+REGENERATE_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "regen_button_hover.png")).convert_alpha()
+GHOST_BUTTON = pygame.image.load(os.path.join("assets", "UI", "ghost_button.png")).convert_alpha()
+GHOST_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "ghost_button_hover.png")).convert_alpha()
+BLINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "blinky_button.png")).convert_alpha()
+PINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pinky_button.png")).convert_alpha()
+INKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "inky_button.png")).convert_alpha()
+CLYDE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "clyde_button.png")).convert_alpha()
+PATH_BUTTON = pygame.image.load(os.path.join("assets", "UI", "path_button.png")).convert_alpha()
+PATH_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "path_button_hover.png")).convert_alpha()
+PATHFINDER_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button.png")).convert_alpha()
+PATHFINDER_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button_hover.png")).convert_alpha()
+A_STAR_TEXT = pygame.image.load(os.path.join("assets", "UI", "a_star.png")).convert_alpha()
+CLASSIC_TEXT = pygame.image.load(os.path.join("assets", "UI", "classic.png")).convert_alpha()
+
+UI_IMAGES = [REGENERATE_BUTTON, REGENERATE_BUTTON_HOVER,
+             GHOST_BUTTON, GHOST_BUTTON_HOVER, BLINKY_BUTTON, PINKY_BUTTON, INKY_BUTTON, CLYDE_BUTTON,
+             PATH_BUTTON, PATH_BUTTON_HOVER,
+             PATHFINDER_BUTTON, PATHFINDER_BUTTON_HOVER, A_STAR_TEXT, CLASSIC_TEXT]
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
@@ -92,9 +113,9 @@ def draw_window(sprite_list, maze_data, animated=True):
     if draw_ghosts[0]:
         for ghost in sprite_list[1]:
 
-            if AStarMode and draw_paths:
+            if utilities.AStarMode[0] and utilities.draw_paths[0]:
                 ghost.draw_astar_path(screen, maze_data)
-            elif draw_paths:
+            elif utilities.draw_paths[0]:
                 ghost.draw_classic_path(screen, maze_data)
 
             ghost.my_draw(screen)
@@ -105,7 +126,7 @@ def draw_window(sprite_list, maze_data, animated=True):
     for bonus_fruit in sprite_list[6]:
         bonus_fruit.my_draw(screen)
 
-    if draw_highlighted_tiles:
+    if utilities.draw_highlighted_tiles[0]:
         size = 5
         last_color = None
         for int_pos in utilities.highlighted_tiles:
@@ -134,14 +155,10 @@ def register_keys(event):
         return "down"
 
 
-power_pellet_debug = False
-invisibility_debug = True
-new_maze = True  # Hit R to load a new maze
-classic_mode = False
-AStarMode = True
-draw_paths = True
-draw_highlighted_tiles = False
-debug = [power_pellet_debug, invisibility_debug, new_maze]
+
+
+
+
 
 
 # last_keys[0] is the current direction that all pacmans are moving and will continue to move in that direction unless
@@ -385,11 +402,11 @@ def move_pacmans(last_keys, pacmans, maze_data):
     return last_keys
 
 
-def update_sprites(maze_data, pacmans, ghosts, consumables, sfx_handler):
+def update_sprites(maze_data, pacmans, ghosts, consumables):
     all_pacmans_dead = True
     for pacman in pacmans:
         maze_data = pacman.update(maze_data, consumables)
-        if pacman.consumed_power_pellet or power_pellet_debug:
+        if pacman.consumed_power_pellet or utilities.power_pellet_debug[0]:
             pacman.consumed_power_pellet = False
 
             frightened_time = 5
@@ -409,7 +426,7 @@ def update_sprites(maze_data, pacmans, ghosts, consumables, sfx_handler):
         game_over[0] = True
 
     for ghost in ghosts:
-        ghost.update(maze_data, pacmans, ghosts, debug)
+        ghost.update(maze_data, pacmans, ghosts)
 
     for consumable in consumables:
         consumable.update(maze_data)
@@ -467,7 +484,7 @@ def main():
 
     maze_data = []
     maze_gen = MazeGenerator(32, 32)
-    if classic_mode:
+    if utilities.classic_mode[0]:
         for y in range(32):
             maze_data.append([])
             for x in range(32):
@@ -516,7 +533,6 @@ def main():
     current_level = 0
     wall_change = False  # To update the wall connections when needed
     stop_time_clock = 0  # To keep track of the time when the time is stopped
-    generate_new_maze = True  # To generate a new maze when needed
     generate_old_maze = False  # To generate the old maze when needed
     new_maze_animation_clock = 0  # To keep track of the time when the new maze animation is playing
     NEW_MAZE_ANIMATION_TIME = 5  # The time the new maze animation takes (in seconds)
@@ -535,8 +551,57 @@ def main():
     sfx_handler = SFXHandler(SFX_NAMES, MUSIC_NAMES, FPS)
     og_pellet_count = 0
 
+    # UI handler
+    ui_handler = UIHandler(SCALE, WIDTH, HEIGHT, FPS, lives, current_level, sfx_handler, UI_IMAGES)
+
     while run:
         clock.tick(FPS)
+        cursor_click_pos = None
+        cursor_hover_pos = None
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                cursor_click_pos = pygame.mouse.get_pos()
+            elif event.type == pygame.MOUSEMOTION:
+                cursor_hover_pos = pygame.mouse.get_pos()
+
+            # Queue up the last 4 keys pressed, so that the player can easily change directions. Remove keys from the
+            # queue if they are released and move the ones that are still pressed to the front of the queue.
+            elif event.type == pygame.KEYDOWN:
+                if last_keys[0] == "none" or last_keys[0] == register_keys(event):
+                    last_keys[0] = register_keys(event)
+                elif last_keys[1] == "none":
+                    last_keys[1] = register_keys(event)
+                elif last_keys[2] == "none":
+                    last_keys[2] = register_keys(event)
+                elif last_keys[3] == "none":
+                    last_keys[3] = register_keys(event)
+
+                if event.key == pygame.K_r and utilities.new_maze[0]:
+                    utilities.set_regenerate_new_maze(True)
+
+                if event.key == pygame.K_t:
+                    utilities.draw_paths[0] = not utilities.draw_paths[0]
+
+            elif event.type == pygame.KEYUP:
+                if last_keys[0] == register_keys(event):
+                    last_keys[0] = last_keys[1]
+                    last_keys[1] = last_keys[2]
+                    last_keys[2] = last_keys[3]
+                    last_keys[3] = "none"
+                elif last_keys[1] == register_keys(event):
+                    last_keys[1] = last_keys[2]
+                    last_keys[2] = last_keys[3]
+                    last_keys[3] = "none"
+                elif last_keys[2] == register_keys(event):
+                    last_keys[2] = last_keys[3]
+                    last_keys[3] = "none"
+                elif last_keys[3] == register_keys(event):
+                    last_keys[3] = "none"
+
+
         if win_animation:
             sfx_handler.stop_music()
             win_animation_clock += 1
@@ -550,6 +615,8 @@ def main():
                 bonus_fruits.empty()
                 draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data,
                             False)
+                ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, current_level, "???")
+                ui_handler.draw(screen)
                 pygame.display.update()
 
             if win_animation_clock >= WIN_ANIMATION_TIME * FPS:
@@ -558,14 +625,14 @@ def main():
                 current_level += 1
                 if current_level % 4 == 0:
                     lives += 1
-                generate_new_maze = True
+                utilities.set_regenerate_new_maze(True)
             continue
 
-        if generate_new_maze:
+        if utilities.get_regenerate_new_maze():
             sfx_handler.stop_music()
             # kill all sprites
             utilities.empty_highlighted_tiles()
-            if not classic_mode:
+            if not utilities.classic_mode[0]:
                 maze_gen.generate()
                 maze_data = maze_gen.get_maze_data()
             else:
@@ -584,7 +651,7 @@ def main():
             utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + SCALE / 2,
                                             "READY!", (255, 255, 0), NEW_MAZE_ANIMATION_TIME, 20))
 
-            generate_new_maze = False
+            utilities.set_regenerate_new_maze(False)
             game_over[0] = False
             draw_ghosts[0] = True
             current_tim = 0
@@ -596,6 +663,8 @@ def main():
         if generate_old_maze:
             sfx_handler.stop_music()
             # respawn ghosts and pacmans
+            for ghost_house in ghost_houses:
+                ghost_house.clear_ghosts()
             ghosts.empty()
             pacmans.empty()
             spawn_ghosts(ghosts, ghost_houses)
@@ -615,9 +684,12 @@ def main():
 
         if new_maze_animation_clock < maze_animation_time * FPS:
             new_maze_animation_clock += 1
+
             draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
             update_score_popups(score_popups)
             score_popups.draw(screen)
+            ui_handler.update(cursor_click_pos,cursor_hover_pos, lives, current_level, "???")
+            ui_handler.draw(screen)
             pygame.display.update()
             continue
 
@@ -625,7 +697,7 @@ def main():
             generate_old_maze = True
             lives -= 1
         elif len(pacmans) == 0 and game_over[0] and lives == 0:
-            generate_new_maze = True
+            utilities.set_regenerate_new_maze(True)
             lives = 3
             current_level = 0
 
@@ -641,44 +713,11 @@ def main():
 
         update_music(sfx_handler, maze_data, og_pellet_count, ghosts)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
 
-            # Queue up the last 4 keys pressed, so that the player can easily change directions. Remove keys from the
-            # queue if they are released and move the ones that are still pressed to the front of the queue.
-            elif event.type == pygame.KEYDOWN:
-                if last_keys[0] == "none" or last_keys[0] == register_keys(event):
-                    last_keys[0] = register_keys(event)
-                elif last_keys[1] == "none":
-                    last_keys[1] = register_keys(event)
-                elif last_keys[2] == "none":
-                    last_keys[2] = register_keys(event)
-                elif last_keys[3] == "none":
-                    last_keys[3] = register_keys(event)
-
-                if event.key == pygame.K_r and debug[2]:
-                    generate_new_maze = True
-
-            elif event.type == pygame.KEYUP:
-                if last_keys[0] == register_keys(event):
-                    last_keys[0] = last_keys[1]
-                    last_keys[1] = last_keys[2]
-                    last_keys[2] = last_keys[3]
-                    last_keys[3] = "none"
-                elif last_keys[1] == register_keys(event):
-                    last_keys[1] = last_keys[2]
-                    last_keys[2] = last_keys[3]
-                    last_keys[3] = "none"
-                elif last_keys[2] == register_keys(event):
-                    last_keys[2] = last_keys[3]
-                    last_keys[3] = "none"
-                elif last_keys[3] == register_keys(event):
-                    last_keys[3] = "none"
 
         if not utilities.get_stop_time():
             last_keys = move_pacmans(last_keys, pacmans, maze_data)
-            maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits], sfx_handler)
+            maze_data = update_sprites(maze_data, pacmans, ghosts, [pellets, power_pellets, bonus_fruits])
             draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
 
             if len(global_state_stop_time) > 0:
@@ -704,14 +743,22 @@ def main():
                 stop_time_clock = 0
 
         score_popups.draw(screen)
+        ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, current_level, "???")
+        ui_handler.draw(screen)
+
+        # Update some information based on UI interactions
+
         pygame.display.update()
 
     pygame.quit()
 
 
 def update_music(sfx_handler, maze_data, og_pellets_count, ghosts):
-    sfx_handler.play_sfx(utilities.get_next_sfx())
 
+    sfx_handler.play_sfx(utilities.get_next_sfx())
+    if game_over[0]:
+        sfx_handler.stop_music()
+        return
 
     current_state = None
     for ghost in ghosts:
@@ -720,7 +767,6 @@ def update_music(sfx_handler, maze_data, og_pellets_count, ghosts):
 
         if ghost.get_state() == "frightened" and current_state != "dead":
             current_state = "frightened"
-
 
     if current_state == "dead":
         sfx_handler.play_music("retreating.wav")
@@ -748,19 +794,19 @@ def spawn_ghosts(ghosts, ghost_houses):
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 0, AStarMode))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 0))
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1, AStarMode))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1))
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 2, AStarMode))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 2))
         ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
                          utilities.load_ghost_sheet(CLYDE_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
                          utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "clyde", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 3, AStarMode))
+                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 3))
 
 
 def populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellets, power_pellets, walls, current_level):

@@ -7,6 +7,7 @@ from utilities import load_sheet
 class Pacman(pygame.sprite.Sprite):
     def __init__(self, x, y, window_width, window_height, pacman_sheet_image, scale, speed):
         super().__init__()
+        self.dead_sounds_played = False
         self.consumed_power_pellet = False
         self.images = load_sheet(pacman_sheet_image, 2, 11, 16, 16)
         self.current_image = 0
@@ -59,6 +60,9 @@ class Pacman(pygame.sprite.Sprite):
     def my_draw(self, screen, animated=True):
         now = pygame.time.get_ticks()
         if self.direction == "dying" and animated:
+            if self.current_image == 12 and not self.dead_sounds_played:
+                utilities.add_sfx_to_queue("death_1.wav")
+                self.dead_sounds_played = True
             if not self.start_animation_completed:
                 self.current_image = 11
 
@@ -69,13 +73,18 @@ class Pacman(pygame.sprite.Sprite):
                 self.last_update = now
                 self.current_image = 10
                 self.direction = "dead"
+                self.dead_sounds_played = False
 
             if now - self.last_update > self.dying_animation_cooldown and self.start_animation_completed:
                 self.last_update = now
+                if self.current_image == 20:
+                    utilities.add_sfx_to_queue("death_2.wav")
                 if self.current_image != 21:
                     self.current_image = (self.current_image + 1) % len(self.images)
                 else:
                     self.dead_animation_completed = True
+                    utilities.add_sfx_to_queue("death_2.wav")
+
 
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
@@ -231,5 +240,7 @@ class Pacman(pygame.sprite.Sprite):
         return maze_data
 
     def die(self):
-        if self.direction != "dead":
+        if self.direction != "dead" and self.direction != "dying":
             self.direction = "dying"
+
+

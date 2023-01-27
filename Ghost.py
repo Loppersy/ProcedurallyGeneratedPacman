@@ -1,5 +1,6 @@
 import random
 
+import numpy as np
 import pygame
 
 import utilities
@@ -8,12 +9,11 @@ from AStar import AStar, Node
 
 class Ghost(pygame.sprite.Sprite):
     def __init__(self, x, y, images, fright_images, ghost_type, window_width, window_height, scale, fps, speed,
-                 ghost_house, ghost_number, AStarMode):
+                 ghost_house, ghost_number):
         super().__init__()
 
         self.is_dead = False
         self.path = None
-        self.AStarMode = AStarMode
         self.pathfinder = AStar()
         self.respawning = None
         self.image_scale = 1.5
@@ -139,7 +139,7 @@ class Ghost(pygame.sprite.Sprite):
     # Update method. It handles the animation of the ghost, the movement of the ghost, the pathfinding and the hurtbox
     # It also handles the different modes of the ghosts (chase, scatter, frightened, dead), that change depending on the
     # game time.
-    def update(self, maze_data, pacmans, ghosts, debug):
+    def update(self, maze_data, pacmans, ghosts):
         self.empty_maze_data = [[0] * len(maze_data[0]) for _ in range(len(maze_data))]
         self.int_position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
                                                                self.window_height)
@@ -148,7 +148,7 @@ class Ghost(pygame.sprite.Sprite):
                                                                    self.window_height)
         self.pivot = None
 
-        self.check_collision(pacmans, debug)
+        self.check_collision(pacmans)
         self.update_overwritten_state()
 
         if self.respawning and not self.force_goal:  # return to normal speed after respawning
@@ -340,7 +340,7 @@ class Ghost(pygame.sprite.Sprite):
             if utilities.is_centered(self.float_position, self.force_goal):
                 self.force_goal = None
         else:
-            if self.AStarMode:
+            if utilities.AStarMode[0]:
                 use_wrap_around = not (self.state == "scatter" or (self.type == "clyde" and self.clyde_fleeing))
                 self.move_ghost_astar(self.goal, maze_data, use_wrap_around)
             else:
@@ -401,73 +401,61 @@ class Ghost(pygame.sprite.Sprite):
         elif color == (255, 128, 0):
             offset = -3
 
-        if self.current_path:
-            for node in self.current_path:
-                (x, y) = utilities.get_position_in_window(node[0], node[1], self.scale, self.window_width,
-                                                          self.window_height)
-                # check if next node is in the same direction as the current node and draw a line to it if it is.
-                # if not, draw a line to the middle of the tile and then draw a line to the next node
-                if self.current_path.index(node) + 1 < len(self.current_path):
-                    (next_x, next_y) = utilities.get_position_in_window(
-                        self.current_path[self.current_path.index(node) + 1][0],
-                        self.current_path[self.current_path.index(node) + 1][1],
-                        self.scale, self.window_width,
-                        self.window_height)
-                    if node[0] == self.current_path[self.current_path.index(node) + 1][0]:
-                        # if the next_y wraps around the maze, skip the line
-                        if abs(y - next_y) > len(maze_data) / 2 * self.scale:
-                            continue
-                        pygame.draw.line(screen, color,
-                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
-                                         (x + self.scale / 2 + offset, next_y + self.scale / 2 + offset),
-                                         3)
-                    elif node[1] == self.current_path[self.current_path.index(node) + 1][1]:
-                        # if the next_x wraps around the maze, skip the line
-                        if abs(x - next_x) > len(maze_data[0]) / 2 * self.scale:
-                            continue
-                        pygame.draw.line(screen, color,
-                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
-                                         (next_x + self.scale / 2 + offset, y + self.scale / 2 + offset),
-                                         3)
-                    else:
-                        # if the next_x wraps around the maze, skip the line
-                        if abs(x - next_x) > len(maze_data[0]) / 2 * self.scale:
-                            continue
-                        pygame.draw.line(screen, color,
-                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
-                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
-                                         3)
-                        # if the next_y wraps around the maze, skip the line
-                        if abs(y - next_y) > len(maze_data) / 2 * self.scale:
-                            continue
-                        pygame.draw.line(screen, color,
-                                         (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
-                                         (next_x + self.scale / 2 + offset, next_y + self.scale / 2 + offset),
-                                         3)
-            # finally, draw a circle at current goal
-            (x, y) = utilities.get_position_in_window(self.current_path[-1][0], self.current_path[-1][1], self.scale,
-                                                      self.window_width,
-                                                      self.window_height)
-            pygame.draw.circle(screen, color, (x + self.scale / 2, y + self.scale / 2), 5)
-            # and an x at the true current goal
-            (x, y) = utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
-                                                      self.window_height)
-            pygame.draw.line(screen, color, (x + self.scale / 2 - 5, y + self.scale / 2 - 5),
-                             (x + self.scale / 2 + 5, y + self.scale / 2 + 5), 3)
-            pygame.draw.line(screen, color, (x + self.scale / 2 - 5, y + self.scale / 2 + 5),
-                             (x + self.scale / 2 + 5, y + self.scale / 2 - 5), 3)
+        self.draw_lines_in_path(color, maze_data, offset, screen, self.current_path)
+        self.draw_pivot(color, screen)
+        self.draw_clyde_circle(color, screen)
+        self.draw_goal(color, screen)
+        self.draw_forced_goal(color, screen)
 
-            self.draw_pivot(color, screen)
-            # draw line from current tile to goal
-            if self.type == "clyde" and self.closest_pacman is not None and self.state == "chase":
-                # Draw circle around closest pacman to indicate where clyde is not chasing pacman
+    def draw_lines_in_path(self, color, maze_data, offset, screen, path_to_draw):
+        if path_to_draw is None or len(path_to_draw) < 0:
+            return
 
-                pacman_position = (
-                    self.closest_pacman.rect.x + self.scale / 2, self.closest_pacman.rect.y + self.scale / 2)
-                pygame.draw.circle(screen, color, pacman_position, 8 * self.scale, 1)
+        for node in path_to_draw:
+            (x, y) = utilities.get_position_in_window(node[0], node[1], self.scale, self.window_width,
+                                                      self.window_height)
+            # check if next node is in the same direction as the current node and draw a line to it if it is.
+            # if not, draw a line to the middle of the tile and then draw a line to the next node
+            if path_to_draw.index(node) + 1 < len(path_to_draw):
+                (next_x, next_y) = utilities.get_position_in_window(
+                    path_to_draw[path_to_draw.index(node) + 1][0],
+                    path_to_draw[path_to_draw.index(node) + 1][1],
+                    self.scale, self.window_width,
+                    self.window_height)
+                if node[0] == path_to_draw[path_to_draw.index(node) + 1][0]:
+                    # if the next_y wraps around the maze, skip the line
+                    if abs(y - next_y) > len(maze_data) / 2 * self.scale:
+                        continue
+                    pygame.draw.line(screen, color,
+                                     (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                     (x + self.scale / 2 + offset, next_y + self.scale / 2 + offset),
+                                     3)
+                elif node[1] == path_to_draw[path_to_draw.index(node) + 1][1]:
+                    # if the next_x wraps around the maze, skip the line
+                    if abs(x - next_x) > len(maze_data[0]) / 2 * self.scale:
+                        continue
+                    pygame.draw.line(screen, color,
+                                     (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                     (next_x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                     3)
+                else:
+                    # if the next_x wraps around the maze, skip the line
+                    if abs(x - next_x) > len(maze_data[0]) / 2 * self.scale:
+                        continue
+                    pygame.draw.line(screen, color,
+                                     (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                     (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                     3)
+                    # if the next_y wraps around the maze, skip the line
+                    if abs(y - next_y) > len(maze_data) / 2 * self.scale:
+                        continue
+                    pygame.draw.line(screen, color,
+                                     (x + self.scale / 2 + offset, y + self.scale / 2 + offset),
+                                     (next_x + self.scale / 2 + offset, next_y + self.scale / 2 + offset),
+                                     3)
 
     def draw_pivot(self, color, screen):
-        if self.pivot is not None:
+        if self.pivot is not None and self.goal is not None:
             # draw a circle at the pivot
             pygame.draw.circle(screen, color, (
                 utilities.get_position_in_window(self.pivot[0], self.pivot[1], self.scale, self.window_width,
@@ -490,8 +478,8 @@ class Ghost(pygame.sprite.Sprite):
         return color
 
     # Check collision with pacman. If collision, that pacman dies
-    def check_collision(self, pacmans, debug):
-        if (self.state == "chase" or self.state == "scatter") and not debug[1]:
+    def check_collision(self, pacmans):
+        if (self.state == "chase" or self.state == "scatter") and not utilities.invisibility_debug[0]:
             for pacman in pacmans:
                 if self.rect.colliderect(pacman.rect):
                     pacman.die()
@@ -861,20 +849,42 @@ class Ghost(pygame.sprite.Sprite):
                     else:
                         self.next_node = (int_position[0], len(maze_data) - 1)
 
-    def draw_classic_path(self, screen):
+    def draw_classic_path(self, screen, maze_data):
+        if self.goal is None:
+            return
 
-        # draw circle at goal
+        # Draw a line connecting all the tiles that the ghost would have visited if it was using the classic path
+        path_to_draw = []
+        if self.int_position is not None and self.direction != "stay":
+            path_to_draw = [self.int_position]
+            current_direction = self.direction
+            for i in range(100):
+                next_tile, current_direction = self.find_next_node_classic(path_to_draw[-1],
+                                                                           self.goal, maze_data, current_direction)
+                if next_tile not in path_to_draw:
+                    path_to_draw.append(next_tile)
+                else:
+                    path_to_draw.append(next_tile)
+                    break
+                if path_to_draw[-1] == self.goal:
+                    break
+
         color = self.get_ghost_color()
+        offset = 0
+        if color == (255, 255, 0):
+            offset = 3
+        elif color == (255, 0, 255):
+            offset = 6
+        elif color == (255, 128, 0):
+            offset = -3
 
-        if self.goal is not None:
-            pygame.draw.circle(screen, color, (
-                utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
-                                                 self.window_height)[
-                    0] + self.scale // 2,
-                utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
-                                                 self.window_height)[
-                    1] + self.scale // 2), 5)
+        self.draw_lines_in_path(color, maze_data, offset, screen, path_to_draw)
+        self.draw_goal(color, screen)
+        self.draw_forced_goal(color, screen)
+        self.draw_pivot(color, screen)
+        self.draw_clyde_circle(color, screen)
 
+    def draw_forced_goal(self, color, screen):
         if self.force_goal is not None:
             # draw an X at the center of the forced goal
             pygame.draw.line(screen, color, (
@@ -903,9 +913,6 @@ class Ghost(pygame.sprite.Sprite):
                                  utilities.get_position_in_window(self.force_goal[0], self.force_goal[1], self.scale,
                                                                   self.window_width, self.window_height)[
                                      1] + self.scale // 2 + 5), 5)
-
-        self.draw_pivot(color, screen)
-        self.draw_clyde_circle(color, screen)
 
     def draw_clyde_circle(self, color, screen):
         # draw line from current tile to goal
@@ -1038,3 +1045,142 @@ class Ghost(pygame.sprite.Sprite):
 
     def get_state(self):
         return self.state
+
+    def find_next_node_classic(self, position, goal, maze_data, direction):
+        next_node_to_draw = None
+
+        use_wrap_around = False
+
+        # get the available tiles around the ghost. If the tile is not a wall, add it to the list of available
+        # tiles. The ghost can't move to the tile it came from. If the tile to be checked would be out of bounds,
+        # check the tile on the opposite side of the maze to account for the wrap around effect.
+        available_tiles = []
+        if position[1] - 1 >= 0:
+            if maze_data[position[1] - 1][position[0]] != 1:
+                if direction != "down" or self.force_goal is not None:
+                    available_tiles.append("up")
+        else:
+            if maze_data[len(maze_data) - 1][position[0]] != 1:
+                if direction != "down" or self.force_goal is not None:
+                    available_tiles.append("up")
+
+        if position[0] + 1 < len(maze_data[0]):
+            if maze_data[position[1]][position[0] + 1] != 1:
+                if direction != "left" or self.force_goal is not None:
+                    available_tiles.append("right")
+        else:
+            if maze_data[position[1]][0] != 1:
+                if direction != "left" or self.force_goal is not None:
+                    available_tiles.append("right")
+
+        if position[1] + 1 < len(maze_data):
+            if maze_data[position[1] + 1][position[0]] != 1:
+                if direction != "up" or self.force_goal is not None:
+                    available_tiles.append("down")
+        else:
+            if maze_data[0][position[0]] != 1:
+                if direction != "up" or self.force_goal is not None:
+                    available_tiles.append("down")
+
+        if position[0] - 1 >= 0:
+            if maze_data[position[1]][position[0] - 1] != 1:
+                if direction != "right" or self.force_goal is not None:
+                    available_tiles.append("left")
+
+        else:
+            if maze_data[position[1]][len(maze_data[0]) - 1] != 1:
+                if direction != "right" or self.force_goal is not None:
+                    available_tiles.append("left")
+
+        # if no available tiles are found, but the ghost can back track, it will do so
+        if len(available_tiles) == 0:
+            if ((position[1] + 1 < len(maze_data) and maze_data[position[1] + 1][position[0]] != 1) \
+                or (position[1] + 1 >= len(maze_data) and maze_data[0][
+                        position[0]] != 1)) and direction == "up":
+                available_tiles.append("down")
+            elif ((position[0] + 1 < len(maze_data[0]) and maze_data[position[1]][position[0] + 1] != 1) \
+                  or (position[0] + 1 >= len(maze_data[0]) and maze_data[position[1]][
+                        0] != 1)) and direction == "left":
+                available_tiles.append("right")
+            elif ((position[1] - 1 >= 0 and maze_data[position[1] - 1][position[0]] != 1) \
+                  or (position[1] - 1 < 0 and maze_data[len(maze_data) - 1][
+                        position[0]] != 1)) and direction == "down":
+                available_tiles.append("up")
+            elif ((position[0] - 1 >= 0 and maze_data[position[1]][position[0] - 1] != 1) \
+                  or (position[0] - 1 < 0 and maze_data[position[1]][
+                        len(maze_data[0]) - 1] != 1)) and direction == "right":
+                available_tiles.append("left")
+
+        # if there is a goal to go to, calculate the shortest path. If there is no goal, choose a new direction
+        # randomly
+        shortest_distance = None
+        distance = None
+        for tile in available_tiles:
+            if tile == "right":
+                if position[0] + 1 < len(maze_data[0]):
+                    distance = utilities.get_distance(position[0] + 1, position[1], goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(0, position[1], goal[0], goal[1], use_wrap_around)
+
+            elif tile == "left":
+                if position[0] - 1 >= 0:
+                    distance = utilities.get_distance(position[0] - 1, position[1], goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(len(maze_data[0]) - 1, position[1], goal[0], goal[1],
+                                                      use_wrap_around)
+
+            elif tile == "down":
+                if position[1] + 1 < len(maze_data):
+                    distance = utilities.get_distance(position[0], position[1] + 1, goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(position[0], 0, goal[0], goal[1], use_wrap_around)
+
+            elif tile == "up":
+                if position[1] - 1 >= 0:
+                    distance = utilities.get_distance(position[0], position[1] - 1, goal[0], goal[1],
+                                                      use_wrap_around)
+                else:
+                    distance = utilities.get_distance(position[0], len(maze_data) - 1, goal[0], goal[1],
+                                                      use_wrap_around)
+
+            if shortest_distance is None or distance < shortest_distance \
+                    or (distance == shortest_distance and (
+                    (tile == "up") or (tile == "left" and direction != "up") or (
+                    tile == "down" and direction == "right"))):
+                shortest_distance = distance
+                direction = tile
+                if tile == "right":
+                    if position[0] + 1 < len(maze_data[0]):
+                        next_node_to_draw = (position[0] + 1, position[1])
+                    else:
+                        next_node_to_draw = (0, position[1])
+                elif tile == "left":
+                    if position[0] - 1 >= 0:
+                        next_node_to_draw = (position[0] - 1, position[1])
+                    else:
+                        next_node_to_draw = (len(maze_data[0]) - 1, position[1])
+                elif tile == "down":
+                    if position[1] + 1 < len(maze_data):
+                        next_node_to_draw = (position[0], position[1] + 1)
+                    else:
+                        next_node_to_draw = (position[0], 0)
+                elif tile == "up":
+                    if position[1] - 1 >= 0:
+                        next_node_to_draw = (position[0], position[1] - 1)
+                    else:
+                        next_node_to_draw = (position[0], len(maze_data) - 1)
+        return next_node_to_draw, direction
+
+    def draw_goal(self, color, screen):
+        if self.state == "spawn":
+            return
+        pygame.draw.circle(screen, color, (
+            utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
+                                             self.window_height)[
+                0] + self.scale // 2,
+            utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
+                                             self.window_height)[
+                1] + self.scale // 2), 5)

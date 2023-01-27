@@ -9,6 +9,14 @@ highlighted_tiles = []  # list of tiles to be highlighted, each element is a tup
 sfx_queue = []  # list of sfx to be played
 munch = [False]
 
+regenerate_maze = [False]
+AStarMode = [True]
+draw_paths = [True]
+power_pellet_debug = [False]
+invisibility_debug = [False]
+new_maze = [True]  # Hit R to load a new maze
+classic_mode = [False]
+draw_highlighted_tiles = [False]
 
 def add_sfx_to_queue(sfx):
     if sfx == "munch":
@@ -129,3 +137,11 @@ def get_closest_walkable_tile(x, y, maze_data):
     closest_tile = walkable_tiles[np.argmin(np.sqrt((np.array(walkable_tiles)[:, 0] - x) ** 2 + (
             np.array(walkable_tiles)[:, 1] - y) ** 2))]
     return closest_tile
+
+
+def set_regenerate_new_maze(var):
+    regenerate_maze[0] = var
+
+
+def get_regenerate_new_maze():
+    return regenerate_maze[0]

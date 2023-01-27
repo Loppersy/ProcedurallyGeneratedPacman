@@ -84,11 +84,15 @@ class MazeGenerator:
         self.visited[random_pos[1] - 1][random_pos[0]] = True
         self.visited[random_pos[1] - 1][random_pos[0] + 1] = True
 
+
+
         # Generate "branches" starting from the ghost house, bonus fruit and pacman positions
         # self.generate_branch(bonus_pos[0] - 6, bonus_pos[1]+1, "right", BRANCH_LENGTH, False, True)
+
+
         self.generate_branch(pacman_pos[0] - 1, pacman_pos[1], "left", BRANCH_LENGTH, False, True)
         self.generate_branch(bonus_pos[0] - 1, bonus_pos[1], "left", BRANCH_LENGTH, False, True)
-        self.generate_branch(random_pos[0] - 1, random_pos[1], "right", BRANCH_LENGTH, True, True)
+        self.generate_branch(random_pos[0] - 1, random_pos[1], "left", BRANCH_LENGTH, True, True)
 
         possible_ghost_house_branches = [(-1, 0, "left"), (-1, 1, "left"), (-1, 2, "left"), (-1, 3, "left"),
                                          (-1, 4, "left"), (-1, 5, "left"), (-1, 6, "left"),
@@ -124,6 +128,33 @@ class MazeGenerator:
                                  ghost_house_pos[1] + chosen_ghost_house_branches[i][1],
                                  chosen_ghost_house_branches[i][2], BRANCH_LENGTH, False)
 
+        # Check is there are any big areas of unvisited tiles (5x5 or bigger)
+        # look_for = np.array([[False for _ in range(5)] for _ in range(5)])
+        # visited = np.array(self.visited)
+        # print(look_for, visited)
+        # found_pos = []
+        #
+        # for i in range(visited.shape[0] - look_for.shape[0]):
+        #     for j in range(visited.shape[1] - look_for.shape[1]):
+        #         if i+look_for.shape[0] < visited.shape[0] or j+look_for.shape[1] < visited.shape[1] or \
+        #                 i-look_for.shape[0] >= 0 or j-look_for.shape[1] >= 0:
+        #             if np.array_equal(look_for, visited[i:i + look_for.shape[0], j:j + look_for.shape[1]]):
+        #
+        #                 found_pos.append((i, j))
+        #                 print("Found at", i, j)
+        #
+        # # If there are, generate branches from the middle of the area
+        # if len(found_pos) > 0:
+        #     for i in range(len(found_pos)):
+        #         if not self.visited[found_pos[i][0]][found_pos[i][1]] and \
+        #                 not self.visited[found_pos[i][0]][found_pos[i][1] + 1] and \
+        #                 not self.visited[found_pos[i][0] + 1][found_pos[i][1]] and \
+        #                 not self.visited[found_pos[i][0] + 1][found_pos[i][1] + 1]:
+        #
+        #             self.generate_branch(found_pos[i][0], found_pos[i][1], "up", BRANCH_LENGTH, False, True)
+
+
+
         # for i in range(len(possible_ghost_house_branches)):
         #     self.generate_branch(ghost_house_pos[0] + possible_ghost_house_branches[i][0],
         #                          ghost_house_pos[1] + possible_ghost_house_branches[i][1],
@@ -152,14 +183,12 @@ class MazeGenerator:
                     walkable_tiles.append((j, i))
 
         # order the walkable tiles by distance to pacman using numpy
-        print(walkable_tiles)
         walkable_tiles = np.array(walkable_tiles)
         pacman_pos_array = np.array(pacman_pos)
         walkable_tiles = walkable_tiles[np.argsort(np.linalg.norm(walkable_tiles - pacman_pos_array, axis=1))]
 
         # convert the numpy array back to a list of tuples
         walkable_tiles = [tuple(x) for x in walkable_tiles]
-        print(walkable_tiles)
 
         for walkable_tile in walkable_tiles:
             if not path_finder.is_reachable(Node(pacman_pos), Node(walkable_tile), self.maze_data):

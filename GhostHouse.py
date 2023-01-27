@@ -32,3 +32,5 @@ class GhostHouse(pygame.sprite.Sprite):
     def add_ghost(self, ghost):
         self.ghosts.append(ghost)
 
+    def clear_ghosts(self):
+        self.ghosts = []

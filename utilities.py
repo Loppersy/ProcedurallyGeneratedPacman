@@ -16,7 +16,7 @@ power_pellet_debug = [False]
 invisibility_debug = [False]
 new_maze = [True]  # Hit R to load a new maze
 classic_mode = [False]
-draw_highlighted_tiles = [False]
+draw_highlighted_tiles = [True]
 
 def add_sfx_to_queue(sfx):
     if sfx == "munch":

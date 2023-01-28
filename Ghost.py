@@ -853,7 +853,7 @@ class Ghost(pygame.sprite.Sprite):
         if self.goal is None:
             return
 
-        # Draw a line connecting all the tiles that the ghost would have visited if it was using the classic path
+        # Draw a line connecting all the tiles that the ghost would have blocked_positions if it was using the classic path
         path_to_draw = []
         if self.int_position is not None and self.direction != "stay":
             path_to_draw = [self.int_position]

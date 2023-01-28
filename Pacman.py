@@ -60,7 +60,7 @@ class Pacman(pygame.sprite.Sprite):
     def my_draw(self, screen, animated=True):
         now = pygame.time.get_ticks()
         if self.direction == "dying" and animated:
-            if self.current_image == 12 and not self.dead_sounds_played:
+            if self.current_image == 13 and not self.dead_sounds_played:
                 utilities.add_sfx_to_queue("death_1.wav")
                 self.dead_sounds_played = True
             if not self.start_animation_completed:

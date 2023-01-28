@@ -42,6 +42,7 @@ class MazeGenerator:
 
         # Add two power pellets in the maze_data
         self.add_power_pellets(POWER_PELLETS_PER_SIDE)
+        self.add_side_tunnel(1)
 
         # Mirror the left side of the maze_data to the right side
         for i in range(self.height):
@@ -214,6 +215,7 @@ class MazeGenerator:
     def continue_tunel_until_connection(self, x, y, direction):
         current_x = x
         current_y = y
+        self.maze_data[current_y][current_x] = 2
         my_direction = direction
 
         # utilities.add_highlighted_tile(self.add_direction(current_x, current_y, my_direction, True), (255, 0, 0))
@@ -232,8 +234,7 @@ class MazeGenerator:
                 new_branch_x, new_branch_y = self.add_direction(current_x, current_y, new_branch_direction)
 
                 if self.does_not_create_2x2(new_branch_x, new_branch_y, new_branch_direction, can_wrap_around):
-                    self.generate_branch(new_branch_x, new_branch_y, new_branch_direction, BRANCH_LENGTH,
-                                         False, False, 1)
+                    self.generate_branch(new_branch_x, new_branch_y, new_branch_direction, BRANCH_LENGTH)
 
             if (not self.does_not_create_2x2(current_x, current_y, my_direction, can_wrap_around) or \
                     self.blocked_positions[self.add_direction(current_x, current_y, my_direction, True)[1]][
@@ -710,7 +711,8 @@ class MazeGenerator:
             valid_directions.append("left")
         if not self.creates_walkable_area(x + 1, y) \
                 and not self.blocked_positions[y][x + 1] \
-                and (directions_to_avoid is None or "right" not in directions_to_avoid):
+                and (directions_to_avoid is None or "right" not in directions_to_avoid)\
+                and not x+1 == self.width // 2:
             valid_directions.append("right")
 
         return valid_directions
@@ -813,3 +815,29 @@ class MazeGenerator:
             return "right"
         if new_direction == "right":
             return "left"
+
+    def add_side_tunnel(self, tunel_number):
+        distances_from_border = []
+        for i in range(self.height//5, self.height*4//5):
+            for j in range(1, self.width//2 - 1):
+                if self.is_walkable((j, i)):
+                    distances_from_border.append((j, i))
+                    break
+
+        # Sort by x coordinate
+        distances_from_border.sort(key=lambda tup: tup[0], reverse=True)
+        print(distances_from_border)
+
+        # pick a random position with the highest x coordinate
+        x = distances_from_border[0][0]
+        long_distances = []
+        for distance in distances_from_border:
+            if distance[0] == x:
+                long_distances.append(distance)
+            else:
+                break
+
+        y = random.choice(long_distances)[1]
+        utilities.add_highlighted_tile((x, y), (0, 255, 0))
+
+        self.continue_tunel_until_connection(0, y, "right")

@@ -193,22 +193,9 @@ class AStar(object):
         print(" Start :", self.start.position)
         print(" Goal :", self.goal.position)
         print(" Closed list :", self.closed)
-        # If the goal cannot be reached, make a path to the closest node to the goal
-        # First, find the closest node to the goal
-        closest_node = self.closed[0]
-        for node in self.closed:
-            if self.heuristic(node.position, self.goal.position) < self.heuristic(closest_node.position,
-                                                                                  self.goal.position):
-                closest_node = node
+        print("Generating new maze...")
 
-        # Then, make a path to that node
-        path = []
-        current = closest_node
-        while current is not None:
-            path.append(current.position)
-            current = current.parent
-
-        return path[::-1]
+        return None
 
     def update_surrounding_nodes_tunel(self, node):
         # Checking "up" node

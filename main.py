@@ -51,11 +51,18 @@ PATHFINDER_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pathfinder_b
 PATHFINDER_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button_hover.png")).convert_alpha()
 A_STAR_TEXT = pygame.image.load(os.path.join("assets", "UI", "a_star.png")).convert_alpha()
 CLASSIC_TEXT = pygame.image.load(os.path.join("assets", "UI", "classic.png")).convert_alpha()
+NO_DMG_BUTTON = pygame.image.load(os.path.join("assets", "UI", "no_dmg.png")).convert_alpha()
+NO_DMG_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "no_dmg_hover.png")).convert_alpha()
+ON = pygame.image.load(os.path.join("assets", "UI", "on.png")).convert_alpha()
+OFF = pygame.image.load(os.path.join("assets", "UI", "off.png")).convert_alpha()
+DISABLED_BUTTON = pygame.image.load(os.path.join("assets", "UI", "disabled_button.png")).convert_alpha()
 
 UI_IMAGES = [REGENERATE_BUTTON, REGENERATE_BUTTON_HOVER,
              GHOST_BUTTON, GHOST_BUTTON_HOVER, BLINKY_BUTTON, PINKY_BUTTON, INKY_BUTTON, CLYDE_BUTTON,
              PATH_BUTTON, PATH_BUTTON_HOVER,
-             PATHFINDER_BUTTON, PATHFINDER_BUTTON_HOVER, A_STAR_TEXT, CLASSIC_TEXT]
+             PATHFINDER_BUTTON, PATHFINDER_BUTTON_HOVER, A_STAR_TEXT, CLASSIC_TEXT,
+             NO_DMG_BUTTON, NO_DMG_BUTTON_HOVER, ON, OFF,
+             DISABLED_BUTTON]
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
@@ -103,6 +110,7 @@ MUSIC_NAMES = ["power_pellet.wav", "retreating.wav", "siren_1.wav",
                "siren_2.wav", "siren_3.wav", "siren_4.wav", "siren_5.wav"]
 
 
+
 def draw_window(sprite_list, maze_data, animated=True):
     screen.fill(BLACK)
 
@@ -112,7 +120,8 @@ def draw_window(sprite_list, maze_data, animated=True):
     # display the path of the ghosts
     if draw_ghosts[0]:
         for ghost in sprite_list[1]:
-
+            if not ghost.is_enabled():
+                continue
             if utilities.AStarMode[0] and utilities.draw_paths[0]:
                 ghost.draw_astar_path(screen, maze_data)
             elif utilities.draw_paths[0]:
@@ -153,12 +162,6 @@ def register_keys(event):
         return "up"
     elif event.key == pygame.K_DOWN:
         return "down"
-
-
-
-
-
-
 
 
 # last_keys[0] is the current direction that all pacmans are moving and will continue to move in that direction unless
@@ -416,7 +419,8 @@ def update_sprites(maze_data, pacmans, ghosts, consumables):
                 utilities.ghost_eaten_score[0] = 200  # reset score multiplier if power wore off
             global_state_stop_time.append((0, frightened_time))
             for ghost in ghosts:
-                ghost.overwrite_global_state("frightened", frightened_time)
+                if ghost.is_enabled():
+                    ghost.overwrite_global_state("frightened", frightened_time)
 
         if pacman.direction != "dying" and pacman.direction != "dead":
             all_pacmans_dead = False
@@ -426,6 +430,8 @@ def update_sprites(maze_data, pacmans, ghosts, consumables):
         game_over[0] = True
 
     for ghost in ghosts:
+        if not ghost.is_enabled():
+            continue
         ghost.update(maze_data, pacmans, ghosts)
 
     for consumable in consumables:
@@ -601,7 +607,6 @@ def main():
                 elif last_keys[3] == register_keys(event):
                     last_keys[3] = "none"
 
-
         if win_animation:
             sfx_handler.stop_music()
             win_animation_clock += 1
@@ -629,11 +634,14 @@ def main():
             continue
 
         if utilities.get_regenerate_new_maze():
+            utilities.set_regenerate_new_maze(False)
             sfx_handler.stop_music()
             # kill all sprites
             utilities.empty_highlighted_tiles()
             if not utilities.classic_mode[0]:
                 maze_gen.generate()
+                if utilities.get_regenerate_new_maze():
+                    continue
                 maze_data = maze_gen.get_maze_data()
             else:
                 maze_data = copy.deepcopy(og_maze_data)
@@ -651,7 +659,6 @@ def main():
             utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + SCALE / 2,
                                             "READY!", (255, 255, 0), NEW_MAZE_ANIMATION_TIME, 20))
 
-            utilities.set_regenerate_new_maze(False)
             game_over[0] = False
             draw_ghosts[0] = True
             current_tim = 0
@@ -688,7 +695,7 @@ def main():
             draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
             update_score_popups(score_popups)
             score_popups.draw(screen)
-            ui_handler.update(cursor_click_pos,cursor_hover_pos, lives, current_level, "???")
+            ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, current_level, "???")
             ui_handler.draw(screen)
             pygame.display.update()
             continue
@@ -712,8 +719,6 @@ def main():
         update_score_popups(score_popups)
 
         update_music(sfx_handler, maze_data, og_pellet_count, ghosts)
-
-
 
         if not utilities.get_stop_time():
             last_keys = move_pacmans(last_keys, pacmans, maze_data)
@@ -754,7 +759,6 @@ def main():
 
 
 def update_music(sfx_handler, maze_data, og_pellets_count, ghosts):
-
     sfx_handler.play_sfx(utilities.get_next_sfx())
     if game_over[0]:
         sfx_handler.stop_music()
@@ -762,10 +766,10 @@ def update_music(sfx_handler, maze_data, og_pellets_count, ghosts):
 
     current_state = None
     for ghost in ghosts:
-        if ghost.get_state() == "dead":
+        if ghost.get_state() == "dead" and ghost.is_enabled():
             current_state = "dead"
 
-        if ghost.get_state() == "frightened" and current_state != "dead":
+        if ghost.get_state() == "frightened" and current_state != "dead" and ghost.is_enabled():
             current_state = "frightened"
 
     if current_state == "dead":

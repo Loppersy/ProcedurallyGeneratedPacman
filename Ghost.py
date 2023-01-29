@@ -1184,3 +1184,13 @@ class Ghost(pygame.sprite.Sprite):
             utilities.get_position_in_window(self.goal[0], self.goal[1], self.scale, self.window_width,
                                              self.window_height)[
                 1] + self.scale // 2), 5)
+
+    def is_enabled(self):
+        if self.type == "blinky":
+            return utilities.update_blinky[0]
+        elif self.type == "pinky":
+            return utilities.update_pinky[0]
+        elif self.type == "inky":
+            return utilities.update_inky[0]
+        elif self.type == "clyde":
+            return utilities.update_clyde[0]

@@ -29,48 +29,34 @@ class MazeGenerator:
         starting_branches_positions, pacman_pos = self.get_starting_positions()
 
         for branch_position in starting_branches_positions:
-            self.generate_branch(branch_position[0], branch_position[1], None, BRANCH_LENGTH)
-        #
-        # for i in range(len(chosen_ghost_house_branches)):
-        #     self.generate_branch(ghost_house_pos[0] + chosen_ghost_house_branches[i][0],
-        #                          ghost_house_pos[1] + chosen_ghost_house_branches[i][1],
-        #                          chosen_ghost_house_branches[i][2], BRANCH_LENGTH, False)
-        #
-        # self.generate_branch(pacman_pos[0] - 1, pacman_pos[1], "left", BRANCH_LENGTH, False, True)
-        # self.generate_branch(bonus_pos[0] - 1, bonus_pos[1], "left", BRANCH_LENGTH, False, True)
-        # self.generate_branch(random_pos[0] - 1, random_pos[1], "left", BRANCH_LENGTH, False, True)
-
-        # Add two power pellets in the maze_data
-        self.add_power_pellets(POWER_PELLETS_PER_SIDE)
-        self.add_side_tunnel(1)
+            self.generate_branch(branch_position[0], branch_position[1], branch_position[2], BRANCH_LENGTH)
 
         # Mirror the left side of the maze_data to the right side
-        for i in range(self.height):
-            for j in range(self.width // 2):
-                if self.maze_data[i][j] == 0 or self.maze_data[i][j] == 1 or self.maze_data[i][j] == 2 or \
-                        self.maze_data[i][j] == 3:
-                    self.maze_data[i][self.width - j - 1] = self.maze_data[i][j]
-                else:
-                    self.maze_data[i][self.width - j - 1] = 0
+        self.mirror_maze()
 
+        self.remove_dead_ends()
+
+        self.ensure_all_maze_connected(pacman_pos)
+
+        self.add_power_pellets(POWER_PELLETS_PER_SIDE)
+        self.add_side_tunnel()
+        self.mirror_maze()
+
+    def ensure_all_maze_connected(self, pacman_pos):
         # ensure that all tiles are accessible. if not, create a tunnel between the ghost house and pacman and the bonus
         # fruit
-
         path_finder = AStar()
         walkable_tiles = []
         for i in range(len(self.maze_data)):
             for j in range(len(self.maze_data[i])):
                 if self.maze_data[i][j] != 1:
                     walkable_tiles.append((j, i))
-
         # order the walkable tiles by distance to pacman using numpy
         walkable_tiles = np.array(walkable_tiles)
         pacman_pos_array = np.array(pacman_pos)
         walkable_tiles = walkable_tiles[np.argsort(np.linalg.norm(walkable_tiles - pacman_pos_array, axis=1))]
-
         # convert the numpy array back to a list of tuples
         walkable_tiles = [tuple(x) for x in walkable_tiles]
-
         for walkable_tile in walkable_tiles:
             if not path_finder.is_reachable(Node(pacman_pos), Node(walkable_tile), self.maze_data):
                 walkable_tile_closest_pos = \
@@ -84,16 +70,23 @@ class MazeGenerator:
 
                 # if closest_node_middle_pos == closest_node_lowest_pos:
                 #     closest_node_middle_pos = middle_pos
-                self.create_tunel(path_finder.get_tunel(Node(pacman_closest_pos),
-                                                        Node(walkable_tile_closest_pos),
-                                                        self.maze_data))
+                connecting_tunel = path_finder.get_tunel(Node((pacman_closest_pos[0]-1, pacman_closest_pos[1])),
+                                                         Node(walkable_tile_closest_pos),
+                                                         self.maze_data)
+                if connecting_tunel:
+                    self.create_tunel(connecting_tunel)
+                else:
+                    print("no connecting tunel found")
+                    utilities.set_regenerate_new_maze(True)
 
-        # Mirror the left side of the maze_data to the right side
+    def mirror_maze(self):
         for i in range(self.height):
             for j in range(self.width // 2):
                 if self.maze_data[i][j] == 0 or self.maze_data[i][j] == 1 or self.maze_data[i][j] == 2 or \
                         self.maze_data[i][j] == 3:
                     self.maze_data[i][self.width - j - 1] = self.maze_data[i][j]
+                else:
+                    self.maze_data[i][self.width - j - 1] = 0
 
     def get_maze_data(self):
         # for i in range(self.height):
@@ -221,8 +214,6 @@ class MazeGenerator:
         # utilities.add_highlighted_tile(self.add_direction(current_x, current_y, my_direction, True), (255, 0, 0))
         tunel_length = 0
         while self.no_empty_neighbors(current_x, current_y, my_direction):
-            if current_x <= self.width // 2:
-                utilities.add_highlighted_tile((current_x, current_y), (255, 0, 0))
             maze_height = len(self.maze_data)
             can_wrap_around = False
             if maze_height // 3 <= current_y <= maze_height // 3 * 2:
@@ -287,7 +278,7 @@ class MazeGenerator:
             return old_direction
 
         new_x, new_y = self.add_direction(current_x, current_y, my_direction)
-        if (new_x < 1 or new_x >= self.width // 2 - 1 or new_y < 1 or new_y >= self.height - 1) and not wrap_around:
+        if (new_x < 1 or new_x > self.width // 2 - 1 or new_y < 1 or new_y > self.height - 1) and not wrap_around:
             return old_direction
 
         if continue_prev_direction:
@@ -465,7 +456,7 @@ class MazeGenerator:
         for x, y in path:
             utilities.add_highlighted_tile((x, y), (0, 255, 0))
             if self.maze_data[y][x] == 1 and not self.blocked_positions[y][x]:
-                self.maze_data[y][x] = 3
+                self.maze_data[y][x] = 2
 
     def add_power_pellets(self, number_of_power_pellets):
         power_pellets_pos = []
@@ -617,22 +608,24 @@ class MazeGenerator:
                 for j in range(3):
                     possible_ghost_house_branches.pop(index - 1)
 
-        starting_positions = [(pacman_pos[0] - 1, pacman_pos[1]),
-                              (bonus_pos[0] - 1, bonus_pos[1])]
+        starting_positions = [(pacman_pos[0] - 1, pacman_pos[1], "left"),
+                              (bonus_pos[0] - 1, bonus_pos[1], "left")]
 
         if random_pos != (-1, -1):
-            starting_positions.append((random_pos[0] - 1, random_pos[1]))
+            starting_positions.append((random_pos[0] - 1, random_pos[1], "left"))
 
         for branch in chosen_ghost_house_branches:
-            starting_positions.append((ghost_house_pos[0] + branch[0], ghost_house_pos[1] + branch[1]))
+            starting_positions.append((ghost_house_pos[0] + branch[0], ghost_house_pos[1] + branch[1], None))
 
         return starting_positions, pacman_pos
 
     def generate_branch(self, x, y, direction, branch_length, directions_to_avoid=None):
-        if self.creates_walkable_area(x, y) or self.blocked_positions[x][y]:
+        if self.creates_walkable_area(x, y) \
+                or self.blocked_positions[x][y] \
+                or x > self.width // 2 - 1:
             return
 
-        branch_positions = [(x, y)]
+        branch_positions = []
         self.maze_data[y][x] = 2
         current_branch_length = branch_length - 1
 
@@ -654,27 +647,28 @@ class MazeGenerator:
                     new_directions_to_avoid = ["left", "right"]
                 new_direction = self.get_random_valid_direction(new_x, new_y, new_directions_to_avoid)
                 length_without_direction_change = 0
-                utilities.add_highlighted_tile((new_x, new_y), (255, 0, 0))
-                utilities.add_highlighted_tile(self.add_direction(new_x, new_y, new_direction), (255, 255, 255))
                 if new_direction is None:
                     break
 
             new_x, new_y = self.add_direction(new_x, new_y, new_direction, False)
-            if self.is_walkable((new_x, new_y)):
+            if self.is_walkable((new_x, new_y)) or new_x > self.width // 2 - 1:
                 break
             self.maze_data[new_y][new_x] = 2
             branch_positions.append((new_x, new_y))
 
             length_without_branch += 1
             length_without_direction_change += 1
-            if branch_length - current_branch_length > BRANCH_MIN_LENGTH and  length_without_direction_change >= BRANCH_MIN_LENGTH:
+            if branch_length - current_branch_length > BRANCH_MIN_LENGTH and length_without_direction_change >= BRANCH_MIN_LENGTH:
                 if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE or length_without_branch > BRANCH_MIN_LENGTH * 3:
                     opposite_direction = self.get_opposite_direction(new_direction)
-                    branch_direction = self.get_random_valid_direction(new_x, new_y, [new_direction, opposite_direction])
+                    branch_direction = self.get_random_valid_direction(new_x, new_y,
+                                                                       [new_direction, opposite_direction])
+                    branch_positions.clear()
                     self.generate_branch(new_x, new_y, branch_direction, BRANCH_LENGTH)
                     length_without_branch = 0
 
-                if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE or length_without_direction_change > BRANCH_MIN_LENGTH * 3:
+                if random.randint(0,
+                                  100) < BRANCH_DIRCHANGE_CHANCE or length_without_direction_change > BRANCH_MIN_LENGTH * 3:
                     if new_direction == "up" or new_direction == "down":
                         new_directions_to_avoid = ["up", "down"]
                     else:
@@ -682,37 +676,27 @@ class MazeGenerator:
                     new_direction = self.get_random_valid_direction(new_x, new_y, new_directions_to_avoid)
                     length_without_direction_change = 0
 
-        for i in range(len(branch_positions)):
-            if branch_positions[i][0] >= self.width // 2:
-                continue
-            if i == 0:
-                utilities.add_highlighted_tile((branch_positions[i][0], branch_positions[i][1]), (128, 0, 255))
-                continue
-            # utilities.add_highlighted_tile((branch_positions[i][0], branch_positions[i][1]), (255, 255, 255))
-
-        # for i in range(len(self.blocked_positions)):
-        #     for j in range(len(self.blocked_positions[i])):
-        #         if self.blocked_positions[i][j]:
-        #             utilities.add_highlighted_tile((j, i), (255, 255, 255))
-
     def get_valid_directions(self, x, y, directions_to_avoid=None):
         valid_directions = []
         if not self.creates_walkable_area(x, y - 1) \
                 and not self.blocked_positions[y - 1][x] \
-                and (directions_to_avoid is None or "up" not in directions_to_avoid):
+                and (directions_to_avoid is None or "up" not in directions_to_avoid) \
+                and x != self.width // 2 - 1:
             valid_directions.append("up")
         if not self.creates_walkable_area(x, y + 1) \
                 and not self.blocked_positions[y + 1][x] \
-                and (directions_to_avoid is None or "down" not in directions_to_avoid):
+                and (directions_to_avoid is None or "down" not in directions_to_avoid) \
+                and x != self.width // 2 - 1:
             valid_directions.append("down")
         if not self.creates_walkable_area(x - 1, y) \
                 and not self.blocked_positions[y][x - 1] \
-                and (directions_to_avoid is None or "left" not in directions_to_avoid):
+                and (directions_to_avoid is None or "left" not in directions_to_avoid) \
+                and x != self.width // 2 - 1:
             valid_directions.append("left")
         if not self.creates_walkable_area(x + 1, y) \
                 and not self.blocked_positions[y][x + 1] \
-                and (directions_to_avoid is None or "right" not in directions_to_avoid)\
-                and not x+1 == self.width // 2:
+                and (directions_to_avoid is None or "right" not in directions_to_avoid) \
+                and x != self.width // 2 - 1:
             valid_directions.append("right")
 
         return valid_directions
@@ -725,14 +709,15 @@ class MazeGenerator:
         for direction in directions_to_check:
             temp_x = x + direction[0]
             temp_y = y + direction[1]
-            if temp_x > self.width // 2:
-                temp_x = self.width // 2 - 1
-            if temp_x < 0:
-                temp_x = 0
             if temp_y > self.height - 1:
                 temp_y = self.height - 1
             if temp_y < 0:
                 temp_y = 0
+            if temp_x > self.width // 2 - 1:
+                temp_x = self.width // 2 - 1
+            if temp_x < 0:
+                temp_x = 0
+
             positions_to_check.append((temp_x, temp_y))
 
         # Check up left corner
@@ -804,7 +789,7 @@ class MazeGenerator:
             if self.is_walkable((temp_x, temp_y)):
                 connections += 1
 
-        return connections == 1
+        return connections <= 1
 
     def get_opposite_direction(self, new_direction):
         if new_direction == "up":
@@ -816,28 +801,69 @@ class MazeGenerator:
         if new_direction == "right":
             return "left"
 
-    def add_side_tunnel(self, tunel_number):
+    def add_side_tunnel(self):
         distances_from_border = []
-        for i in range(self.height//5, self.height*4//5):
-            for j in range(1, self.width//2 - 1):
+        for i in range(self.height // 5, self.height * 4 // 5):
+            for j in range(1, self.width // 2 - 1):
                 if self.is_walkable((j, i)):
                     distances_from_border.append((j, i))
                     break
 
         # Sort by x coordinate
         distances_from_border.sort(key=lambda tup: tup[0], reverse=True)
-        print(distances_from_border)
 
-        # pick a random position with the highest x coordinate
-        x = distances_from_border[0][0]
+        # pick a random position with the highest valid x coordinate
         long_distances = []
-        for distance in distances_from_border:
-            if distance[0] == x:
-                long_distances.append(distance)
-            else:
-                break
+        while len(long_distances) < 1:
+            long_distances.clear()
+            x = distances_from_border[0][0]
+
+            for distance in distances_from_border:
+                if distance[0] == x:
+                    long_distances.append(distance)
+                else:
+                    break
+
+            for long_distance in long_distances:
+                distances_from_border.remove(long_distance)
+
+            invalid_long_distances = []
+            for distance in long_distances:
+                for i in range(1, distance[0]-1):
+                    # utilities.add_highlighted_tile((i, distance[1]), (255, 255, 0))
+                    if self.is_connected((i, distance[1]), 1):
+                        invalid_long_distances.append(distance)
+                        break
+
+            for invalid_long_distance in invalid_long_distances:
+                long_distances.remove(invalid_long_distance)
 
         y = random.choice(long_distances)[1]
-        utilities.add_highlighted_tile((x, y), (0, 255, 0))
 
         self.continue_tunel_until_connection(0, y, "right")
+
+    def remove_dead_ends(self):
+        while True:
+            dead_ends = []
+            for i in range(self.height):
+                for j in range(self.width // 2):
+                    if self.is_walkable((j, i)) and self.is_dead_end(j, i):
+                        dead_ends.append((j, i))
+
+            if len(dead_ends) < 1:
+                break
+
+            dead_end = random.choice(dead_ends)
+            self.maze_data[dead_end[1]][dead_end[0]] = 1
+            utilities.add_highlighted_tile(dead_end, (255, 0, 0))
+
+    def is_connected(self, position, number_of_connections):
+        directions_to_check = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        connections = 0
+        for direction in directions_to_check:
+            temp_x = position[0] + direction[0]
+            temp_y = position[1] + direction[1]
+            if self.is_walkable((temp_x, temp_y)):
+                connections += 1
+
+        return connections >= number_of_connections

@@ -11,12 +11,16 @@ munch = [False]
 
 regenerate_maze = [False]
 AStarMode = [True]
-draw_paths = [True]
+draw_paths = [False]
 power_pellet_debug = [False]
 invisibility_debug = [False]
 new_maze = [True]  # Hit R to load a new maze
 classic_mode = [False]
-draw_highlighted_tiles = [True]
+draw_highlighted_tiles = [False]
+update_blinky = [True]
+update_pinky = [True]
+update_inky = [True]
+update_clyde = [True]
 
 def add_sfx_to_queue(sfx):
     if sfx == "munch":

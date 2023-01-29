@@ -36,11 +36,13 @@ class MazeGenerator:
 
         self.remove_dead_ends()
 
-        self.ensure_all_maze_connected(pacman_pos)
+        if not self.ensure_all_maze_connected(pacman_pos):
+            return False
 
         self.add_power_pellets(POWER_PELLETS_PER_SIDE)
         self.add_side_tunnel()
         self.mirror_maze()
+        return True
 
     def ensure_all_maze_connected(self, pacman_pos):
         # ensure that all tiles are accessible. if not, create a tunnel between the ghost house and pacman and the bonus
@@ -73,11 +75,12 @@ class MazeGenerator:
                 connecting_tunel = path_finder.get_tunel(Node((pacman_closest_pos[0]-1, pacman_closest_pos[1])),
                                                          Node(walkable_tile_closest_pos),
                                                          self.maze_data)
-                if connecting_tunel:
+                if connecting_tunel is not None:
                     self.create_tunel(connecting_tunel)
                 else:
                     print("no connecting tunel found")
-                    utilities.set_regenerate_new_maze(True)
+                    return False
+        return True
 
     def mirror_maze(self):
         for i in range(self.height):

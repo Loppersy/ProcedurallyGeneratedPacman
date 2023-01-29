@@ -18,7 +18,7 @@ from Wall import Wall
 
 WIDTH, HEIGHT = 1080, 720
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("First Game")
+pygame.display.set_caption("Procedurally Generated Pacman")
 BLACK = (0, 0, 0)
 
 SCALE = 22
@@ -56,13 +56,20 @@ NO_DMG_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "no_dmg_hov
 ON = pygame.image.load(os.path.join("assets", "UI", "on.png")).convert_alpha()
 OFF = pygame.image.load(os.path.join("assets", "UI", "off.png")).convert_alpha()
 DISABLED_BUTTON = pygame.image.load(os.path.join("assets", "UI", "disabled_button.png")).convert_alpha()
+SOUND_BUTTON = pygame.image.load(os.path.join("assets", "UI", "sound_button.png")).convert_alpha()
+SOUND_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "sound_button_hover.png")).convert_alpha()
+SOUND_ON = pygame.image.load(os.path.join("assets", "UI", "sound_on.png")).convert_alpha()
+SOUND_OFF = pygame.image.load(os.path.join("assets", "UI", "sound_off.png")).convert_alpha()
 
 UI_IMAGES = [REGENERATE_BUTTON, REGENERATE_BUTTON_HOVER,
              GHOST_BUTTON, GHOST_BUTTON_HOVER, BLINKY_BUTTON, PINKY_BUTTON, INKY_BUTTON, CLYDE_BUTTON,
              PATH_BUTTON, PATH_BUTTON_HOVER,
              PATHFINDER_BUTTON, PATHFINDER_BUTTON_HOVER, A_STAR_TEXT, CLASSIC_TEXT,
              NO_DMG_BUTTON, NO_DMG_BUTTON_HOVER, ON, OFF,
-             DISABLED_BUTTON]
+             DISABLED_BUTTON,
+             SOUND_BUTTON, SOUND_BUTTON_HOVER, SOUND_ON, SOUND_OFF,
+             utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16),
+             utilities.load_sheet(PACMAN_SHEET_IMAGE, 1, 2, 16, 16)[1]]
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
@@ -108,7 +115,6 @@ SFX_NAMES = ["credit.wav", "death_1.wav", "death_2.wav", "eat_fruit.wav", "eat_g
 
 MUSIC_NAMES = ["power_pellet.wav", "retreating.wav", "siren_1.wav",
                "siren_2.wav", "siren_3.wav", "siren_4.wav", "siren_5.wav"]
-
 
 
 def draw_window(sprite_list, maze_data, animated=True):
@@ -551,14 +557,20 @@ def main():
 
     og_maze_data = copy.deepcopy(maze_data)
 
-    lives = 3
+    lives = 4
 
     # Initialize sfx and music handlers
     sfx_handler = SFXHandler(SFX_NAMES, MUSIC_NAMES, FPS)
     og_pellet_count = 0
 
     # UI handler
-    ui_handler = UIHandler(SCALE, WIDTH, HEIGHT, FPS, lives, current_level, sfx_handler, UI_IMAGES)
+    ui_handler = UIHandler(SCALE, WIDTH, HEIGHT, FPS, lives, 0, sfx_handler, UI_IMAGES)
+
+    # Get high score from file
+    high_score_file = open("high_score.txt", "a+")
+    high_score_file.seek(0)
+    utilities.high_score[0] = int(high_score_file.read())
+    high_score_file.close()
 
     while run:
         clock.tick(FPS)
@@ -620,7 +632,7 @@ def main():
                 bonus_fruits.empty()
                 draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data,
                             False)
-                ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, current_level, "???")
+                ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, utilities.high_score[0],utilities.current_score[0], current_level)
                 ui_handler.draw(screen)
                 pygame.display.update()
 
@@ -628,23 +640,21 @@ def main():
                 win_animation = False
                 win_animation_clock = 0
                 current_level += 1
-                if current_level % 4 == 0:
-                    lives += 1
                 utilities.set_regenerate_new_maze(True)
             continue
 
         if utilities.get_regenerate_new_maze():
             utilities.set_regenerate_new_maze(False)
             sfx_handler.stop_music()
-            # kill all sprites
             utilities.empty_highlighted_tiles()
             if not utilities.classic_mode[0]:
-                maze_gen.generate()
-                if utilities.get_regenerate_new_maze():
+                if not maze_gen.generate():
+                    utilities.set_regenerate_new_maze(True)
                     continue
                 maze_data = maze_gen.get_maze_data()
             else:
                 maze_data = copy.deepcopy(og_maze_data)
+
             for group in sprite_groups:
                 group.empty()
 
@@ -695,7 +705,7 @@ def main():
             draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
             update_score_popups(score_popups)
             score_popups.draw(screen)
-            ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, current_level, "???")
+            ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, utilities.high_score[0],utilities.current_score[0], current_level)
             ui_handler.draw(screen)
             pygame.display.update()
             continue
@@ -703,10 +713,16 @@ def main():
         if len(pacmans) == 0 and game_over[0] and lives > 0:
             generate_old_maze = True
             lives -= 1
-        elif len(pacmans) == 0 and game_over[0] and lives == 0:
+
+        if len(pacmans) == 0 and game_over[0] and lives == 0:
             utilities.set_regenerate_new_maze(True)
             lives = 3
             current_level = 0
+            utilities.current_score[0] = 0
+            # write high score to file after deleting its previous contents
+            with open("high_score.txt", "w") as file:
+                file.write(str(utilities.high_score[0]))
+            continue
 
         if len(pellets) == 0 and len(power_pellets) == 0:
             win_animation = True
@@ -748,7 +764,7 @@ def main():
                 stop_time_clock = 0
 
         score_popups.draw(screen)
-        ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, current_level, "???")
+        ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, utilities.high_score[0],utilities.current_score[0], current_level)
         ui_handler.draw(screen)
 
         # Update some information based on UI interactions
@@ -759,6 +775,9 @@ def main():
 
 
 def update_music(sfx_handler, maze_data, og_pellets_count, ghosts):
+    if not utilities.SFX_and_Music[0]:
+        sfx_handler.stop_music()
+        return
     sfx_handler.play_sfx(utilities.get_next_sfx())
     if game_over[0]:
         sfx_handler.stop_music()

@@ -5,11 +5,13 @@ import numpy as np
 
 queued_popups = []  # list of popups to be displayed, each element is a tuple (x,y,text, color RGB, time in seconds)
 ghost_eaten_score = [200]
+current_score = [0]
+high_score = [0]
 highlighted_tiles = []  # list of tiles to be highlighted, each element is a tuple (x,y, color RGB, time in seconds)
 sfx_queue = []  # list of sfx to be played
 munch = [False]
 
-regenerate_maze = [False]
+regenerate_maze = [True]
 AStarMode = [True]
 draw_paths = [False]
 power_pellet_debug = [False]
@@ -21,8 +23,12 @@ update_blinky = [True]
 update_pinky = [True]
 update_inky = [True]
 update_clyde = [True]
+SFX_and_Music = [True]
+
 
 def add_sfx_to_queue(sfx):
+    if SFX_and_Music[0] is False:
+        return
     if sfx == "munch":
         if munch[0]:
             sfx = "munch_1.wav"
@@ -149,3 +155,9 @@ def set_regenerate_new_maze(var):
 
 def get_regenerate_new_maze():
     return regenerate_maze[0]
+
+
+def add_score(score):
+    current_score[0] += score
+    if current_score[0] > high_score[0]:
+        high_score[0] = current_score[0]

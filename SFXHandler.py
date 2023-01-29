@@ -2,6 +2,8 @@ import os
 
 import pygame
 
+import utilities
+
 
 class SFXHandler:
 
@@ -19,10 +21,15 @@ class SFXHandler:
         self.fps = fps
 
     def play_sfx(self, sfx):
+        if not utilities.SFX_and_Music[0]:
+            return
+
         if sfx in self.sfxs:
             self.sfxs[sfx].play()
 
     def play_music(self, music):
+        if not utilities.SFX_and_Music[0]:
+            return
         if self.current_music is None or self.current_music != music:
             if music in self.musics:
                 pygame.mixer.music.stop()

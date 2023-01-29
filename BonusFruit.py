@@ -8,7 +8,7 @@ from Ghost import Ghost
 class BonusFruit(Consumable):
     def __init__(self, x, y, scale, window_width, window_height, fruit_images, fps, fruit_to_spawn, spawn_trigger,
                  starting_pellet_number, fruit_duration):
-        super().__init__(x, y, scale, scale, fruit_images[0])
+        super().__init__(x, y, scale, scale, 404)
         self.fruit_queue = []
         self.fruit_images = fruit_images
         self.image_scale = 1.5
@@ -37,7 +37,6 @@ class BonusFruit(Consumable):
         self.fruit_clock = 0
         self.queue_cooldown = 3
         self.queue_clock = self.queue_cooldown * self.fps
-        self.score = 404
 
     def update(self, maze_data):
         current_pellet_number = utilities.get_occurrences_in_maze(maze_data, 2) + utilities.get_occurrences_in_maze(

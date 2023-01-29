@@ -487,6 +487,7 @@ class Ghost(pygame.sprite.Sprite):
             for pacman in pacmans:
                 if self.rect.colliderect(pacman.rect) and (pacman.direction != "dying" and pacman.direction != "dead"):
                     self.overwrite_global_state("dead", -1)
+                    utilities.add_score(utilities.ghost_eaten_score[0])
                     utilities.add_sfx_to_queue("ghost_eaten.wav")
                     utilities.queued_popups.append(
                         (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2,

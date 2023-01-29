@@ -263,8 +263,8 @@ class UIHandler:
         if self.high_score != high_score:
             self.high_score_number = utilities.get_text_image(str(high_score), self.font_size, (255, 255, 255))
             self.high_score = high_score
-        if self.score != score:
-            self.score_number = utilities.get_text_image(str(score), self.font_size, (255, 255, 255))
+
+        self.score_number = utilities.get_text_image(str(score), self.font_size, (255, 255, 255))
 
         self.current_lives = lives
         if current_level != self.current_level:

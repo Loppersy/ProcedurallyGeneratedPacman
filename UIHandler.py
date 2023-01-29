@@ -7,7 +7,8 @@ import utilities
 
 class UIHandler:
 
-    def __init__(self, scale, window_width, window_height, fps, lives, high_score, sfx_handler, ui_images):
+    def __init__(self, scale, window_width, window_height, fps, lives, high_score, sfx_handler, ui_images,
+                 fruit_per_level):
         self.high_score = high_score
         self.score = 0
         self.scale = scale
@@ -16,7 +17,7 @@ class UIHandler:
         self.fps = fps
         self.lives = lives
         self.sfx_handler = sfx_handler
-        self.font_size = int(scale//2)
+        self.font_size = int(scale // 2)
 
         self.regenerate_button_image = ui_images[0]
         self.regenerate_button_rect = self.regenerate_button_image.get_rect()
@@ -29,22 +30,22 @@ class UIHandler:
         self.ghost_button_image_1 = ui_images[2]
         self.ghost_button_rect_1 = self.ghost_button_image_1.get_rect()
         self.ghost_button_rect_1.x = self.window_width - self.ghost_button_rect_1.width * 2 - self.scale
-        self.ghost_button_rect_1.y = self.window_height - self.ghost_button_rect_1.height * 2 - self.regenerate_button_rect.height - self.scale * 2
+        self.ghost_button_rect_1.y = self.window_height - self.ghost_button_rect_1.height * 2 - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.ghost_button_image_2 = ui_images[2]
         self.ghost_button_rect_2 = self.ghost_button_image_2.get_rect()
         self.ghost_button_rect_2.x = self.window_width - self.ghost_button_rect_2.width - self.scale
-        self.ghost_button_rect_2.y = self.window_height - self.ghost_button_rect_2.height * 2 - self.regenerate_button_rect.height - self.scale * 2
+        self.ghost_button_rect_2.y = self.window_height - self.ghost_button_rect_2.height * 2 - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.ghost_button_image_3 = ui_images[2]
         self.ghost_button_rect_3 = self.ghost_button_image_3.get_rect()
         self.ghost_button_rect_3.x = self.window_width - self.ghost_button_rect_3.width * 2 - self.scale
-        self.ghost_button_rect_3.y = self.window_height - self.ghost_button_rect_3.height - self.regenerate_button_rect.height - self.scale * 2
+        self.ghost_button_rect_3.y = self.window_height - self.ghost_button_rect_3.height - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.ghost_button_image_4 = ui_images[2]
         self.ghost_button_rect_4 = self.ghost_button_image_4.get_rect()
         self.ghost_button_rect_4.x = self.window_width - self.ghost_button_rect_4.width - self.scale
-        self.ghost_button_rect_4.y = self.window_height - self.ghost_button_rect_4.height - self.regenerate_button_rect.height - self.scale * 2
+        self.ghost_button_rect_4.y = self.window_height - self.ghost_button_rect_4.height - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.ghost_button_hover_image = ui_images[3]
         self.ghost_button_normal_image = ui_images[2]
@@ -52,27 +53,27 @@ class UIHandler:
         self.blinky_button_image = ui_images[4]
         self.blinky_button_rect = self.blinky_button_image.get_rect()
         self.blinky_button_rect.x = self.window_width - self.blinky_button_rect.width * 2 - self.scale
-        self.blinky_button_rect.y = self.window_height - self.blinky_button_rect.height * 2 - self.regenerate_button_rect.height - self.scale * 2
+        self.blinky_button_rect.y = self.window_height - self.blinky_button_rect.height * 2 - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.pinky_button_image = ui_images[5]
         self.pinky_button_rect = self.pinky_button_image.get_rect()
         self.pinky_button_rect.x = self.window_width - self.pinky_button_rect.width - self.scale
-        self.pinky_button_rect.y = self.window_height - self.pinky_button_rect.height * 2 - self.regenerate_button_rect.height - self.scale * 2
+        self.pinky_button_rect.y = self.window_height - self.pinky_button_rect.height * 2 - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.inky_button_image = ui_images[6]
         self.inky_button_rect = self.inky_button_image.get_rect()
         self.inky_button_rect.x = self.window_width - self.inky_button_rect.width * 2 - self.scale
-        self.inky_button_rect.y = self.window_height - self.inky_button_rect.height - self.regenerate_button_rect.height - self.scale * 2
+        self.inky_button_rect.y = self.window_height - self.inky_button_rect.height - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.clyde_button_image = ui_images[7]
         self.clyde_button_rect = self.clyde_button_image.get_rect()
         self.clyde_button_rect.x = self.window_width - self.clyde_button_rect.width - self.scale
-        self.clyde_button_rect.y = self.window_height - self.clyde_button_rect.height - self.regenerate_button_rect.height - self.scale * 2
+        self.clyde_button_rect.y = self.window_height - self.clyde_button_rect.height - self.regenerate_button_rect.height * 2 - self.scale * 3
 
         self.path_button_image = ui_images[8]
         self.path_button_rect = self.path_button_image.get_rect()
         self.path_button_rect.x = self.window_width - self.path_button_rect.width - self.scale
-        self.path_button_rect.y = self.window_height - self.path_button_rect.height * 3 - self.regenerate_button_rect.height - self.scale * 3
+        self.path_button_rect.y = self.window_height - self.path_button_rect.height * 4 - self.regenerate_button_rect.height - self.scale * 4
 
         self.path_button_hover_image = ui_images[9]
         self.path_button_normal_image = ui_images[8]
@@ -80,7 +81,7 @@ class UIHandler:
         self.pathfinder_button_image = ui_images[10]
         self.pathfinder_button_rect = self.pathfinder_button_image.get_rect()
         self.pathfinder_button_rect.x = self.window_width - self.pathfinder_button_rect.width - self.scale
-        self.pathfinder_button_rect.y = self.window_height - self.pathfinder_button_rect.height * 4 - self.regenerate_button_rect.height - self.scale * 4
+        self.pathfinder_button_rect.y = self.window_height - self.pathfinder_button_rect.height * 5 - self.regenerate_button_rect.height - self.scale * 5
 
         self.pathfinder_button_hover_image = ui_images[11]
         self.pathfinder_button_normal_image = ui_images[10]
@@ -88,7 +89,7 @@ class UIHandler:
         self.pathfinder_state_image = ui_images[12]
         self.pathfinder_state_rect = self.pathfinder_state_image.get_rect()
         self.pathfinder_state_rect.x = self.window_width - self.pathfinder_state_rect.width - self.scale
-        self.pathfinder_state_rect.y = self.window_height - self.pathfinder_state_rect.height * 4 - self.regenerate_button_rect.height - self.scale * 4
+        self.pathfinder_state_rect.y = self.window_height - self.pathfinder_state_rect.height * 5 - self.regenerate_button_rect.height - self.scale * 5
 
         self.pathfinder_state_a_star_image = ui_images[12]
         self.pathfinder_state_classic_image = ui_images[13]
@@ -96,7 +97,7 @@ class UIHandler:
         self.no_dmg_button_image = ui_images[14]
         self.no_dmg_button_rect = self.no_dmg_button_image.get_rect()
         self.no_dmg_button_rect.x = self.window_width - self.no_dmg_button_rect.width - self.scale
-        self.no_dmg_button_rect.y = self.window_height - self.no_dmg_button_rect.height * 5 - self.regenerate_button_rect.height - self.scale * 5
+        self.no_dmg_button_rect.y = self.window_height - self.no_dmg_button_rect.height * 6 - self.regenerate_button_rect.height - self.scale * 6
 
         self.no_dmg_button_hover_image = ui_images[15]
         self.no_dmg_button_normal_image = ui_images[14]
@@ -104,7 +105,7 @@ class UIHandler:
         self.no_dmg_state_image = ui_images[17]
         self.no_dmg_state_rect = self.no_dmg_state_image.get_rect()
         self.no_dmg_state_rect.x = self.window_width - self.no_dmg_state_rect.width - self.scale
-        self.no_dmg_state_rect.y = self.window_height - self.no_dmg_state_rect.height * 5 - self.regenerate_button_rect.height - self.scale * 5
+        self.no_dmg_state_rect.y = self.window_height - self.no_dmg_state_rect.height * 6 - self.regenerate_button_rect.height - self.scale * 6
 
         self.no_dmg_state_on_image = ui_images[16]
         self.no_dmg_state_off_image = ui_images[17]
@@ -120,7 +121,7 @@ class UIHandler:
         self.sound_button_image = ui_images[19]
         self.sound_button_rect = self.sound_button_image.get_rect()
         self.sound_button_rect.x = self.window_width - self.sound_button_rect.width - self.scale
-        self.sound_button_rect.y = self.window_height - self.sound_button_rect.height * 6 - self.regenerate_button_rect.height - self.scale * 6
+        self.sound_button_rect.y = self.window_height - self.sound_button_rect.height * 7 - self.regenerate_button_rect.height - self.scale * 7
 
         self.sound_button_hover_image = ui_images[20]
         self.sound_button_normal_image = ui_images[19]
@@ -128,11 +129,13 @@ class UIHandler:
         self.sound_state_image = ui_images[22]
         self.sound_state_rect = self.sound_state_image.get_rect()
         self.sound_state_rect.x = self.window_width - self.sound_state_rect.width - self.scale
-        self.sound_state_rect.y = self.window_height - self.sound_state_rect.height * 6 - self.regenerate_button_rect.height - self.scale * 6
+        self.sound_state_rect.y = self.window_height - self.sound_state_rect.height * 7 - self.regenerate_button_rect.height - self.scale * 7
 
         self.sound_state_on_image = ui_images[21]
         self.sound_state_off_image = ui_images[22]
 
+        self.high_score = 0
+        self.score = 0
         self.high_score_text = utilities.get_text_image("HIGH SCORE", self.font_size,
                                                         (255, 255, 255))
         self.high_score_number = utilities.get_text_image(str(high_score), self.font_size, (255, 255, 255))
@@ -153,6 +156,58 @@ class UIHandler:
         self.score_text_rect.y = self.high_score_number_rect.y + self.high_score_number_rect.height + 5 + self.font_size
         self.score_number_rect.x = self.font_size
         self.score_number_rect.y = self.score_text_rect.y + self.score_text_rect.height + 5
+
+        self.current_lives = lives
+        self.live_image = pygame.transform.scale(ui_images[24], (self.scale * 1.5, self.scale * 1.5))
+        self.live_rect = self.live_image.get_rect()
+        bottom_left_corner = utilities.get_position_in_window(0, 31, self.scale, self.window_width, self.window_height)
+        self.live_rect.x = bottom_left_corner[0] - self.live_rect.width
+        self.live_rect.y = bottom_left_corner[1] - self.live_rect.height
+
+        self.current_level = 0
+        self.current_level_images = []
+        self.possible_fruits = fruit_per_level
+        self.current_levels_displayed = ["cherry"]
+        for i in range(len(ui_images[23])):
+            self.current_level_images.append(
+                pygame.transform.scale(ui_images[23][i], (self.scale * 1.5, self.scale * 1.5)))
+        self.current_level_rect = self.current_level_images[0].get_rect()
+        top_left_corner = utilities.get_position_in_window(0, 0, self.scale, self.window_width, self.window_height)
+        self.current_level_rect.x = top_left_corner[0] - self.current_level_rect.width
+        self.current_level_rect.y = top_left_corner[1] + self.current_level_rect.height
+
+        self.classic_button_image = ui_images[25]
+        self.classic_button_rect = self.classic_button_image.get_rect()
+        self.classic_button_rect.x = self.window_width - self.classic_button_rect.width - self.scale
+        self.classic_button_rect.y = self.window_height - self.classic_button_rect.height - self.regenerate_button_rect.height - self.scale * 2
+
+        self.classic_button_hover_image = ui_images[26]
+        self.classic_button_normal_image = ui_images[25]
+
+        self.classic_button_state_image = ui_images[16]
+        self.classic_button_state_rect = self.classic_button_state_image.get_rect()
+        self.classic_button_state_rect.x = self.window_width - self.classic_button_state_rect.width - self.scale
+        self.classic_button_state_rect.y = self.window_height - self.classic_button_state_rect.height - self.regenerate_button_rect.height - self.scale * 2
+
+        self.classic_button_state_on_image = ui_images[16]
+        self.classic_button_state_off_image = ui_images[17]
+
+        self.author_text = utilities.get_text_image("by", self.font_size, (255, 255, 255))
+        self.author_text_2 = utilities.get_text_image("Sebastian", self.font_size, (255, 255, 255))
+        self.author_text_3 = utilities.get_text_image("Lopez", self.font_size, (255, 255, 255))
+        self.author_text_4 = utilities.get_text_image("Figueroa", self.font_size, (255, 255, 255))
+        self.author_text_rect = self.author_text.get_rect()
+        self.author_text_rect_2 = self.author_text_2.get_rect()
+        self.author_text_rect_3 = self.author_text_3.get_rect()
+        self.author_text_rect_4 = self.author_text_4.get_rect()
+        self.author_text_rect_4.x = self.font_size
+        self.author_text_rect_4.y = self.window_height - self.author_text_rect_4.height - self.font_size
+        self.author_text_rect_3.x = self.font_size
+        self.author_text_rect_3.y = self.author_text_rect_4.y - self.author_text_rect_3.height - self.font_size
+        self.author_text_rect_2.x = self.font_size
+        self.author_text_rect_2.y = self.author_text_rect_3.y - self.author_text_rect_2.height - self.font_size
+        self.author_text_rect.x = self.font_size
+        self.author_text_rect.y = self.author_text_rect_2.y - self.author_text_rect.height - self.font_size
 
     def update(self, cursor_click_pos, cursor_hover_pos, lives, high_score, score, current_level):
         if cursor_click_pos is not None:
@@ -175,6 +230,10 @@ class UIHandler:
                 utilities.invisibility_debug[0] = not utilities.invisibility_debug[0]
             if self.sound_button_rect.collidepoint(cursor_click_pos):
                 utilities.SFX_and_Music[0] = not utilities.SFX_and_Music[0]
+            if self.classic_button_rect.collidepoint(cursor_click_pos):
+                utilities.classic_mode[0] = not utilities.classic_mode[0]
+                utilities.set_regenerate_new_maze(True)
+                self.classic_button_image = self.classic_button_normal_image
 
         self.ghost_1_enabled = utilities.update_blinky[0]
         self.ghost_2_enabled = utilities.update_pinky[0]
@@ -196,9 +255,28 @@ class UIHandler:
         else:
             self.pathfinder_state_image = self.pathfinder_state_classic_image
 
-        self.high_score_number = utilities.get_text_image(str(high_score), self.font_size, (255, 255, 255))
-        self.score_number = utilities.get_text_image(str(score), self.font_size, (255, 255, 255))
+        if utilities.classic_mode[0]:
+            self.classic_button_state_image = self.classic_button_state_on_image
+        else:
+            self.classic_button_state_image = self.classic_button_state_off_image
 
+        if self.high_score != high_score:
+            self.high_score_number = utilities.get_text_image(str(high_score), self.font_size, (255, 255, 255))
+            self.high_score = high_score
+        if self.score != score:
+            self.score_number = utilities.get_text_image(str(score), self.font_size, (255, 255, 255))
+
+        self.current_lives = lives
+        if current_level != self.current_level:
+            self.current_level = current_level
+            self.current_levels_displayed.clear()
+            temp_current_level = current_level
+            while temp_current_level >= 0 and len(self.current_levels_displayed) < 7:
+                max_fruit = temp_current_level
+                if max_fruit > len(self.possible_fruits) - 1:
+                    max_fruit = len(self.possible_fruits) - 1
+                self.current_levels_displayed.insert(0, self.possible_fruits[max_fruit][0])
+                temp_current_level -= 1
 
         if cursor_hover_pos is not None:
             if self.regenerate_button_rect.collidepoint(cursor_hover_pos):
@@ -246,6 +324,11 @@ class UIHandler:
             else:
                 self.sound_button_image = self.sound_button_normal_image
 
+            if self.classic_button_rect.collidepoint(cursor_hover_pos):
+                self.classic_button_image = self.classic_button_hover_image
+            else:
+                self.classic_button_image = self.classic_button_normal_image
+
     def draw(self, screen):
         screen.blit(self.regenerate_button_image, self.regenerate_button_rect)
         screen.blit(self.ghost_button_image_1, self.ghost_button_rect_1)
@@ -263,6 +346,13 @@ class UIHandler:
         screen.blit(self.no_dmg_state_image, self.no_dmg_state_rect)
         screen.blit(self.sound_button_image, self.sound_button_rect)
         screen.blit(self.sound_state_image, self.sound_state_rect)
+        screen.blit(self.classic_button_image, self.classic_button_rect)
+        screen.blit(self.classic_button_state_image, self.classic_button_state_rect)
+
+        screen.blit(self.author_text, self.author_text_rect)
+        screen.blit(self.author_text_2, self.author_text_rect_2)
+        screen.blit(self.author_text_3, self.author_text_rect_3)
+        screen.blit(self.author_text_4, self.author_text_rect_4)
 
         if not self.ghost_1_enabled:
             screen.blit(self.ghost_button_disabled_image, self.blinky_button_rect)
@@ -277,3 +367,30 @@ class UIHandler:
         screen.blit(self.high_score_number, self.high_score_number_rect)
         screen.blit(self.score_text, self.score_text_rect)
         screen.blit(self.score_number, self.score_number_rect)
+
+        for i in range(self.current_lives - 1):
+            screen.blit(self.live_image, self.live_rect.move(0, i * -(self.live_rect.height + self.scale // 2)))
+
+        for i in range(len(self.current_levels_displayed)):
+            screen.blit(self.get_fruit_image(self.current_levels_displayed[i]),
+                        self.current_level_rect.move(0, i * (self.current_level_rect.height + self.scale // 3)))
+
+    def get_fruit_image(self, fruit):
+        if fruit == "cherry":
+            return self.current_level_images[1]
+        elif fruit == "strawberry":
+            return self.current_level_images[2]
+        elif fruit == "peach":
+            return self.current_level_images[3]
+        elif fruit == "apple":
+            return self.current_level_images[4]
+        elif fruit == "melon":
+            return self.current_level_images[5]
+        elif fruit == "galaxian":
+            return self.current_level_images[6]
+        elif fruit == "bell":
+            return self.current_level_images[7]
+        elif fruit == "key":
+            return self.current_level_images[8]
+        else:
+            return self.current_level_images[0]

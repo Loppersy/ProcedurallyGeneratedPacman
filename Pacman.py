@@ -31,7 +31,7 @@ class Pacman(pygame.sprite.Sprite):
         self.int_pos = utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)
 
         self.animation_cooldown = 50
-        self.dying_animation_cooldown = 150
+        self.dying_animation_cooldown = 175
         self.dying_animation_start_cooldown = 1300
         self.dying_animation_end_cooldown = 75
         self.start_animation_completed = False

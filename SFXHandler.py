@@ -44,5 +44,6 @@ class SFXHandler:
     def stop_music(self):
         pygame.mixer.music.stop()
         pygame.mixer.music.unload()
+
         self.current_music = None
 

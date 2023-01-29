@@ -60,6 +60,8 @@ SOUND_BUTTON = pygame.image.load(os.path.join("assets", "UI", "sound_button.png"
 SOUND_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "sound_button_hover.png")).convert_alpha()
 SOUND_ON = pygame.image.load(os.path.join("assets", "UI", "sound_on.png")).convert_alpha()
 SOUND_OFF = pygame.image.load(os.path.join("assets", "UI", "sound_off.png")).convert_alpha()
+CLASSIC_BUTTON = pygame.image.load(os.path.join("assets", "UI", "classic_button.png")).convert_alpha()
+CLASSIC_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "classic_button_hover.png")).convert_alpha()
 
 UI_IMAGES = [REGENERATE_BUTTON, REGENERATE_BUTTON_HOVER,
              GHOST_BUTTON, GHOST_BUTTON_HOVER, BLINKY_BUTTON, PINKY_BUTTON, INKY_BUTTON, CLYDE_BUTTON,
@@ -69,7 +71,8 @@ UI_IMAGES = [REGENERATE_BUTTON, REGENERATE_BUTTON_HOVER,
              DISABLED_BUTTON,
              SOUND_BUTTON, SOUND_BUTTON_HOVER, SOUND_ON, SOUND_OFF,
              utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16),
-             utilities.load_sheet(PACMAN_SHEET_IMAGE, 1, 2, 16, 16)[1]]
+             utilities.load_sheet(PACMAN_SHEET_IMAGE, 1, 5, 16, 16)[4],
+             CLASSIC_BUTTON, CLASSIC_BUTTON_HOVER]
 
 MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
 
@@ -557,19 +560,24 @@ def main():
 
     og_maze_data = copy.deepcopy(maze_data)
 
-    lives = 4
+    lives = 5
+    extra_life = 10000
+    extra_life_given = False
 
     # Initialize sfx and music handlers
     sfx_handler = SFXHandler(SFX_NAMES, MUSIC_NAMES, FPS)
     og_pellet_count = 0
 
     # UI handler
-    ui_handler = UIHandler(SCALE, WIDTH, HEIGHT, FPS, lives, 0, sfx_handler, UI_IMAGES)
+    ui_handler = UIHandler(SCALE, WIDTH, HEIGHT, FPS, lives, 0, sfx_handler, UI_IMAGES, BONUS_FRUIT)
 
     # Get high score from file
     high_score_file = open("high_score.txt", "a+")
     high_score_file.seek(0)
-    utilities.high_score[0] = int(high_score_file.read())
+    try:
+        utilities.high_score[0] = int(high_score_file.read())
+    except ValueError:
+        utilities.high_score[0] = 0
     high_score_file.close()
 
     while run:
@@ -621,6 +629,7 @@ def main():
 
         if win_animation:
             sfx_handler.stop_music()
+            utilities.sfx_queue.clear()
             win_animation_clock += 1
             if win_animation_clock >= WIN_ANIMATION_STOP_TIME * FPS:
 
@@ -716,7 +725,8 @@ def main():
 
         if len(pacmans) == 0 and game_over[0] and lives == 0:
             utilities.set_regenerate_new_maze(True)
-            lives = 3
+            generate_old_maze = False
+            lives = 5
             current_level = 0
             utilities.current_score[0] = 0
             # write high score to file after deleting its previous contents
@@ -764,10 +774,17 @@ def main():
                 stop_time_clock = 0
 
         score_popups.draw(screen)
+
+        # if score reaches 10000 add a life
+        if utilities.current_score[0] >= extra_life and not extra_life_given:
+            lives += 1
+            extra_life_given = True
+            utilities.sfx_queue.append("extend.wav")
+
         ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, utilities.high_score[0],utilities.current_score[0], current_level)
         ui_handler.draw(screen)
 
-        # Update some information based on UI interactions
+
 
         pygame.display.update()
 

@@ -10,7 +10,7 @@ BRANCH_LENGTH = 30
 BRANCH_MIN_LENGTH = 3
 BRANCH_CHANCE_PER_LENGTH = 20
 BRANCH_CHANCE_PENALTY_PER_BRANCH = 10
-BRANCH_DIRCHANGE_CHANCE = 10
+BRANCH_DIRCHANGE_CHANCE = 20
 BRANCH_CAN_WRAP_AROUND = False
 POWER_PELLETS_PER_SIDE = 2
 
@@ -157,88 +157,28 @@ class MazeGenerator:
 
         return x, y
 
-    # def generate_branch(self, x, y, direction=None, branch_length=50, backtracking=False, force_first_tile=False,
-    #                     branch_number=1):
-    #     current_x = x
-    #     current_y = y
-    #     if direction is None:
-    #         my_direction = random.choice(self.directions)
-    #     else:
-    #         my_direction = direction
-    #
-    #     if (not self.blocked_positions[current_y][current_x] and self.does_not_create_2x2(current_x, current_y,
-    #                                                                             "stay", True)) or force_first_tile:
-    #         self.blocked_positions[current_y][current_x] = True
-    #         self.maze_data[current_y][current_x] = 2
-    #         same_direction_count = 0
-    #         while True:
-    #
-    #             if self.does_not_create_2x2(current_x, current_y, my_direction, BRANCH_CAN_WRAP_AROUND):
-    #                 current_x, current_y = self.add_direction(current_x, current_y, my_direction, True)
-    #                 same_direction_count += 1
-    #             else:
-    #                 old_direction = my_direction
-    #                 my_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
-    #                 same_direction_count = 0
-    #                 if old_direction == my_direction:
-    #                     self.continue_tunel_until_connection(current_x, current_y, my_direction)
-    #                     break
-    #                 current_x, current_y = self.add_direction(current_x, current_y, my_direction, True)
-    #
-    #             self.maze_data[current_y][current_x] = 2
-    #             self.blocked_positions[current_y][current_x] = True
-    #             branch_length -= 1
-    #
-    #             if branch_length <= 0:
-    #                 self.continue_tunel_until_connection(current_x, current_y, my_direction)
-    #                 break
-    #
-    #             if random.randint(0, 100) < BRANCH_CHANCE_PER_LENGTH * same_direction_count \
-    #                     and same_direction_count > BRANCH_MIN_LENGTH \
-    #                     and not (
-    #                     current_x == 0 or current_x == self.width - 1 or current_y == 0 or current_y == self.height - 1):
-    #                 if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE - BRANCH_CHANCE_PENALTY_PER_BRANCH * (
-    #                         branch_number - 1):
-    #                     new_branch_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
-    #                     new_branch_x, new_branch_y = self.add_direction(current_x, current_y, new_branch_direction)
-    #                     same_direction_count = 0
-    #                     self.generate_branch(new_branch_x, new_branch_y, new_branch_direction, branch_length,
-    #                                          True, False, branch_number + 1)
-    #                 else:
-    #                     same_direction_count = 0
-    #                     my_direction = self.change_direction(current_x, current_y, my_direction, backtracking)
-
     def continue_tunel_until_connection(self, x, y, direction):
         current_x = x
         current_y = y
-        self.maze_data[current_y][current_x] = 2
+        self.maze_data[current_y][current_x] = 0
         my_direction = direction
 
-        # utilities.add_highlighted_tile(self.add_direction(current_x, current_y, my_direction, True), (255, 0, 0))
-        tunel_length = 0
-        while self.no_empty_neighbors(current_x, current_y, my_direction):
+        while self.is_dead_end(current_x, current_y):
             maze_height = len(self.maze_data)
             can_wrap_around = False
             if maze_height // 3 <= current_y <= maze_height // 3 * 2:
                 can_wrap_around = True
 
-            tunel_length += 1
-            if tunel_length > 6 and random.randint(0, 2) == 0:
-                new_branch_direction = self.change_direction(current_x, current_y, my_direction, can_wrap_around)
-                new_branch_x, new_branch_y = self.add_direction(current_x, current_y, new_branch_direction)
-
-                if self.does_not_create_2x2(new_branch_x, new_branch_y, new_branch_direction, can_wrap_around):
-                    self.generate_branch(new_branch_x, new_branch_y, new_branch_direction, BRANCH_LENGTH)
-
             if (not self.does_not_create_2x2(current_x, current_y, my_direction, can_wrap_around) or \
                     self.blocked_positions[self.add_direction(current_x, current_y, my_direction, True)[1]][
                         self.add_direction(current_x, current_y, my_direction, True)[0]]):
                 my_direction = self.change_direction(current_x, current_y, my_direction, False, True)
-                print("change direction", my_direction)
 
             current_x, current_y = self.add_direction(current_x, current_y, my_direction, True)
-            self.blocked_positions[current_y][current_x] = True
-            self.maze_data[current_y][current_x] = 2
+
+            if self.maze_data[current_y][current_x] != 1:
+                break
+            self.maze_data[current_y][current_x] = 0
 
     def change_direction(self, current_x, current_y, direction, backtracking=True, wrap_around=False):
         wrap_around = self.height // 3 <= current_y <= self.height // 3 * 2
@@ -661,8 +601,8 @@ class MazeGenerator:
 
             length_without_branch += 1
             length_without_direction_change += 1
-            if branch_length - current_branch_length > BRANCH_MIN_LENGTH and length_without_direction_change >= BRANCH_MIN_LENGTH:
-                if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE or length_without_branch > BRANCH_MIN_LENGTH * 3:
+            if branch_length - current_branch_length > BRANCH_MIN_LENGTH and length_without_direction_change > BRANCH_MIN_LENGTH:
+                if random.randint(0, 100) < BRANCH_DIRCHANGE_CHANCE or (length_without_branch > BRANCH_MIN_LENGTH * 3):
                     opposite_direction = self.get_opposite_direction(new_direction)
                     branch_direction = self.get_random_valid_direction(new_x, new_y,
                                                                        [new_direction, opposite_direction])
@@ -671,7 +611,7 @@ class MazeGenerator:
                     length_without_branch = 0
 
                 if random.randint(0,
-                                  100) < BRANCH_DIRCHANGE_CHANCE or length_without_direction_change > BRANCH_MIN_LENGTH * 3:
+                                  100) < BRANCH_DIRCHANGE_CHANCE or length_without_direction_change > BRANCH_MIN_LENGTH * 2:
                     if new_direction == "up" or new_direction == "down":
                         new_directions_to_avoid = ["up", "down"]
                     else:
@@ -806,7 +746,7 @@ class MazeGenerator:
 
     def add_side_tunnel(self):
         distances_from_border = []
-        for i in range(self.height // 5, self.height * 4 // 5):
+        for i in range(self.height // 3, self.height * 2 // 3):
             for j in range(1, self.width // 2 - 1):
                 if self.is_walkable((j, i)):
                     distances_from_border.append((j, i))

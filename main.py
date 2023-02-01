@@ -499,31 +499,31 @@ def main():
 
     maze_data = []
     maze_gen = MazeGenerator(32, 32)
-    if utilities.classic_mode[0]:
-        for y in range(32):
-            maze_data.append([])
-            for x in range(32):
-                # If the pixel is black, add a 0 to the maze_data list (representing empty space)
-                if MAZE1.get_at((x, y)) == (0, 0, 0):
-                    maze_data[y].append(0)
-                # If the pixel is yellow, add a 2 to the maze_data list (representing a pellet)
-                elif MAZE1.get_at((x, y)) == (255, 255, 0):
-                    maze_data[y].append(2)
-                # If the pixel is green, add a 3 to the maze_data list (representing a power pellet)
-                elif MAZE1.get_at((x, y)) == (0, 255, 0):
-                    maze_data[y].append(3)
-                # If the pixel is red, add a 4 to the maze_data list (representing a ghost house)
-                elif MAZE1.get_at((x, y)) == (255, 0, 0):
-                    maze_data[y].append(4)
-                # If the pixel is blue, add a 5 to the maze_data list (representing the player's starting position)
-                elif MAZE1.get_at((x, y)) == (0, 0, 255):
-                    maze_data[y].append(5)
-                # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
-                elif MAZE1.get_at((x, y)) == (255, 128, 0):
-                    maze_data[y].append(6)
-                # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
-                else:
-                    maze_data[y].append(1)
+
+    for y in range(32):
+        maze_data.append([])
+        for x in range(32):
+            # If the pixel is black, add a 0 to the maze_data list (representing empty space)
+            if MAZE1.get_at((x, y)) == (0, 0, 0):
+                maze_data[y].append(0)
+            # If the pixel is yellow, add a 2 to the maze_data list (representing a pellet)
+            elif MAZE1.get_at((x, y)) == (255, 255, 0):
+                maze_data[y].append(2)
+            # If the pixel is green, add a 3 to the maze_data list (representing a power pellet)
+            elif MAZE1.get_at((x, y)) == (0, 255, 0):
+                maze_data[y].append(3)
+            # If the pixel is red, add a 4 to the maze_data list (representing a ghost house)
+            elif MAZE1.get_at((x, y)) == (255, 0, 0):
+                maze_data[y].append(4)
+            # If the pixel is blue, add a 5 to the maze_data list (representing the player's starting position)
+            elif MAZE1.get_at((x, y)) == (0, 0, 255):
+                maze_data[y].append(5)
+            # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
+            elif MAZE1.get_at((x, y)) == (255, 128, 0):
+                maze_data[y].append(6)
+            # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
+            else:
+                maze_data[y].append(1)
 
     # Create a list for the sprites
     walls = pygame.sprite.Group()

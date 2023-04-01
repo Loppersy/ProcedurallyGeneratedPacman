@@ -139,13 +139,13 @@ class PacmanGraphics:
         return False
 
     def __init__(self, zoom=1.0, frameTime=0.0, capture=False):
-        self.have_window = 0
-        self.currentGhostImages = {}
-        self.pacmanImage = None
-        self.zoom = zoom
-        self.gridSize = DEFAULT_GRID_SIZE * zoom
-        self.capture = capture
-        self.frameTime = frameTime
+        # self.have_window = 0
+        # self.currentGhostImages = {}
+        # self.pacmanImage = None
+        # self.zoom = zoom
+        # self.gridSize = DEFAULT_GRID_SIZE * zoom
+        # self.capture = capture
+        # self.frameTime = frameTime
 
         self.INKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "inky.png")).convert_alpha()
         self.PINKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pinky.png")).convert_alpha()
@@ -160,52 +160,6 @@ class PacmanGraphics:
         self.WALLS_WHITE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls_white.png")).convert_alpha()
         self.sprite_groups = []
 
-    def create_my_objects(self, state):
-
-        # create the walls
-        for wall in state.layout.walls:
-            if wall:
-                self.walls.add(Wall(wall[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                    wall[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                    self.SCALE, self.WIDTH, self.HEIGHT,
-                                    utilities.load_sheet(self.WALLS_SHEET_IMAGE, 12, 4, 16, 16),
-                                    utilities.load_sheet(self.WALLS_WHITE_SHEET_IMAGE, 12, 4, 16, 16)))
-
-        # create the pellets
-        for pellet in state.layout.food:
-            self.pellets.add(Pellet(pellet[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                    pellet[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                    self.SCALE, self.SCALE, self.PELLETS_SHEET_IMAGE))
-
-        # create the power pellets
-        for power_pellet in state.layout.capsules:
-            self.power_pellets.add(PowerPellet(power_pellet[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                               power_pellet[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                               self.SCALE, self.SCALE, self.PELLETS_SHEET_IMAGE))
-
-        # create the ghost houses
-        # TODO: implement ghost houses
-
-        # create pacman
-        self.pacmans.add(Pacman(state.agentStates[0].configuration.getPosition()[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                state.agentStates[0].configuration.getPosition()[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                self.WIDTH, self.HEIGHT, self.PACMAN_SHEET_IMAGE, self.SCALE, 2.5))
-
-        # create the bonus fruits
-        # TODO: implement bonus fruits
-
-        # create the ghosts
-        ghostStates = []
-        for i in range(1, len(state.agentStates)):
-            ghostStates.append(state.agentStates[i])
-        for ghostState in ghostStates:
-            logic_pos = ghostState.configuration.getPosition()
-            spawn_point = utilities.get_position_in_window(logic_pos[0], logic_pos[1], self.SCALE, self.WIDTH, self.HEIGHT)
-            self.ghosts.add(Ghost(spawn_point[0], spawn_point[1],
-                                  utilities.load_ghost_sheet(self.BLINKY_SHEET_IMAGE, 1, 4, 16, 16, self.EYES_SHEET_IMAGE),
-                                  utilities.load_sheet(self.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky",
-                                  self.WIDTH, self.HEIGHT, self.SCALE, self.FPS, 2.3, None, 0))
-
     def initialize(self, state):
         self.startGraphics(state)
 
@@ -214,9 +168,9 @@ class PacmanGraphics:
         # ==================== End of MY CODE ====================
 
         # self.drawDistributions(state)
-        self.distributionImages = None  # Initialized lazily
-        self.drawStaticObjects(state)
-        self.drawAgentObjects(state)
+        # self.distributionImages = None  # Initialized lazily
+        # self.drawStaticObjects(state)
+        # self.drawAgentObjects(state)
 
         # Information
         self.previousState = state
@@ -250,8 +204,8 @@ class PacmanGraphics:
         layout = self.layout
         self.width = layout.width
         self.height = layout.height
-        self.make_window(self.width, self.height)
-        self.infoPane = InfoPane(layout, self.gridSize)
+        # self.make_window(self.width, self.height)
+        # self.infoPane = InfoPane(layout, self.gridSize)
         self.currentState = layout
 
     def drawStaticObjects(self, state):
@@ -275,26 +229,45 @@ class PacmanGraphics:
     def update(self, newState, sprite_groups=None):
         # ==================== MY CODE ====================
         self.sprite_groups = sprite_groups
+
         # ==================== End of MY CODE ====================
         agentIndex = newState._agentMoved
         agentState = newState.agentStates[agentIndex]
+        #
+        # if self.agentImages[agentIndex][0].isPacman != agentState.isPacman:
+        #     self.swapImages(agentIndex, agentState)
+        # prevState, prevImage = self.agentImages[agentIndex]
+        # if agentState.isPacman:
+        #     self.animatePacman(agentState, prevState, prevImage, newState)
+        # else:
+        #     self.moveGhost(agentState, agentIndex, prevState, prevImage,newState)
+        # self.agentImages[agentIndex] = (agentState, prevImage)
+        #
+        # if newState._foodEaten != None:
+        #     self.removeFood(newState._foodEaten, self.food)
+        # if newState._capsuleEaten != None:
+        #     self.removeCapsule(newState._capsuleEaten, self.capsules)
+        # self.infoPane.updateScore(newState.score)
+        # if 'ghostDistances' in dir(newState):
+        #     self.infoPane.updateGhostDistances(newState.ghostDistances)
 
-        if self.agentImages[agentIndex][0].isPacman != agentState.isPacman:
-            self.swapImages(agentIndex, agentState)
-        prevState, prevImage = self.agentImages[agentIndex]
-        if agentState.isPacman:
-            self.animatePacman(agentState, prevState, prevImage, newState)
-        else:
-            self.moveGhost(agentState, agentIndex, prevState, prevImage,newState)
-        self.agentImages[agentIndex] = (agentState, prevImage)
+        # ==================== MY CODE ====================
+        if len(self.sprite_groups) > 0 and newState is not None and agentIndex == 0:
+            for pac in self.sprite_groups[5]:
+                pac.my_update(utilities.invert_coords([self.getPosition(agentState)], newState.layout.width, newState.layout.height)[0],
+                              [self.sprite_groups[1], self.sprite_groups[2]])
 
-        if newState._foodEaten != None:
-            self.removeFood(newState._foodEaten, self.food)
-        if newState._capsuleEaten != None:
-            self.removeCapsule(newState._capsuleEaten, self.capsules)
-        self.infoPane.updateScore(newState.score)
-        if 'ghostDistances' in dir(newState):
-            self.infoPane.updateGhostDistances(newState.ghostDistances)
+                self.draw_my_objects(self.sprite_groups)
+
+                pygame.display.update()
+
+        i = 1
+        for ghost_object in self.sprite_groups[4]:
+            if i == agentIndex:
+                ghost_object.my_update(utilities.invert_coords([self.getPosition(agentState)], newState.layout.width, newState.layout.height)[0])
+                break
+            i += 1
+
 
     def make_window(self, width, height):
         grid_width = (width - 1) * self.gridSize

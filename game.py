@@ -399,14 +399,6 @@ class GameStateData:
         self._eaten = [False for a in self.agentStates]
 
 
-try:
-    import boinc
-
-    _BOINC_ENABLED = True
-except:
-    _BOINC_ENABLED = False
-
-
 class Game:
     """
     The Game manages the control flow, soliciting actions from agents.
@@ -526,7 +518,6 @@ class Game:
         Main control loop for game play.
         """
         self.display.initialize(self.state.data)
-        self.numMoves = 0
 
         # ==================== MY CODE ====================
 
@@ -588,140 +579,125 @@ class Game:
                 # TODO: could this exceed the total time
                 self.unmute()
 
-        agentIndex = self.startingIndex
         numAgents = len(self.agents)
         clock = pygame.time.Clock()
         while not self.gameOver:
             # ==================== MY CODE ====================
-            # clock.tick(self.FPS)
-            # ==================== END MY CODE =================
+            clock.tick(self.FPS) if not self.display.checkNullDisplay() else None # limit the game to 60 FPS if display is active
 
-            # Fetch the next agent
-            agent = self.agents[agentIndex]
-            move_time = 0
-            skip_action = False
+            for agentIndex in range(numAgents):
+                if self.gameOver:
+                    break
+                # ==================== END MY CODE =================
 
-            # Generate an observation of the state
-            if 'observationFunction' in dir(agent):
+                # Fetch the next agent
+                agent = self.agents[agentIndex]
+                move_time = 0
+                skip_action = False
+
+                # Generate an observation of the state
+                if 'observationFunction' in dir(agent):
+                    self.mute(agentIndex)
+                    if self.catchExceptions:
+                        try:
+                            timed_func = TimeoutFunction(agent.observationFunction, int(
+                                self.rules.getMoveTimeout(agentIndex)))
+                            try:
+                                start_time = time.time()
+                                observation = timed_func(self.state.deepCopy())
+                            except TimeoutFunctionException:
+                                skip_action = True
+                            move_time += time.time() - start_time
+                            self.unmute()
+                        except Exception(data):
+                            self._agentCrash(agentIndex, quiet=False)
+                            self.unmute()
+                            return
+                    else:
+                        observation = agent.observationFunction(
+                            self.state.deepCopy())
+                    self.unmute()
+                else:
+                    observation = self.state.deepCopy()
+
+                # Solicit an action
+                action = None
                 self.mute(agentIndex)
                 if self.catchExceptions:
                     try:
-                        timed_func = TimeoutFunction(agent.observationFunction, int(
-                            self.rules.getMoveTimeout(agentIndex)))
+                        timed_func = TimeoutFunction(agent.getAction, int(
+                            self.rules.getMoveTimeout(agentIndex)) - int(move_time))
                         try:
                             start_time = time.time()
-                            observation = timed_func(self.state.deepCopy())
+                            if skip_action:
+                                raise TimeoutFunctionException()
+                            action = timed_func(observation)
                         except TimeoutFunctionException:
-                            skip_action = True
-                        move_time += time.time() - start_time
-                        self.unmute()
-                    except Exception(data):
-                        self._agentCrash(agentIndex, quiet=False)
-                        self.unmute()
-                        return
-                else:
-                    observation = agent.observationFunction(
-                        self.state.deepCopy())
-                self.unmute()
-            else:
-                observation = self.state.deepCopy()
-
-            # Solicit an action
-            action = None
-            self.mute(agentIndex)
-            if self.catchExceptions:
-                try:
-                    timed_func = TimeoutFunction(agent.getAction, int(
-                        self.rules.getMoveTimeout(agentIndex)) - int(move_time))
-                    try:
-                        start_time = time.time()
-                        if skip_action:
-                            raise TimeoutFunctionException()
-                        action = timed_func(observation)
-                    except TimeoutFunctionException:
-                        print("Agent %d timed out on a single move!" %
-                              agentIndex, file=sys.stderr)
-                        self.agentTimeout = True
-                        self._agentCrash(agentIndex, quiet=True)
-                        self.unmute()
-                        return
-
-                    move_time += time.time() - start_time
-
-                    if move_time > self.rules.getMoveWarningTime(agentIndex):
-                        self.totalAgentTimeWarnings[agentIndex] += 1
-                        print("Agent %d took too long to make a move! This is warning %d" % (
-                            agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
-                        if self.totalAgentTimeWarnings[agentIndex] > self.rules.getMaxTimeWarnings(agentIndex):
-                            print("Agent %d exceeded the maximum number of warnings: %d" % (
-                                agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
+                            print("Agent %d timed out on a single move!" %
+                                  agentIndex, file=sys.stderr)
                             self.agentTimeout = True
                             self._agentCrash(agentIndex, quiet=True)
                             self.unmute()
                             return
 
-                    self.totalAgentTimes[agentIndex] += move_time
-                    # print "Agent: %d, time: %f, total: %f" % (agentIndex,
-                    # move_time, self.totalAgentTimes[agentIndex])
-                    if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):
-                        print("Agent %d ran out of time! (time: %1.2f)" % (
-                            agentIndex, self.totalAgentTimes[agentIndex]), file=sys.stderr)
-                        self.agentTimeout = True
-                        self._agentCrash(agentIndex, quiet=True)
+                        move_time += time.time() - start_time
+
+                        if move_time > self.rules.getMoveWarningTime(agentIndex):
+                            self.totalAgentTimeWarnings[agentIndex] += 1
+                            print("Agent %d took too long to make a move! This is warning %d" % (
+                                agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
+                            if self.totalAgentTimeWarnings[agentIndex] > self.rules.getMaxTimeWarnings(agentIndex):
+                                print("Agent %d exceeded the maximum number of warnings: %d" % (
+                                    agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
+                                self.agentTimeout = True
+                                self._agentCrash(agentIndex, quiet=True)
+                                self.unmute()
+                                return
+
+                        self.totalAgentTimes[agentIndex] += move_time
+                        # print "Agent: %d, time: %f, total: %f" % (agentIndex,
+                        # move_time, self.totalAgentTimes[agentIndex])
+                        if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):
+                            print("Agent %d ran out of time! (time: %1.2f)" % (
+                                agentIndex, self.totalAgentTimes[agentIndex]), file=sys.stderr)
+                            self.agentTimeout = True
+                            self._agentCrash(agentIndex, quiet=True)
+                            self.unmute()
+                            return
+                        self.unmute()
+                    except Exception(data):
+                        self._agentCrash(agentIndex)
                         self.unmute()
                         return
-                    self.unmute()
-                except Exception(data):
-                    self._agentCrash(agentIndex)
-                    self.unmute()
-                    return
-            else:
-                action = agent.getAction(observation)
-            self.unmute()
+                else:
+                    action = agent.getAction(observation)
+                self.unmute()
 
-            # Execute the action
-            self.moveHistory.append((agentIndex, action))
-            if self.catchExceptions:
-                try:
-                    self.state = self.state.generateSuccessor(
-                        agentIndex, action)
-                except Exception(data):
-                    self.mute(agentIndex)
-                    self._agentCrash(agentIndex)
-                    self.unmute()
-                    return
-            else:
-                self.state = self.state.generateSuccessor(agentIndex, action)
+                # Execute the action
+                self.moveHistory.append((agentIndex, action))
+                if self.catchExceptions:
+                    try:
+                        self.state = self.state.generateSuccessor(
+                            agentIndex, action)
+                    except Exception(data):
+                        self.mute(agentIndex)
+                        self._agentCrash(agentIndex)
+                        self.unmute()
+                        return
+                else:
+                    self.state = self.state.generateSuccessor(agentIndex, action)
 
-            # # Change the display
-            # # ================ My Code ================
-            # # update game objects (sprites) before rendering
-            # for pacman in self.pacmans:
-            #     # pacman.my_update(self.state.data, [self.pellets, self.power_pellets])
-            #     pass
-            # i = 1
-            # for ghost in self.ghosts:
-            #     # ghost.my_update(self.state.data.agentStates[i])
-            #     i += 1
-            #
-            # # ================ End My Code ================
+                # # Change the display
+                self.display.update(self.state.data, self.sprite_groups)
 
+                ###idx = agentIndex - agentIndex % 2 + 1
+                ###self.display.update( self.state.makeObservation(idx).data )
 
-            self.display.update(self.state.data, self.sprite_groups)
-
-            ###idx = agentIndex - agentIndex % 2 + 1
-            ###self.display.update( self.state.makeObservation(idx).data )
-
-            # Allow for game specific conditions (winning, losing, etc.)
-            self.rules.process(self.state, self)
-            # Track progress
-            if agentIndex == numAgents + 1:
-                self.numMoves += 1
+                # Allow for game specific conditions (winning, losing, etc.)
+                self.rules.process(self.state, self)
             # Next agent
-            agentIndex = (agentIndex + 1) % numAgents
+            # agentIndex = (agentIndex + 1) % numAgents
 
-            if _BOINC_ENABLED:
-                boinc.set_fraction_done(self.getProgress())
 
         # inform a learning agent of the game result
         for agentIndex, agent in enumerate(self.agents):

@@ -132,47 +132,11 @@ class PacmanGraphics:
     MAZE_SIZE = (32, 32)
     FPS = 60
 
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    screen = pygame.display.set_mode((1080, 720))
     pygame.display.set_caption("Procedurally Generated Pacman")
 
-    import os
-    INKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "inky.png")).convert_alpha()
-    PINKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pinky.png")).convert_alpha()
-    BLINKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "blinky.png")).convert_alpha()
-    CLYDE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "clyde.png")).convert_alpha()
-    PACMAN_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pacman.png")).convert_alpha()
-    EYES_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "eyes.png")).convert_alpha()
-    PELLETS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pallets.png")).convert_alpha()
-    FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frightened_ghost.png")).convert_alpha()
-    BONUS_FRUIT_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "bonus_fruit.png")).convert_alpha()
-    WALLS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls.png")).convert_alpha()
-    WALLS_WHITE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls_white.png")).convert_alpha()
-
-    REGENERATE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "regen_button.png")).convert_alpha()
-    REGENERATE_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "regen_button_hover.png")).convert_alpha()
-    GHOST_BUTTON = pygame.image.load(os.path.join("assets", "UI", "ghost_button.png")).convert_alpha()
-    GHOST_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "ghost_button_hover.png")).convert_alpha()
-    BLINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "blinky_button.png")).convert_alpha()
-    PINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pinky_button.png")).convert_alpha()
-    INKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "inky_button.png")).convert_alpha()
-    CLYDE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "clyde_button.png")).convert_alpha()
-    PATH_BUTTON = pygame.image.load(os.path.join("assets", "UI", "path_button.png")).convert_alpha()
-    PATH_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "path_button_hover.png")).convert_alpha()
-    PATHFINDER_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button.png")).convert_alpha()
-    PATHFINDER_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button_hover.png")).convert_alpha()
-    A_STAR_TEXT = pygame.image.load(os.path.join("assets", "UI", "a_star.png")).convert_alpha()
-    CLASSIC_TEXT = pygame.image.load(os.path.join("assets", "UI", "classic.png")).convert_alpha()
-    NO_DMG_BUTTON = pygame.image.load(os.path.join("assets", "UI", "no_dmg.png")).convert_alpha()
-    NO_DMG_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "no_dmg_hover.png")).convert_alpha()
-    ON = pygame.image.load(os.path.join("assets", "UI", "on.png")).convert_alpha()
-    OFF = pygame.image.load(os.path.join("assets", "UI", "off.png")).convert_alpha()
-    DISABLED_BUTTON = pygame.image.load(os.path.join("assets", "UI", "disabled_button.png")).convert_alpha()
-    SOUND_BUTTON = pygame.image.load(os.path.join("assets", "UI", "sound_button.png")).convert_alpha()
-    SOUND_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "sound_button_hover.png")).convert_alpha()
-    SOUND_ON = pygame.image.load(os.path.join("assets", "UI", "sound_on.png")).convert_alpha()
-    SOUND_OFF = pygame.image.load(os.path.join("assets", "UI", "sound_off.png")).convert_alpha()
-    CLASSIC_BUTTON = pygame.image.load(os.path.join("assets", "UI", "classic_button.png")).convert_alpha()
-    CLASSIC_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "classic_button_hover.png")).convert_alpha()
+    def checkNullDisplay(self):
+        return False
 
     def __init__(self, zoom=1.0, frameTime=0.0, capture=False):
         self.have_window = 0
@@ -183,21 +147,18 @@ class PacmanGraphics:
         self.capture = capture
         self.frameTime = frameTime
 
-        # ==================== MY CODE ====================
-
-        self.walls = pygame.sprite.Group()
-        self.pellets = pygame.sprite.Group()
-        self.power_pellets = pygame.sprite.Group()
-        self.ghost_houses = pygame.sprite.Group()
-        self.ghosts = pygame.sprite.Group()
-        self.pacmans = pygame.sprite.Group()
-        self.bonus_fruits = pygame.sprite.Group()
-        self.score_popups = pygame.sprite.Group()
-
-        self.sprite_groups = [self.walls, self.pellets, self.power_pellets, self.ghost_houses, self.ghosts, self.pacmans, self.bonus_fruits,
-                              self.score_popups]
-
-        # ==================== End of MY CODE ====================
+        self.INKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "inky.png")).convert_alpha()
+        self.PINKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pinky.png")).convert_alpha()
+        self.BLINKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "blinky.png")).convert_alpha()
+        self.CLYDE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "clyde.png")).convert_alpha()
+        self.PACMAN_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pacman.png")).convert_alpha()
+        self.EYES_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "eyes.png")).convert_alpha()
+        self.PELLETS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pallets.png")).convert_alpha()
+        self.FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frightened_ghost.png")).convert_alpha()
+        self.BONUS_FRUIT_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "bonus_fruit.png")).convert_alpha()
+        self.WALLS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls.png")).convert_alpha()
+        self.WALLS_WHITE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls_white.png")).convert_alpha()
+        self.sprite_groups = []
 
     def create_my_objects(self, state):
 
@@ -214,7 +175,7 @@ class PacmanGraphics:
         for pellet in state.layout.food:
             self.pellets.add(Pellet(pellet[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
                                     pellet[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                    self.SCALE,self.SCALE, self.PELLETS_SHEET_IMAGE))
+                                    self.SCALE, self.SCALE, self.PELLETS_SHEET_IMAGE))
 
         # create the power pellets
         for power_pellet in state.layout.capsules:
@@ -228,7 +189,7 @@ class PacmanGraphics:
         # create pacman
         self.pacmans.add(Pacman(state.agentStates[0].configuration.getPosition()[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
                                 state.agentStates[0].configuration.getPosition()[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                self.WIDTH, self.HEIGHT,self.PACMAN_SHEET_IMAGE, self.SCALE, 2.5))
+                                self.WIDTH, self.HEIGHT, self.PACMAN_SHEET_IMAGE, self.SCALE, 2.5))
 
         # create the bonus fruits
         # TODO: implement bonus fruits
@@ -245,15 +206,10 @@ class PacmanGraphics:
                                   utilities.load_sheet(self.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky",
                                   self.WIDTH, self.HEIGHT, self.SCALE, self.FPS, 2.3, None, 0))
 
-
     def initialize(self, state):
         self.startGraphics(state)
 
         # ==================== MY CODE ====================
-
-        # create my objects based on the new layout
-        self.create_my_objects(state)
-        # self.draw_my_objects(state)
 
         # ==================== End of MY CODE ====================
 
@@ -265,38 +221,29 @@ class PacmanGraphics:
         # Information
         self.previousState = state
 
-    # def draw_my_objects(self, state):
-    #     screen.fill(BLACK)
-    #
-    #     for sprite in sprite_list:
-    #         sprite.draw(screen)
-    #
-    #     # display the path of the ghosts
-    #     if draw_ghosts[0]:
-    #         for ghost in sprite_list[1]:
-    #             if not ghost.is_enabled():
-    #                 continue
-    #             if utilities.AStarMode[0] and utilities.draw_paths[0]:
-    #                 ghost.draw_astar_path(screen, maze_data)
-    #             elif utilities.draw_paths[0]:
-    #                 ghost.draw_classic_path(screen, maze_data)
-    #
-    #             ghost.my_draw(screen)
-    #
-    #     for pacman in sprite_list[0]:
-    #         pacman.my_draw(screen, animated)
-    #
-    #     for bonus_fruit in sprite_list[6]:
-    #         bonus_fruit.my_draw(screen)
+    def draw_my_objects(self, sprite_groups):
+        if len(sprite_groups) == 0:
+            return
 
-    def startGraphics(self, state, screen=None):
+        self.screen.fill((0, 0, 0))
+
+        for sprite in sprite_groups:
+            sprite.draw(self.screen)
+
+        for ghost in sprite_groups[4]:
+            ghost.my_draw(self.screen)
+
+        for pacman in sprite_groups[5]:
+            pacman.my_draw(self.screen)
+
+        # for bonus_fruit in self.sprite_groups[4]:
+        #     bonus_fruit.my_draw(self.screen)
+
+        pygame.display.update()
+
+    def startGraphics(self, state):
         # ==================== MY CODE ====================
-
-        pygame.init()
-        pygame.display.init()
-        pygame.display.set_mode((self.WIDTH, self.HEIGHT))
-        pygame.display.set_caption("Procedurally Generated Pacman")
-
+        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         # ==================== End of MY CODE ====================
 
         self.layout = state.layout
@@ -325,7 +272,10 @@ class PacmanGraphics:
                 self.agentImages.append((agent, image))
         refresh()
 
-    def update(self, newState):
+    def update(self, newState, sprite_groups=None):
+        # ==================== MY CODE ====================
+        self.sprite_groups = sprite_groups
+        # ==================== End of MY CODE ====================
         agentIndex = newState._agentMoved
         agentState = newState.agentStates[agentIndex]
 
@@ -333,9 +283,9 @@ class PacmanGraphics:
             self.swapImages(agentIndex, agentState)
         prevState, prevImage = self.agentImages[agentIndex]
         if agentState.isPacman:
-            self.animatePacman(agentState, prevState, prevImage)
+            self.animatePacman(agentState, prevState, prevImage, newState)
         else:
-            self.moveGhost(agentState, agentIndex, prevState, prevImage)
+            self.moveGhost(agentState, agentIndex, prevState, prevImage,newState)
         self.agentImages[agentIndex] = (agentState, prevImage)
 
         if newState._foodEaten != None:
@@ -392,9 +342,10 @@ class PacmanGraphics:
         endpoints = self.getEndpoints(direction, position)
         r = PACMAN_SCALE * self.gridSize
         moveCircle(image[0], screenPosition, r, endpoints)
+
         refresh()
 
-    def animatePacman(self, pacman, prevPacman, image):
+    def animatePacman(self, pacman, prevPacman, image, newState=None):
         if self.frameTime < 0:
             print('Press any key to step forward, "q" to play')
             keys = wait_for_keys()
@@ -411,6 +362,16 @@ class PacmanGraphics:
                       frames + fy * (frames - i) / frames
                 self.movePacman(pos, self.getDirection(pacman), image)
                 refresh()
+                # ==================== MY CODE ====================
+                if len(self.sprite_groups) > 0 and newState is not None:
+                    for pac in self.sprite_groups[5]:
+                        pac.my_update(utilities.invert_coords([pos], newState.layout.width, newState.layout.height)[0],
+                                      [self.sprite_groups[1], self.sprite_groups[2]])
+
+                        self.draw_my_objects(self.sprite_groups)
+
+                        pygame.display.update()
+                # ==================== End of MY CODE ====================
                 sleep(abs(self.frameTime) / frames)
         else:
             self.movePacman(self.getPosition(pacman),
@@ -485,7 +446,7 @@ class PacmanGraphics:
         moveCircle(eyes[3], (screen_x + self.gridSize * GHOST_SIZE * (0.3 + dx), screen_y -
                              self.gridSize * GHOST_SIZE * (0.3 - dy)), self.gridSize * GHOST_SIZE * 0.08)
 
-    def moveGhost(self, ghost, ghostIndex, prevGhost, ghostImageParts):
+    def moveGhost(self, ghost, ghostIndex, prevGhost, ghostImageParts, newState=None):
         old_x, old_y = self.to_screen(self.getPosition(prevGhost))
         new_x, new_y = self.to_screen(self.getPosition(ghost))
         delta = new_x - old_x, new_y - old_y
@@ -501,7 +462,18 @@ class PacmanGraphics:
         edit(ghostImageParts[0], ('fill', color), ('outline', color))
         self.moveEyes(self.getPosition(ghost),
                       self.getDirection(ghost), ghostImageParts[-4:])
+
         refresh()
+
+        # =============== My Code ===============
+        i = 1
+        for ghost_object in self.sprite_groups[4]:
+            if i == ghostIndex:
+                ghost_object.my_update(utilities.invert_coords([self.getPosition(ghost)], newState.layout.width, newState.layout.height)[0])
+                break
+            i += 1
+
+        # =============== End of My Code ===============
 
     def getPosition(self, agentState):
         if agentState.configuration == None:

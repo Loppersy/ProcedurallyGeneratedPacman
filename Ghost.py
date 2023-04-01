@@ -593,6 +593,16 @@ class Ghost(pygame.sprite.Sprite):
         else:
             self.move_ghost_classic(None, maze_data)
 
+    def my_update(self, pos):
+        pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
+        self.my_move(pos_in_window[0], pos_in_window[1])
+
+    def my_move(self, x, y):
+        old_pos = self.position
+        self.position = x, y
+        self.direction = utilities.get_movement_direction(old_pos, self.position)
+        self.rect.topleft = round(x), round(y)
+
     def my_draw(self, screen):
         now = pygame.time.get_ticks()
         if self.state == "chase" or self.state == "scatter" or self.state == "spawn":

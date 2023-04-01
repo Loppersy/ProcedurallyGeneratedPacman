@@ -26,9 +26,10 @@ class Pacman(pygame.sprite.Sprite):
         self.window_height = window_height
         self.moving = False
 
-        self.move(x, y)
+
         self.logic_pos = round(x), round(y)
         self.int_pos = utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)
+        self.move(x, y)
 
         self.animation_cooldown = 50
         self.dying_animation_cooldown = 175
@@ -39,7 +40,10 @@ class Pacman(pygame.sprite.Sprite):
 
     def move(self, x, y):
         # print("Pacman move: ", x, y)
+        old_pos = self.logic_pos
         self.logic_pos = x, y
+        self.direction = utilities.get_movement_direction(old_pos, self.logic_pos)
+        self.moving = self.direction != "stay"
         self.int_pos = utilities.get_position_in_maze_int(x, y, self.scale, self.window_width, self.window_height)
         # self.rect.x = int(x + self.scale * 0.25)
         # self.rect.y = int(y + self.scale * 0.25)
@@ -56,6 +60,21 @@ class Pacman(pygame.sprite.Sprite):
         maze_data = self.check_consumables(maze_data, consumables)
 
         return maze_data
+
+    def my_update(self, pos, consumables):
+        """ neural network update function """
+        pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
+        self.move(pos_in_window[0], pos_in_window[1])
+
+        # check if pacman is touching any consumables. If so, consume them
+        for pellet in consumables[0]:
+            if self.rect.colliderect(pellet.rect):
+                pellet.kill()
+
+        for power_pellet in consumables[1]:
+            if self.rect.colliderect(power_pellet.rect):
+                power_pellet.kill()
+
 
     def my_draw(self, screen, animated=True):
         now = pygame.time.get_ticks()

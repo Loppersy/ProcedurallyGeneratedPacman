@@ -26,6 +26,36 @@ update_clyde = [True]
 SFX_and_Music = [True]
 
 
+def bool_to_maze_data(grid, number):
+    return [[number if grid[x][y] else 0 for x in range(grid.width)] for y in range(grid.height)]
+
+
+def bool_to_maze_data_inverted(grid):
+    return [[int(grid[x][y]) for x in range(grid.width)] for y in range(grid.height - 1, -1, -1)]
+
+
+def bool_to_coords(grid):
+    return [(x, y) for x in range(grid.width) for y in range(grid.height) if grid[x][y]]
+
+
+def bool_to_coords_inverted(grid):
+    """
+    (0,0) is bottom left corner for grid but top left for coords returned
+    :param grid:
+    :return:
+    """
+    return [(x, grid.height - y - 1) for x in range(grid.width) for y in range(grid.height) if grid[x][y]]
+
+
+def coords_to_maze_data_inverted(coords, grid_width, grid_height):
+    coords = invert_coords(coords, grid_width, grid_height)
+    return [[int((x, y) in coords) for x in range(grid_width)] for y in range(grid_height)]
+
+
+def invert_coords(coords, grid_width, grid_height):
+    return [(x, grid_height - y - 1) for x, y in coords]
+
+
 def add_sfx_to_queue(sfx):
     if SFX_and_Music[0] is False:
         return
@@ -161,3 +191,18 @@ def add_score(score):
     current_score[0] += score
     if current_score[0] > high_score[0]:
         high_score[0] = current_score[0]
+
+
+def get_movement_direction(old_pos, logic_pos):
+    if old_pos[0] < logic_pos[0]:
+        return "right"
+    elif old_pos[0] > logic_pos[0]:
+        return "left"
+    elif old_pos[1] < logic_pos[1]:
+        return "down"
+    elif old_pos[1] > logic_pos[1]:
+        return "up"
+    elif old_pos[1] == logic_pos[1] and old_pos[0] == logic_pos[0]:
+        return "stay"
+    else:
+        return None

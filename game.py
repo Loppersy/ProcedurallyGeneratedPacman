@@ -3,6 +3,14 @@
 """
 NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all compared to the corresponding original Berkeley pacman file since the commit Tycho made was just pasting this code into the file.
 """
+import pygame
+import utilities
+
+from Ghost import Ghost
+from PacmanOG import Pacman
+from Pellet import Pellet
+from PowerPellet import PowerPellet
+from Wall import Wall
 # game.py
 # -------
 # Licensing Information:  You are free to use or extend these projects for
@@ -30,6 +38,7 @@ import time
 import os
 import traceback
 import sys
+
 
 #######################
 # Parts worth reading #
@@ -64,9 +73,9 @@ class Directions:
 
     LEFT = {NORTH: WEST,
             SOUTH: EAST,
-            EAST:  NORTH,
-            WEST:  SOUTH,
-            STOP:  STOP}
+            EAST: NORTH,
+            WEST: SOUTH,
+            STOP: STOP}
 
     RIGHT = dict([(y, x) for x, y in list(LEFT.items())])
 
@@ -221,6 +230,7 @@ class Grid:
                     list.append((x, y))
         return list
 
+
 ####################################
 # Parts you shouldn't have to read #
 ####################################
@@ -233,9 +243,9 @@ class Actions:
     # Directions
     _directions = {Directions.NORTH: (0, 1),
                    Directions.SOUTH: (0, -1),
-                   Directions.EAST:  (1, 0),
-                   Directions.WEST:  (-1, 0),
-                   Directions.STOP:  (0, 0)}
+                   Directions.EAST: (1, 0),
+                   Directions.WEST: (-1, 0),
+                   Directions.STOP: (0, 0)}
 
     _directionsAsList = list(_directions.items())
 
@@ -251,6 +261,7 @@ class Actions:
         if action == Directions.WEST:
             return Directions.EAST
         return action
+
     reverseDirection = staticmethod(reverseDirection)
 
     def vectorToDirection(vector):
@@ -264,11 +275,13 @@ class Actions:
         if dx > 0:
             return Directions.EAST
         return Directions.STOP
+
     vectorToDirection = staticmethod(vectorToDirection)
 
     def directionToVector(direction, speed=1.0):
         dx, dy = Actions._directions[direction]
         return (dx * speed, dy * speed)
+
     directionToVector = staticmethod(directionToVector)
 
     def getPossibleActions(config, walls):
@@ -367,7 +380,7 @@ class GameStateData:
         Creates an initial game state from a layout array (see layout.py).
         """
         self.food = layout.food.copy()
-        #self.capsules = []
+        # self.capsules = []
         self.capsules = layout.capsules[:]
         self.layout = layout
         self.score = 0
@@ -385,8 +398,10 @@ class GameStateData:
                 Configuration(pos, Directions.STOP), isPacman))
         self._eaten = [False for a in self.agentStates]
 
+
 try:
     import boinc
+
     _BOINC_ENABLED = True
 except:
     _BOINC_ENABLED = False
@@ -412,6 +427,7 @@ class Game:
         self.agentTimeout = False
         import io
         self.agentOutput = [io.StringIO() for agent in agents]
+
 
     def _agentCrash(self, agentIndex, quiet=False):
         "Helper method for handling agent crashes"
@@ -442,12 +458,96 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
+
+    WIDTH, HEIGHT = 1080, 720
+    BLACK = (0, 0, 0)
+    SCALE = 22
+    MAZE_SIZE = (32, 32)
+    FPS = 60
+    def create_my_objects(self, state):
+
+        # create the walls
+        wall_coords = utilities.bool_to_coords_inverted(state.layout.walls)
+        for wall in wall_coords:
+            self.walls.add(Wall(wall[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
+                                wall[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
+                                self.SCALE, self.WIDTH, self.HEIGHT,
+                                utilities.load_sheet(self.display.WALLS_SHEET_IMAGE, 12, 4, 16, 16),
+                                utilities.load_sheet(self.display.WALLS_WHITE_SHEET_IMAGE, 12, 4, 16, 16)))
+
+        # create the pellets
+        pellet_coords = utilities.bool_to_coords_inverted(state.layout.food)
+        for pellet in pellet_coords:
+            self.pellets.add(Pellet(pellet[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
+                                    pellet[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
+                                    self.SCALE, self.SCALE, self.display.PELLETS_SHEET_IMAGE))
+
+        # create the power pellets
+        power_pellet_coords = utilities.invert_coords(state.layout.capsules, state.layout.width, state.layout.height)
+        for power_pellet in power_pellet_coords:
+            self.power_pellets.add(PowerPellet(power_pellet[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
+                                               power_pellet[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
+                                               self.SCALE, self.SCALE, self.display.PELLETS_SHEET_IMAGE))
+
+        # create the ghost houses
+        # TODO: implement ghost houses
+
+        # create pacman
+        pacman_x = state.agentStates[0].configuration.getPosition()[0]
+        pacman_y = state.agentStates[0].configuration.getPosition()[1]
+        pacman_y = state.layout.height - pacman_y - 1
+        self.pacmans.add(Pacman(pacman_x * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
+                                pacman_y * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
+                                self.WIDTH, self.HEIGHT, self.display.PACMAN_SHEET_IMAGE, self.SCALE, 2.5))
+
+        # create the bonus fruits
+        # TODO: implement bonus fruits
+
+        # create the ghosts
+        ghostStates = []
+        for i in range(1, len(state.agentStates)):
+            ghostStates.append(state.agentStates[i])
+
+        ghost_types = [("blinky", self.display.BLINKY_SHEET_IMAGE),
+                       ("pinky", self.display.PINKY_SHEET_IMAGE),
+                       ("inky", self.display.INKY_SHEET_IMAGE),
+                       ("clyde", self.display.CLYDE_SHEET_IMAGE)]
+        for ghostState in ghostStates:
+            logic_pos = ghostState.configuration.getPosition()
+            logic_pos = (logic_pos[0], state.layout.height - logic_pos[1] - 1)
+            spawn_point = utilities.get_position_in_window(logic_pos[0], logic_pos[1], self.SCALE, self.WIDTH, self.HEIGHT)
+            self.ghosts.add(Ghost(spawn_point[0], spawn_point[1],
+                                  utilities.load_ghost_sheet(ghost_types[0][1], 1, 4, 16, 16, self.display.EYES_SHEET_IMAGE),
+                                  utilities.load_sheet(self.display.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), ghost_types.pop(0)[0],
+                                  self.WIDTH, self.HEIGHT, self.SCALE, self.FPS, 2.3, None, 0))
+
     def run(self):
         """
         Main control loop for game play.
         """
         self.display.initialize(self.state.data)
         self.numMoves = 0
+
+        # ==================== MY CODE ====================
+
+        self.walls = pygame.sprite.Group()
+        self.pellets = pygame.sprite.Group()
+        self.power_pellets = pygame.sprite.Group()
+        self.ghost_houses = pygame.sprite.Group()
+        self.ghosts = pygame.sprite.Group()
+        self.pacmans = pygame.sprite.Group()
+        self.bonus_fruits = pygame.sprite.Group()
+        self.score_popups = pygame.sprite.Group()
+
+        self.sprite_groups = [self.walls, self.pellets, self.power_pellets, self.ghost_houses, self.ghosts, self.pacmans, self.bonus_fruits,
+                              self.score_popups]
+        if not self.display.checkNullDisplay():
+            self.create_my_objects(self.state.data)
+
+            self.walls.update(utilities.bool_to_maze_data_inverted(self.state.data.layout.walls))
+        # ==================== END MY CODE =================
+
+
 
         # self.display.initialize(self.state.makeObservation(1).data)
         # inform learning agents of the game start
@@ -490,8 +590,12 @@ class Game:
 
         agentIndex = self.startingIndex
         numAgents = len(self.agents)
-
+        clock = pygame.time.Clock()
         while not self.gameOver:
+            # ==================== MY CODE ====================
+            # clock.tick(self.FPS)
+            # ==================== END MY CODE =================
+
             # Fetch the next agent
             agent = self.agents[agentIndex]
             move_time = 0
@@ -589,8 +693,22 @@ class Game:
             else:
                 self.state = self.state.generateSuccessor(agentIndex, action)
 
-            # Change the display
-            self.display.update(self.state.data)
+            # # Change the display
+            # # ================ My Code ================
+            # # update game objects (sprites) before rendering
+            # for pacman in self.pacmans:
+            #     # pacman.my_update(self.state.data, [self.pellets, self.power_pellets])
+            #     pass
+            # i = 1
+            # for ghost in self.ghosts:
+            #     # ghost.my_update(self.state.data.agentStates[i])
+            #     i += 1
+            #
+            # # ================ End My Code ================
+
+
+            self.display.update(self.state.data, self.sprite_groups)
+
             ###idx = agentIndex - agentIndex % 2 + 1
             ###self.display.update( self.state.makeObservation(idx).data )
 

@@ -126,8 +126,8 @@ class Configuration:
         x, y = self.pos
         dx, dy = vector
         direction = Actions.vectorToDirection(vector)
-        if direction == Directions.STOP:
-            direction = self.direction  # There is no stop direction
+        # if direction == Directions.STOP:
+        #     direction = self.direction  # There is no stop direction
         return Configuration((x + dx, y + dy), direction)
 
 
@@ -144,6 +144,12 @@ class AgentState:
         self.numCarrying = 0
         self.numReturned = 0
 
+        # =====================
+        self.game_object = None
+
+    def set_game_object(self, game_object):
+        self.game_object = game_object
+
     def __eq__(self, other):
         if other == None:
             return False
@@ -158,6 +164,8 @@ class AgentState:
         state.scaredTimer = self.scaredTimer
         state.numCarrying = self.numCarrying
         state.numReturned = self.numReturned
+        # =====================
+        state.game_object = self.game_object
         return state
 
     def getPosition(self):
@@ -420,7 +428,6 @@ class Game:
         import io
         self.agentOutput = [io.StringIO() for agent in agents]
 
-
     def _agentCrash(self, agentIndex, quiet=False):
         "Helper method for handling agent crashes"
         if not quiet:
@@ -450,12 +457,12 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-
     WIDTH, HEIGHT = 1080, 720
     BLACK = (0, 0, 0)
     SCALE = 22
     MAZE_SIZE = (32, 32)
     FPS = 60
+
     def create_my_objects(self, state):
 
         # create the walls
@@ -488,10 +495,11 @@ class Game:
         pacman_x = state.agentStates[0].configuration.getPosition()[0]
         pacman_y = state.agentStates[0].configuration.getPosition()[1]
         pacman_y = state.layout.height - pacman_y - 1
-        self.pacmans.add(Pacman(pacman_x * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                pacman_y * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                self.WIDTH, self.HEIGHT, self.display.PACMAN_SHEET_IMAGE, self.SCALE, 2.5))
-
+        pacman = Pacman(pacman_x * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
+                        pacman_y * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
+                        self.WIDTH, self.HEIGHT, self.display.PACMAN_SHEET_IMAGE, self.SCALE, 2.5)
+        self.pacmans.add(pacman)
+        state.agentStates[0].set_game_object(pacman)
         # create the bonus fruits
         # TODO: implement bonus fruits
 
@@ -508,10 +516,12 @@ class Game:
             logic_pos = ghostState.configuration.getPosition()
             logic_pos = (logic_pos[0], state.layout.height - logic_pos[1] - 1)
             spawn_point = utilities.get_position_in_window(logic_pos[0], logic_pos[1], self.SCALE, self.WIDTH, self.HEIGHT)
-            self.ghosts.add(Ghost(spawn_point[0], spawn_point[1],
-                                  utilities.load_ghost_sheet(ghost_types[0][1], 1, 4, 16, 16, self.display.EYES_SHEET_IMAGE),
-                                  utilities.load_sheet(self.display.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), ghost_types.pop(0)[0],
-                                  self.WIDTH, self.HEIGHT, self.SCALE, self.FPS, 2.3, None, 0))
+            ghost = Ghost(spawn_point[0], spawn_point[1],
+                          utilities.load_ghost_sheet(ghost_types[0][1], 1, 4, 16, 16, self.display.EYES_SHEET_IMAGE),
+                          utilities.load_sheet(self.display.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), ghost_types.pop(0)[0],
+                          self.WIDTH, self.HEIGHT, self.SCALE, self.FPS, 2.3, None, 0)
+            self.ghosts.add(ghost)
+            ghostState.set_game_object(ghost)
 
     def run(self):
         """
@@ -537,8 +547,6 @@ class Game:
 
             self.walls.update(utilities.bool_to_maze_data_inverted(self.state.data.layout.walls))
         # ==================== END MY CODE =================
-
-
 
         # self.display.initialize(self.state.makeObservation(1).data)
         # inform learning agents of the game start
@@ -583,7 +591,7 @@ class Game:
         clock = pygame.time.Clock()
         while not self.gameOver:
             # ==================== MY CODE ====================
-            clock.tick(self.FPS) if not self.display.checkNullDisplay() else None # limit the game to 60 FPS if display is active
+            clock.tick(self.FPS) if not self.display.checkNullDisplay() else None  # limit the game to 60 FPS if display is active
 
             for agentIndex in range(numAgents):
                 if self.gameOver:
@@ -595,109 +603,122 @@ class Game:
                 move_time = 0
                 skip_action = False
 
-                # Generate an observation of the state
-                if 'observationFunction' in dir(agent):
+                # ==================== MY CODE ====================
+                # Move agent to the direction it is facing
+                # State observations and actions happen once the agent reaches the center of the tile
+
+                self.move_agent_forward(self.state.data.agentStates[agentIndex]) if not self.display.checkNullDisplay() else None
+                if self.display.checkNullDisplay() or (self.isInCenter(self.state.data.agentStates[agentIndex].game_object)):
+                    # Generate an observation of the state
+                    if 'observationFunction' in dir(agent):
+                        self.mute(agentIndex)
+                        if self.catchExceptions:
+                            try:
+                                timed_func = TimeoutFunction(agent.observationFunction, int(
+                                    self.rules.getMoveTimeout(agentIndex)))
+                                try:
+                                    start_time = time.time()
+                                    observation = timed_func(self.state.deepCopy())
+                                except TimeoutFunctionException:
+                                    skip_action = True
+                                move_time += time.time() - start_time
+                                self.unmute()
+                            except Exception(data):
+                                self._agentCrash(agentIndex, quiet=False)
+                                self.unmute()
+                                return
+                        else:
+                            observation = agent.observationFunction(
+                                self.state.deepCopy())
+                        self.unmute()
+                    else:
+                        observation = self.state.deepCopy()
+
+                    # Solicit an action
+                    action = None
                     self.mute(agentIndex)
                     if self.catchExceptions:
                         try:
-                            timed_func = TimeoutFunction(agent.observationFunction, int(
-                                self.rules.getMoveTimeout(agentIndex)))
+                            timed_func = TimeoutFunction(agent.getAction, int(
+                                self.rules.getMoveTimeout(agentIndex)) - int(move_time))
                             try:
                                 start_time = time.time()
-                                observation = timed_func(self.state.deepCopy())
+                                if skip_action:
+                                    raise TimeoutFunctionException()
+                                action = timed_func(observation)
                             except TimeoutFunctionException:
-                                skip_action = True
-                            move_time += time.time() - start_time
-                            self.unmute()
-                        except Exception(data):
-                            self._agentCrash(agentIndex, quiet=False)
-                            self.unmute()
-                            return
-                    else:
-                        observation = agent.observationFunction(
-                            self.state.deepCopy())
-                    self.unmute()
-                else:
-                    observation = self.state.deepCopy()
-
-                # Solicit an action
-                action = None
-                self.mute(agentIndex)
-                if self.catchExceptions:
-                    try:
-                        timed_func = TimeoutFunction(agent.getAction, int(
-                            self.rules.getMoveTimeout(agentIndex)) - int(move_time))
-                        try:
-                            start_time = time.time()
-                            if skip_action:
-                                raise TimeoutFunctionException()
-                            action = timed_func(observation)
-                        except TimeoutFunctionException:
-                            print("Agent %d timed out on a single move!" %
-                                  agentIndex, file=sys.stderr)
-                            self.agentTimeout = True
-                            self._agentCrash(agentIndex, quiet=True)
-                            self.unmute()
-                            return
-
-                        move_time += time.time() - start_time
-
-                        if move_time > self.rules.getMoveWarningTime(agentIndex):
-                            self.totalAgentTimeWarnings[agentIndex] += 1
-                            print("Agent %d took too long to make a move! This is warning %d" % (
-                                agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
-                            if self.totalAgentTimeWarnings[agentIndex] > self.rules.getMaxTimeWarnings(agentIndex):
-                                print("Agent %d exceeded the maximum number of warnings: %d" % (
-                                    agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
+                                print("Agent %d timed out on a single move!" %
+                                      agentIndex, file=sys.stderr)
                                 self.agentTimeout = True
                                 self._agentCrash(agentIndex, quiet=True)
                                 self.unmute()
                                 return
 
-                        self.totalAgentTimes[agentIndex] += move_time
-                        # print "Agent: %d, time: %f, total: %f" % (agentIndex,
-                        # move_time, self.totalAgentTimes[agentIndex])
-                        if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):
-                            print("Agent %d ran out of time! (time: %1.2f)" % (
-                                agentIndex, self.totalAgentTimes[agentIndex]), file=sys.stderr)
-                            self.agentTimeout = True
-                            self._agentCrash(agentIndex, quiet=True)
+                            move_time += time.time() - start_time
+
+                            if move_time > self.rules.getMoveWarningTime(agentIndex):
+                                self.totalAgentTimeWarnings[agentIndex] += 1
+                                print("Agent %d took too long to make a move! This is warning %d" % (
+                                    agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
+                                if self.totalAgentTimeWarnings[agentIndex] > self.rules.getMaxTimeWarnings(agentIndex):
+                                    print("Agent %d exceeded the maximum number of warnings: %d" % (
+                                        agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
+                                    self.agentTimeout = True
+                                    self._agentCrash(agentIndex, quiet=True)
+                                    self.unmute()
+                                    return
+
+                            self.totalAgentTimes[agentIndex] += move_time
+                            # print "Agent: %d, time: %f, total: %f" % (agentIndex,
+                            # move_time, self.totalAgentTimes[agentIndex])
+                            if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):
+                                print("Agent %d ran out of time! (time: %1.2f)" % (
+                                    agentIndex, self.totalAgentTimes[agentIndex]), file=sys.stderr)
+                                self.agentTimeout = True
+                                self._agentCrash(agentIndex, quiet=True)
+                                self.unmute()
+                                return
+                            self.unmute()
+                        except Exception(data):
+                            self._agentCrash(agentIndex)
                             self.unmute()
                             return
-                        self.unmute()
-                    except Exception(data):
-                        self._agentCrash(agentIndex)
-                        self.unmute()
-                        return
-                else:
-                    action = agent.getAction(observation)
-                self.unmute()
+                    else:
+                        action = agent.getAction(observation)
+                    self.unmute()
 
-                # Execute the action
-                self.moveHistory.append((agentIndex, action))
-                if self.catchExceptions:
-                    try:
-                        self.state = self.state.generateSuccessor(
-                            agentIndex, action)
-                    except Exception(data):
-                        self.mute(agentIndex)
-                        self._agentCrash(agentIndex)
-                        self.unmute()
-                        return
-                else:
-                    self.state = self.state.generateSuccessor(agentIndex, action)
+                    # Execute the action
+                    self.moveHistory.append((agentIndex, action))
+                    if self.catchExceptions:
+                        try:
+                            self.state = self.state.generateSuccessor(
+                                agentIndex, action)
+                        except Exception(data):
+                            self.mute(agentIndex)
+                            self._agentCrash(agentIndex)
+                            self.unmute()
+                            return
+                    else:
+                        self.state = self.state.generateSuccessor(agentIndex, action)
+
+                    ###idx = agentIndex - agentIndex % 2 + 1
+                    ###self.display.update( self.state.makeObservation(idx).data )
+
+                    # Allow for game specific conditions (winning, losing, etc.)
+                    self.rules.process(self.state, self)
 
                 # # Change the display
                 self.display.update(self.state.data, self.sprite_groups)
-
-                ###idx = agentIndex - agentIndex % 2 + 1
-                ###self.display.update( self.state.makeObservation(idx).data )
-
-                # Allow for game specific conditions (winning, losing, etc.)
-                self.rules.process(self.state, self)
             # Next agent
             # agentIndex = (agentIndex + 1) % numAgents
 
+            if not self.display.checkNullDisplay() and self.gameOver:
+                pass
+                # # Continue to move agents to the direction they are facing until they reach the center of the tile
+                # while not self.areGhostAndPacmanTouching(self.state.data.agentStates) and self.agents is False:
+                #     for agentIndex in range(numAgents):
+                #         self.move_agent_forward(self.state.data.agentStates[agentIndex], forceMovement=True)
+                #         self.display.update(self.state.data, self.sprite_groups)
 
         # inform a learning agent of the game result
         for agentIndex, agent in enumerate(self.agents):
@@ -713,3 +734,91 @@ class Game:
                     self.unmute()
                     return
         self.display.finish()
+
+    def move_agent_forward(self, agentState, forceMovement=False):
+        """Move the agent forward in the direction it is facing.
+           Game_objects use top left corner as origin, while agents use bottom left corner as origin."""
+        if agentState.game_object is None:
+            return
+
+        game_object = agentState.game_object
+        old_pos = game_object.get_pos()
+        direction = agentState.configuration.getDirection()
+        if direction == Directions.STOP and not forceMovement:
+            return
+        elif direction == Directions.STOP and forceMovement:
+            if game_object.direction == 'up':
+                direction = Directions.NORTH
+            elif game_object.direction == 'down':
+                direction = Directions.SOUTH
+            elif game_object.direction == 'left':
+                direction = Directions.WEST
+            elif game_object.direction == 'right':
+                direction = Directions.EAST
+
+        if direction == Directions.WEST:
+            next_tile_pos = utilities.get_position_in_window(game_object.int_pos[0], game_object.int_pos[1], game_object.scale,
+                                                             game_object.window_width, game_object.window_height)
+            # If object were to overshoot the center of the next tile, move it to the center of the next tile
+            if old_pos[0] - game_object.current_speed < next_tile_pos[0] and old_pos[0] != next_tile_pos[0]:
+                game_object.move(next_tile_pos[0], old_pos[1])
+            else:
+                game_object.move(old_pos[0] - game_object.current_speed, old_pos[1])
+
+        elif direction == Directions.EAST:
+            next_tile_pos = utilities.get_position_in_window(game_object.int_pos[0] + 1, game_object.int_pos[1], game_object.scale,
+                                                             game_object.window_width, game_object.window_height)
+            # If object were to overshoot the center of the next tile, move it to the center of the next tile
+            if old_pos[0] + game_object.current_speed > next_tile_pos[0]:
+                game_object.move(next_tile_pos[0], old_pos[1])
+            else:
+                game_object.move(old_pos[0] + game_object.current_speed, old_pos[1])
+
+        elif direction == Directions.SOUTH:
+            # check down instead because diff origins
+            next_tile_pos = utilities.get_position_in_window(game_object.int_pos[0], game_object.int_pos[1] + 1, game_object.scale,
+                                                             game_object.window_width, game_object.window_height)
+            # If object were to overshoot the center of the next tile, move it to the center of the next tile
+            if old_pos[1] + game_object.current_speed > next_tile_pos[1]:
+                game_object.move(old_pos[0], next_tile_pos[1])
+            else:
+                game_object.move(old_pos[0], old_pos[1] + game_object.current_speed)
+
+        elif direction == Directions.NORTH:
+            # check up instead because diff origins
+            next_tile_pos = utilities.get_position_in_window(game_object.int_pos[0], game_object.int_pos[1], game_object.scale,
+                                                             game_object.window_width, game_object.window_height)
+            # If object were to overshoot the center of the next tile, move it to the center of the next tile
+            if old_pos[1] - game_object.current_speed < next_tile_pos[1] and old_pos[1] != next_tile_pos[1]:
+                game_object.move(old_pos[0], next_tile_pos[1])
+            else:
+                game_object.move(old_pos[0], old_pos[1] - game_object.current_speed)
+
+    def isInCenter(self, game_object):
+        """Returns true if the agent is in the center of a tile."""
+        position_int = utilities.get_position_in_maze_int(game_object.get_pos()[0], game_object.get_pos()[1], game_object.scale,
+                                                          game_object.window_width,
+                                                          game_object.window_height)
+        position_float = utilities.get_position_in_maze_float(game_object.get_pos()[0], game_object.get_pos()[1], game_object.scale,
+                                                              game_object.window_width,
+                                                              game_object.window_height)
+        min_threshold = (.05, .05)
+        centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
+
+        return centerness[0] < min_threshold[0] and centerness[1] < min_threshold[1]
+
+    def allAgentsInCenter(self, agentStates):
+        """Returns true if all agents are in the center of a tile."""
+        for agentState in agentStates:
+            if agentState.game_object is not None and not self.isInCenter(agentState.game_object):
+                return False
+        return True
+
+    def areGhostAndPacmanTouching(self, agentStates):
+        """Returns true if the ghost and pacman are touching."""
+        pacman = agentStates[0].game_object
+        ghosts = [agentState.game_object for agentState in agentStates[1:]]
+        for ghost in ghosts:
+            if utilities.get_distance(pacman.get_pos()[0], pacman.get_pos()[1], ghost.get_pos()[0], ghost.get_pos()[1]) < pacman.scale / 2:
+                return True
+        return False

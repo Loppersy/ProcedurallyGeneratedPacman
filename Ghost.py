@@ -73,8 +73,8 @@ class Ghost(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
         self.position = (x, y)
-        self.int_position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, scale, window_width,
-                                                               window_height)
+        self.int_pos = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, scale, window_width,
+                                                          window_height)
         self.last_update = pygame.time.get_ticks()
         self.animation_cooldown = 150
         self.window_width = window_width
@@ -136,13 +136,26 @@ class Ghost(pygame.sprite.Sprite):
 
     is_permanent_state = False
 
+    def move(self, x, y):
+        # print("Pacman move: ", x, y)
+        old_pos = self.position
+        self.position = x, y
+        self.direction = utilities.get_movement_direction(old_pos, self.position)
+        self.int_pos = utilities.get_position_in_maze_int(x, y, self.scale, self.window_width, self.window_height)
+        # self.rect.x = int(x + self.scale * 0.25)
+        # self.rect.y = int(y + self.scale * 0.25)
+        self.rect.topleft = round(x), round(y)
+
+    def get_pos(self):
+        return self.position
+
     # Update method. It handles the animation of the ghost, the movement of the ghost, the pathfinding and the hurtbox
     # It also handles the different modes of the ghosts (chase, scatter, frightened, dead), that change depending on the
     # game time.
     def update(self, maze_data, pacmans, ghosts):
         self.empty_maze_data = [[0] * len(maze_data[0]) for _ in range(len(maze_data))]
-        self.int_position = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
-                                                               self.window_height)
+        self.int_pos = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
+                                                          self.window_height)
         self.float_position = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale,
                                                                    self.window_width,
                                                                    self.window_height)
@@ -319,8 +332,8 @@ class Ghost(pygame.sprite.Sprite):
                                                                   self.window_height)
 
             if self.force_goal is None \
-                    and self.int_position[0] == entrance_int_pos[0] \
-                    and self.int_position[1] == entrance_int_pos[1]:
+                    and self.int_pos[0] == entrance_int_pos[0] \
+                    and self.int_pos[1] == entrance_int_pos[1]:
                 if self.ghost_house is not None:
                     self.set_force_goal((self.goal[0], self.goal[1] + 3))
                 else:
@@ -346,7 +359,7 @@ class Ghost(pygame.sprite.Sprite):
             else:
                 self.move_ghost_classic(self.goal, maze_data)
 
-    def move(self):
+    def moveOG(self):
 
         if self.direction == "up":
             self.position = (self.position[0], self.position[1] - self.current_speed)
@@ -581,8 +594,8 @@ class Ghost(pygame.sprite.Sprite):
             self.move_ghost_classic(goal, maze_data)
             return
 
-        if utilities.is_centered(self.float_position, self.int_position):
-            start = Node((self.int_position[0], self.int_position[1]))
+        if utilities.is_centered(self.float_position, self.int_pos):
+            start = Node((self.int_pos[0], self.int_pos[1]))
             goal = Node((goal[0], goal[1]))
             self.current_path = self.pathfinder.get_path(start, goal, maze_data, use_wrap_around, [self.previous_node])
 
@@ -594,14 +607,9 @@ class Ghost(pygame.sprite.Sprite):
             self.move_ghost_classic(None, maze_data)
 
     def my_update(self, pos):
-        pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
-        self.my_move(pos_in_window[0], pos_in_window[1])
-
-    def my_move(self, x, y):
-        old_pos = self.position
-        self.position = x, y
-        self.direction = utilities.get_movement_direction(old_pos, self.position)
-        self.rect.topleft = round(x), round(y)
+        # pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
+        # self.my_move(pos_in_window[0], pos_in_window[1])
+        pass
 
     def my_draw(self, screen):
         now = pygame.time.get_ticks()
@@ -866,8 +874,8 @@ class Ghost(pygame.sprite.Sprite):
 
         # Draw a line connecting all the tiles that the ghost would have blocked_positions if it was using the classic path
         path_to_draw = []
-        if self.int_position is not None and self.direction != "stay":
-            path_to_draw = [self.int_position]
+        if self.int_pos is not None and self.direction != "stay":
+            path_to_draw = [self.int_pos]
             current_direction = self.direction
             for i in range(100):
                 next_tile, current_direction = self.find_next_node_classic(path_to_draw[-1],

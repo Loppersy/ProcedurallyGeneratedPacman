@@ -63,8 +63,8 @@ class Pacman(pygame.sprite.Sprite):
 
     def my_update(self, pos, consumables):
         """ neural network update function """
-        pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
-        self.move(pos_in_window[0], pos_in_window[1])
+        # pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
+        # self.move(pos_in_window[0], pos_in_window[1])
 
         # check if pacman is touching any consumables. If so, consume them
         for pellet in consumables[0]:

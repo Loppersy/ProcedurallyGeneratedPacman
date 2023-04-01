@@ -336,11 +336,6 @@ def move_pacmans(last_keys, pacmans, maze_data):
         # If pacman is at the edge of the maze, move him to the other side taking into account the size of the maze
         # and its offset (using SCALE and WIDTH and HEIGHT).
 
-        # print(last_keys) print(old_pos, pacman.logic_pos) print(pacman.check_open_path(maze_data, "left"),
-        # pacman.check_open_path(maze_data, "right"), pacman.check_open_path(maze_data, "up"),
-        # pacman.check_open_path(maze_data, "down")) print(pacman.can_change_direction(maze_data, "left"),
-        # pacman.can_change_direction(maze_data, "right"), pacman.can_change_direction(maze_data, "up"),
-        # pacman.can_change_direction(maze_data, "down"))
         if pacman.direction == "stay":
             pass
         elif pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):

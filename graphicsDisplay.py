@@ -257,9 +257,7 @@ class PacmanGraphics:
                 pac.my_update(utilities.invert_coords([self.getPosition(agentState)], newState.layout.width, newState.layout.height)[0],
                               [self.sprite_groups[1], self.sprite_groups[2]])
 
-                self.draw_my_objects(self.sprite_groups)
 
-                pygame.display.update()
 
         i = 1
         for ghost_object in self.sprite_groups[4]:
@@ -267,6 +265,10 @@ class PacmanGraphics:
                 ghost_object.my_update(utilities.invert_coords([self.getPosition(agentState)], newState.layout.width, newState.layout.height)[0])
                 break
             i += 1
+
+        self.draw_my_objects(self.sprite_groups)
+
+        pygame.display.update()
 
 
     def make_window(self, width, height):

@@ -146,6 +146,10 @@ class Ghost(pygame.sprite.Sprite):
         # self.rect.y = int(y + self.scale * 0.25)
         self.rect.topleft = round(x), round(y)
 
+    def my_move(self, x, y):
+        # self.move(x, y)
+        pass
+
     def get_pos(self):
         return self.position
 
@@ -607,8 +611,8 @@ class Ghost(pygame.sprite.Sprite):
             self.move_ghost_classic(None, maze_data)
 
     def my_update(self, pos):
-        # pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
-        # self.my_move(pos_in_window[0], pos_in_window[1])
+        pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
+        self.my_move(pos_in_window[0], pos_in_window[1])
         pass
 
     def my_draw(self, screen):

@@ -174,6 +174,7 @@ class AgentState:
         self.is_permanent_overwrite = None
         self.path = None
 
+
     def get_goal(self):
         if self.force_goal is not None:
             return self.force_goal
@@ -956,7 +957,7 @@ class Game:
                         stop_time_clock = 0
 
                 # # Change the display
-                self.display.update(self.state.data, self.sprite_groups)
+                self.display.update(self.state.data, self.sprite_groups, agentIndex)
 
         # inform a learning agent of the game result
         for agentIndex, agent in enumerate(self.agents):

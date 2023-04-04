@@ -132,7 +132,7 @@ class GameState:
             state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
         else:
             pass
-            GhostRules.decrementTimer(state.data.agentStates[agentIndex])
+            # GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
         # Resolve multi-agent effects
         GhostRules.checkDeath(state, agentIndex)
@@ -336,6 +336,7 @@ class PacmanRules:
             state.data._capsuleEaten = position
             # Reset all ghosts' scared timers
             for index in range(1, len(state.data.agentStates)):
+                state.data.agentStates[index].scaredTimer = SCARED_TIME * main.FPS
                 state.data.agentStates[index].overwrite_global_state("frightened", SCARED_TIME)
                 # =================== MY CODE ===================
                 state.data.agentStates[index].current_state = "frightened"
@@ -493,11 +494,12 @@ class GhostRules:
     def collide(state, ghostState, agentIndex):
         if ghostState.scaredTimer > 0:
             state.data.scoreChange += 200
-            GhostRules.placeGhost(state, ghostState)
+            # GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
-            # Added for first-person
-            state.data._eaten[agentIndex] = True
-        else:
+            ghostState.overwrite_global_state("dead", -1)
+            # utilities.add_sfx_to_queue("ghost_eaten.wav")
+
+        elif ghostState.current_state == "chase" or ghostState.current_state == "scatter":
             if not state.data._win and not utilities.invisibility_debug[0]:
                 state.data.scoreChange -= 500
                 state.data._lose = True

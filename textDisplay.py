@@ -27,7 +27,7 @@ class NullGraphics:
     def initialize(self, state, isBlue = False):
         pass
 
-    def update(self, state, sprite_groups):
+    def update(self, state, sprite_groups, index):
         pass
 
     def checkNullDisplay(self):

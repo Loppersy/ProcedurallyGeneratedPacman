@@ -266,18 +266,18 @@ class PacmanGraphics:
         # for bonus_fruit in self.sprite_groups[4]:
         #     bonus_fruit.my_draw(self.screen)
 
-        if utilities.draw_highlighted_tiles[0]:
-            size = 5
-            last_color = None
-            for int_pos in utilities.highlighted_tiles:
-                window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], main.SCALE, main.WIDTH, main.HEIGHT)
-                pygame.draw.rect(self.screen, int_pos[1],
-                                 (window_pos[0] + main.SCALE / 2 - size / 2, window_pos[1] + main.SCALE / 2 - size / 2, size, size),
-                                 2)
-                if last_color is not None and last_color != int_pos[1] or size > main.SCALE:
-                    size = 5
-                last_color = int_pos[1]
-                size += 1
+        # if utilities.draw_highlighted_tiles[0]:
+        #     size = 5
+        #     last_color = None
+        #     for int_pos in utilities.highlighted_tiles:
+        #         window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], main.SCALE, main.WIDTH, main.HEIGHT)
+        #         pygame.draw.rect(self.screen, int_pos[1],
+        #                          (window_pos[0] + main.SCALE / 2 - size / 2, window_pos[1] + main.SCALE / 2 - size / 2, size, size),
+        #                          2)
+        #         if last_color is not None and last_color != int_pos[1] or size > main.SCALE:
+        #             size = 5
+        #         last_color = int_pos[1]
+        #         size += 1
         # pygame.display.update()
 
     def startGraphics(self, state):
@@ -312,12 +312,12 @@ class PacmanGraphics:
                 self.agentImages.append((agent, image))
         refresh()
 
-    def update(self, newState, sprite_groups=None):
+    def update(self, newState, sprite_groups=None, agentIndex=None):
         # ==================== MY CODE ====================
         self.sprite_groups = sprite_groups
 
         # ==================== End of MY CODE ====================
-        agentIndex = newState._agentMoved
+        agentIndex = newState._agentMoved if newState._agentMoved is not None else agentIndex
         agentState = newState.agentStates[agentIndex]
         #
         # if self.agentImages[agentIndex][0].isPacman != agentState.isPacman:

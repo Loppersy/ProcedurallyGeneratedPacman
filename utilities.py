@@ -13,7 +13,7 @@ munch = [False]
 
 regenerate_maze = [True]
 AStarMode = [True]
-draw_paths = [False]
+draw_paths = [True]
 power_pellet_debug = [False]
 invisibility_debug = [False]
 new_maze = [True]  # Hit R to load a new maze
@@ -24,6 +24,8 @@ update_pinky = [True]
 update_inky = [True]
 update_clyde = [True]
 SFX_and_Music = [True]
+
+draw_ghosts = [True]
 
 
 def bool_to_maze_data(grid, number):
@@ -206,3 +208,22 @@ def get_movement_direction(old_pos, logic_pos):
         return "stay"
     else:
         return None
+
+
+def layout_to_maze_data(layout):
+
+    width, height = layout.width, layout.height
+    pellets = layout.food
+    walls = layout.walls
+    power_pellets = layout.capsules
+    maze_data = [[0 for _ in range(width)] for _ in range(height)]
+    for i in range(width):
+        for j in range(height):
+            if walls[i][j]:
+                maze_data[height - j - 1][i] = 1
+            elif (i, j) in pellets:
+                maze_data[height - j - 1][i] = 2
+            elif (i, j) in power_pellets:
+                maze_data[height - j - 1][i] = 3
+    return maze_data
+

@@ -1,6 +1,8 @@
 """
 NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all compared to the corresponding original Berkeley pacman file since the commit Tycho made was just pasting this code into the file.
 """
+import utilities
+from AStar import AStar, Node
 # ghostAgents.py
 # --------------
 # Licensing Information:  You are free to use or extend these projects for
@@ -19,6 +21,8 @@ from game import Agent
 from game import Actions
 from game import Directions
 import random
+
+
 from util import manhattanDistance
 import util
 
@@ -54,7 +58,82 @@ class RandomGhost(GhostAgent):
         return dist
 
 
-# Change ghost behavior to do A*
+class AStarGhost(GhostAgent):
+    """A ghost that uses A* search to find the shortest path to Pacman."""
+    def __init__(self, index, prob_attack=0.8, prob_scaredFlee=0.8):
+        self.index = index
+        self.prob_attack = prob_attack
+        self.prob_scaredFlee = prob_scaredFlee
+        self.path_finder = AStar()
+
+    def getDistribution(self, state):
+        direction = Directions.STOP
+        maze_data = utilities.layout_to_maze_data(state.data.layout)
+        start = utilities.invert_coords([state.getGhostPosition(self.index)], state.data.layout.width, state.data.layout.height)[0]
+        # transform to int
+        start = (int(start[0]), int(start[1]))
+
+        # get pacman direction and convert it to relative directions (to use with my code)
+        # North = up, South = down, East = right, West = left
+
+        goal = state.getGhostState(self.index).get_goal()
+        node_start = Node(start)
+        node_goal = Node(goal)
+        if state.getGhostState(self.index).force_goal is not None:
+            # when goal is forced, maze_data is filled with 0s
+            path = self.path_finder.get_path(node_start, node_goal, [[0 for _ in range(32)] for _ in range(32)])
+        elif state.getGhostState(self.index).goal is not None:
+            path = self.path_finder.get_path(node_start, node_goal, maze_data, blocked_positions=[state.getGhostState(self.index).previous_node])
+        else: # if no goal is set, pick a valid direction randomly
+            legal = state.getLegalActions(self.index)
+            choice = random.choice(legal)
+            next_node = None
+            if choice == Directions.NORTH:
+                next_node = (start[0], start[1] - 1)
+            elif choice == Directions.SOUTH:
+                next_node = (start[0], start[1] + 1)
+            elif choice == Directions.EAST:
+                next_node = (start[0] + 1, start[1])
+            elif choice == Directions.WEST:
+                next_node = (start[0] - 1, start[1])
+
+            path = [start, next_node]
+
+        if len(path) > 1:
+            # if the ghost is at the goal, but there are other possible paths, pick one of them randomly
+            if path[0] == path[1]:
+                legal = state.getLegalActions(self.index)
+                if len(legal) > 0:
+                    choice = random.choice(legal)
+                    next_node = None
+                    if choice == Directions.NORTH:
+                        next_node = (start[0], start[1] - 1)
+                    elif choice == Directions.SOUTH:
+                        next_node = (start[0], start[1] + 1)
+                    elif choice == Directions.EAST:
+                        next_node = (start[0] + 1, start[1])
+                    elif choice == Directions.WEST:
+                        next_node = (start[0] - 1, start[1])
+                    path = [start, next_node]
+
+            next_step = path[1]
+            if next_step[0] == start[0] - 1:
+                direction = Directions.WEST
+            elif next_step[0] == start[0] + 1:
+                direction = Directions.EAST
+            elif next_step[1] == start[1] - 1:
+                direction = Directions.NORTH
+            elif next_step[1] == start[1] + 1:
+                direction = Directions.SOUTH
+            else:
+                direction = Directions.STOP
+
+        # Construct distribution
+        dist = util.Counter()
+        dist[direction] = 1.0
+        return dist
+
+
 class DirectionalGhost(GhostAgent):
     "A ghost that prefers to rush Pacman, or flee when scared."
 

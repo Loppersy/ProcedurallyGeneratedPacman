@@ -8,7 +8,7 @@ from BonusFruit import BonusFruit
 from Ghost import Ghost
 from GhostHouse import GhostHouse
 from MazeGenerator import MazeGenerator
-from Pacman import Pacman
+from PacmanOG import Pacman
 from Pellet import Pellet
 from PowerPellet import PowerPellet
 from SFXHandler import SFXHandler

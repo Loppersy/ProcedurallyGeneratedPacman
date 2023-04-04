@@ -26,7 +26,6 @@ class Pacman(pygame.sprite.Sprite):
         self.window_height = window_height
         self.moving = False
 
-
         self.logic_pos = round(x), round(y)
         self.int_pos = utilities.get_position_in_maze_int(x, y, scale, window_width, window_height)
         self.move(x, y)
@@ -75,7 +74,6 @@ class Pacman(pygame.sprite.Sprite):
             if self.rect.colliderect(power_pellet.rect):
                 power_pellet.kill()
 
-
     def my_draw(self, screen, animated=True):
         now = pygame.time.get_ticks()
         if self.direction == "dying" and animated:
@@ -103,7 +101,6 @@ class Pacman(pygame.sprite.Sprite):
                 else:
                     self.dead_animation_completed = True
                     utilities.add_sfx_to_queue("death_2.wav")
-
 
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
@@ -254,8 +251,8 @@ class Pacman(pygame.sprite.Sprite):
                         utilities.add_score(consumable.get_score())
                         utilities.add_sfx_to_queue("eat_fruit.wav")
                         utilities.queued_popups.append(
-                            (consumable.rect.x + consumable.rect.width/2, consumable.rect.y + consumable.rect.height/2, consumable.score,
-                             (217, 104, 200), 2,11))
+                            (consumable.rect.x + consumable.rect.width / 2, consumable.rect.y + consumable.rect.height / 2, consumable.score,
+                             (217, 104, 200), 2, 11))
 
         return maze_data
 
@@ -263,4 +260,5 @@ class Pacman(pygame.sprite.Sprite):
         if self.direction != "dead" and self.direction != "dying":
             self.direction = "dying"
 
-
+    def get_int_pos(self):
+        return self.int_pos

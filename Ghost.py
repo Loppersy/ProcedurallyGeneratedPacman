@@ -62,7 +62,7 @@ class Ghost(pygame.sprite.Sprite):
         self.global_state = None
         self.level_state_clock = 0
         self.timer_on_hold = 0
-        self.frightened_speed = speed * 0.7
+        self.frightened_speed = speed * 0.7  # old = 0.7
         self.frightened_time = 5
         self.type = ghost_type
         self.images = images
@@ -525,70 +525,20 @@ class Ghost(pygame.sprite.Sprite):
                 # First, check if next node is wrapped around the map
                 if path[0][0] == 0 and path[1][0] == 31:
                     self.direction = "left"
-                    # self.position = (self.position[0], utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[1])
                 elif path[0][0] == 31 and path[1][0] == 0:
                     self.direction = "right"
-                    # self.position = (self.position[0], utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[1])
                 elif path[0][1] == 0 and path[1][1] == 31:
                     self.direction = "up"
-                    # self.position = (utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[0], self.position[1])
                 elif path[0][1] == 31 and path[1][1] == 0:
                     self.direction = "down"
-                    # self.position = (utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[0], self.position[1])
-
                 elif path[0][0] < path[1][0]:
                     self.direction = "right"
-                    # center ghost in the middle of the tile
-                    # self.position = (self.position[0], utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[1])
                 elif path[0][0] > path[1][0]:
                     self.direction = "left"
-                    # self.position = (self.position[0], utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[1])
                 elif path[0][1] < path[1][1]:
                     self.direction = "down"
-                    # self.position = (utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[0], self.position[1])
                 elif path[0][1] > path[1][1]:
                     self.direction = "up"
-                    # self.position = (utilities.get_position_in_window(
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[0],
-                    #     utilities.get_position_in_maze_int(self.position[0], self.position[1], self.scale,
-                    #                                        self.window_width, self.window_height)[1], self.scale,
-                    #     self.window_width, self.window_height)[0], self.position[1])
         else:
             self.direction = "stay"
 
@@ -907,6 +857,41 @@ class Ghost(pygame.sprite.Sprite):
         self.draw_pivot(color, screen)
         self.draw_clyde_circle(color, screen)
 
+    def draw_classic_path(self, screen, maze_data):
+        if self.goal is None:
+            return
+
+        # Draw a line connecting all the tiles that the ghost would have blocked_positions if it was using the classic path
+        path_to_draw = []
+        if self.int_pos is not None and self.direction != "stay":
+            path_to_draw = [self.int_pos]
+            current_direction = self.direction
+            for i in range(100):
+                next_tile, current_direction = self.find_next_node_classic(path_to_draw[-1],
+                                                                           self.goal, maze_data, current_direction)
+                if next_tile not in path_to_draw:
+                    path_to_draw.append(next_tile)
+                else:
+                    path_to_draw.append(next_tile)
+                    break
+                if path_to_draw[-1] == self.goal:
+                    break
+
+        color = self.get_ghost_color()
+        offset = 0
+        if color == (255, 255, 0):
+            offset = 3
+        elif color == (255, 0, 255):
+            offset = 6
+        elif color == (255, 128, 0):
+            offset = -3
+
+        self.draw_lines_in_path(color, maze_data, offset, screen, path_to_draw)
+        self.draw_goal(color, screen)
+        self.draw_forced_goal(color, screen)
+        self.draw_pivot(color, screen)
+        self.draw_clyde_circle(color, screen)
+
     def draw_forced_goal(self, color, screen):
         if self.force_goal is not None:
             # draw an X at the center of the forced goal
@@ -1029,6 +1014,9 @@ class Ghost(pygame.sprite.Sprite):
         self.apply_speed(state)
         return True
 
+    def get_int_pos(self):
+        return self.int_pos
+
     def overwrite_global_state(self, state, time):
         self.switch_state(state)
         self.state_overwrite = True
@@ -1042,21 +1030,18 @@ class Ghost(pygame.sprite.Sprite):
     def update_overwritten_state(self):
         if not self.state_overwrite:
             self.switch_state(self.global_state)
-            return
+            return self.overwrite_time - self.overwrite_clock
 
         self.overwrite_clock += 1
         if self.overwrite_clock >= self.overwrite_time and not self.is_permanent_overwrite:
             self.state_overwrite = False
             self.switch_state(self.global_state)
+            return self.overwrite_time - self.overwrite_clock
+
+        return self.overwrite_time - self.overwrite_clock
 
     def set_force_goal(self, goal):
         self.force_goal = goal
-        # self.change_direction_to_closest_tile(["right", "left", "up", "down"], self.force_goal,
-        #                                       utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale,
-        #                                                                          self.window_width,
-        #                                                                          self.window_height),
-        #                                       self.empty_maze_data,
-        #                                       False)
 
     def apply_speed(self, state):
         if state == "frightened":
@@ -1217,3 +1202,7 @@ class Ghost(pygame.sprite.Sprite):
             return utilities.update_inky[0]
         elif self.type == "clyde":
             return utilities.update_clyde[0]
+
+    def set_goal(self, goal):
+        self.goal = goal
+

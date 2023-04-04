@@ -3,11 +3,14 @@ NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all 
 """
 import pygame
 
+import main
 import utilities
 from Ghost import Ghost
 from PacmanOG import Pacman
 from Pellet import Pellet
 from PowerPellet import PowerPellet
+from SFXHandler import SFXHandler
+from UIHandler import UIHandler
 from Wall import Wall
 # graphicsDisplay.py
 # ------------------
@@ -160,6 +163,69 @@ class PacmanGraphics:
         self.WALLS_WHITE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls_white.png")).convert_alpha()
         self.sprite_groups = []
 
+        self.REGENERATE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "regen_button.png")).convert_alpha()
+        self.REGENERATE_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "regen_button_hover.png")).convert_alpha()
+        self.GHOST_BUTTON = pygame.image.load(os.path.join("assets", "UI", "ghost_button.png")).convert_alpha()
+        self.GHOST_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "ghost_button_hover.png")).convert_alpha()
+        self.BLINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "blinky_button.png")).convert_alpha()
+        self.PINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pinky_button.png")).convert_alpha()
+        self.INKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "inky_button.png")).convert_alpha()
+        self.CLYDE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "clyde_button.png")).convert_alpha()
+        self.PATH_BUTTON = pygame.image.load(os.path.join("assets", "UI", "path_button.png")).convert_alpha()
+        self.PATH_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "path_button_hover.png")).convert_alpha()
+        self.PATHFINDER_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button.png")).convert_alpha()
+        self.PATHFINDER_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button_hover.png")).convert_alpha()
+        self.A_STAR_TEXT = pygame.image.load(os.path.join("assets", "UI", "a_star.png")).convert_alpha()
+        self.CLASSIC_TEXT = pygame.image.load(os.path.join("assets", "UI", "classic.png")).convert_alpha()
+        self.NO_DMG_BUTTON = pygame.image.load(os.path.join("assets", "UI", "no_dmg.png")).convert_alpha()
+        self.NO_DMG_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "no_dmg_hover.png")).convert_alpha()
+        self.ON = pygame.image.load(os.path.join("assets", "UI", "on.png")).convert_alpha()
+        self.OFF = pygame.image.load(os.path.join("assets", "UI", "off.png")).convert_alpha()
+        self.DISABLED_BUTTON = pygame.image.load(os.path.join("assets", "UI", "disabled_button.png")).convert_alpha()
+        self.SOUND_BUTTON = pygame.image.load(os.path.join("assets", "UI", "sound_button.png")).convert_alpha()
+        self.SOUND_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "sound_button_hover.png")).convert_alpha()
+        self.SOUND_ON = pygame.image.load(os.path.join("assets", "UI", "sound_on.png")).convert_alpha()
+        self.SOUND_OFF = pygame.image.load(os.path.join("assets", "UI", "sound_off.png")).convert_alpha()
+        self.CLASSIC_BUTTON = pygame.image.load(os.path.join("assets", "UI", "classic_button.png")).convert_alpha()
+        self.CLASSIC_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "classic_button_hover.png")).convert_alpha()
+
+        self.UI_IMAGES = [self.REGENERATE_BUTTON, self.REGENERATE_BUTTON_HOVER,
+                          self.GHOST_BUTTON, self.GHOST_BUTTON_HOVER, self.BLINKY_BUTTON, self.PINKY_BUTTON, self.INKY_BUTTON, self.CLYDE_BUTTON,
+                          self.PATH_BUTTON, self.PATH_BUTTON_HOVER,
+                          self.PATHFINDER_BUTTON, self.PATHFINDER_BUTTON_HOVER, self.A_STAR_TEXT, self.CLASSIC_TEXT,
+                          self.NO_DMG_BUTTON, self.NO_DMG_BUTTON_HOVER, self.ON, self.OFF,
+                          self.DISABLED_BUTTON,
+                          self.SOUND_BUTTON, self.SOUND_BUTTON_HOVER, self.SOUND_ON, self.SOUND_OFF,
+                          utilities.load_sheet(self.BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16),
+                          utilities.load_sheet(self.PACMAN_SHEET_IMAGE, 1, 5, 16, 16)[4],
+                          self.CLASSIC_BUTTON, self.CLASSIC_BUTTON_HOVER]
+
+        self.BONUS_FRUIT = [["cherry", "cherry"],  # level 1
+                       ["strawberry", "strawberry"],  # level 2
+                       ["peach", "peach"],  # level 3
+                       ["peach", "peach"],  # level 4
+                       ["apple", "apple"],  # level 5
+                       ["apple", "apple"],  # level 6
+                       ["melon", "melon"],  # level 7
+                       ["melon", "melon"],  # level 8
+                       ["galaxian", "galaxian"],  # level 9
+                       ["galaxian", "galaxian"],  # level 10
+                       ["bell", "bell"],  # level 11
+                       ["bell", "bell"],  # level 12
+                       ["key", "key"]]  # level 13
+
+        SFX_NAMES = ["credit.wav", "death_1.wav", "death_2.wav", "eat_fruit.wav", "eat_ghost.wav", "extend.wav",
+                     "game_start.wav",
+                     "intermission.wav", "munch_1.wav", "munch_2.wav"]
+
+        MUSIC_NAMES = ["power_pellet.wav", "retreating.wav", "siren_1.wav",
+                       "siren_2.wav", "siren_3.wav", "siren_4.wav", "siren_5.wav"]
+
+        self.sfx_handler = SFXHandler(SFX_NAMES, MUSIC_NAMES, main.FPS)
+
+        self.lives = 5
+        self.current_level = 6
+
     def initialize(self, state):
         self.startGraphics(state)
 
@@ -175,7 +241,7 @@ class PacmanGraphics:
         # Information
         self.previousState = state
 
-    def draw_my_objects(self, sprite_groups):
+    def draw_my_objects(self, sprite_groups, maze_data):
         if len(sprite_groups) == 0:
             return
 
@@ -184,8 +250,15 @@ class PacmanGraphics:
         for sprite in sprite_groups:
             sprite.draw(self.screen)
 
-        for ghost in sprite_groups[4]:
-            ghost.my_draw(self.screen)
+        if utilities.draw_ghosts[0]:
+            for ghost in sprite_groups[4]:
+                if not ghost.is_enabled():
+                    continue
+                if utilities.AStarMode[0] and utilities.draw_paths[0]:
+                    ghost.draw_astar_path(self.screen, maze_data)
+                elif utilities.draw_paths[0]:
+                    ghost.draw_classic_path(self.screen, maze_data)
+                ghost.my_draw(self.screen)
 
         for pacman in sprite_groups[5]:
             pacman.my_draw(self.screen)
@@ -193,11 +266,12 @@ class PacmanGraphics:
         # for bonus_fruit in self.sprite_groups[4]:
         #     bonus_fruit.my_draw(self.screen)
 
-        pygame.display.update()
+        # pygame.display.update()
 
     def startGraphics(self, state):
         # ==================== MY CODE ====================
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        self.ui_handler = UIHandler(self.SCALE, self.WIDTH, self.HEIGHT, self.FPS, self.lives, 0, self.sfx_handler, self.UI_IMAGES, self.BONUS_FRUIT)
         # ==================== End of MY CODE ====================
 
         self.layout = state.layout
@@ -257,8 +331,6 @@ class PacmanGraphics:
                 pac.my_update(utilities.invert_coords([self.getPosition(agentState)], newState.layout.width, newState.layout.height)[0],
                               [self.sprite_groups[1], self.sprite_groups[2]])
 
-
-
         i = 1
         for ghost_object in self.sprite_groups[4]:
             if i == agentIndex:
@@ -266,10 +338,21 @@ class PacmanGraphics:
                 break
             i += 1
 
-        self.draw_my_objects(self.sprite_groups)
+        cursor_click_pos = None
+        cursor_hover_pos = None
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                cursor_click_pos = pygame.mouse.get_pos()
+            elif event.type == pygame.MOUSEMOTION:
+                cursor_hover_pos = pygame.mouse.get_pos()
+        self.draw_my_objects(self.sprite_groups, utilities.layout_to_maze_data(newState.layout))
+        self.ui_handler.update(cursor_click_pos, cursor_hover_pos, self.lives, utilities.high_score[0],utilities.current_score[0], self.current_level)
+        self.ui_handler.draw(self.screen)
 
         pygame.display.update()
-
 
     def make_window(self, width, height):
         grid_width = (width - 1) * self.gridSize
@@ -343,9 +426,9 @@ class PacmanGraphics:
                         pac.my_update(utilities.invert_coords([pos], newState.layout.width, newState.layout.height)[0],
                                       [self.sprite_groups[1], self.sprite_groups[2]])
 
-                        self.draw_my_objects(self.sprite_groups)
+                        # self.draw_my_objects(self.sprite_groups)
 
-                        pygame.display.update()
+                        # pygame.display.update()
                 # ==================== End of MY CODE ====================
                 sleep(abs(self.frameTime) / frames)
         else:

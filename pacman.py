@@ -3,6 +3,9 @@ NEURO 240: Based on Git history, Tycho van der Ouderaa edited this file only sli
 
 Now, I'm not sure if Tycho used this GitHub the whole time - he might have made changes that weren't captured in commits to this GitHub, in which case I can't see them.
 """
+import main
+import utilities
+
 # pacman.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
@@ -64,6 +67,7 @@ import os
 import pacmanDQN_Agents
 import ghostAgents
 
+
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
 ###################################################
@@ -120,13 +124,14 @@ class GameState:
         if agentIndex == 0:  # Pacman is moving
             state.data._eaten = [False for i in range(state.getNumAgents())]
             PacmanRules.applyAction(state, action)
-        else:                # A ghost is moving
+        else:  # A ghost is moving
             GhostRules.applyAction(state, action, agentIndex)
 
         # Time passes
         if agentIndex == 0:
             state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
         else:
+            pass
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
         # Resolve multi-agent effects
@@ -139,7 +144,6 @@ class GameState:
         GameState.explored.add(state)
         return state
 
-
     def getPacmanState(self):
         """
         Returns an AgentState object for pacman (in game.py)
@@ -151,6 +155,14 @@ class GameState:
 
     def getPacmanPosition(self):
         return self.data.agentStates[0].getPosition()
+
+    def getPacmanDirection(self):
+        return self.data.agentStates[0].configuration.direction
+
+    def getGhostPosition(self, agentIndex):
+        if agentIndex == 0:
+            raise Exception("Pacman's index passed to getGhostPosition")
+        return self.data.agentStates[agentIndex].getPosition()
 
     def getGhostState(self, agentIndex):
         if agentIndex == 0 or agentIndex >= self.getNumAgents():
@@ -215,13 +227,14 @@ class GameState:
         """
         self.data.initialize(layout, numGhostAgents)
 
+
 ############################################################################
 #                     THE HIDDEN SECRETS OF PACMAN                         #
 #                                                                          #
 # You shouldn't need to look through the code in this section of the file. #
 ############################################################################
 
-SCARED_TIME = 40    # Moves ghosts are scared
+SCARED_TIME = 5  # in seconds
 COLLISION_TOLERANCE = 0.7  # How close ghosts must be to Pacman to kill
 TIME_PENALTY = 1  # Number of points lost each round
 
@@ -277,6 +290,7 @@ class PacmanRules:
         Returns a list of possible actions.
         """
         return Actions.getPossibleActions(state.getPacmanState().configuration, state.data.layout.walls)
+
     getLegalActions = staticmethod(getLegalActions)
 
     def applyAction(state, action):
@@ -300,6 +314,7 @@ class PacmanRules:
         if manhattanDistance(nearest, next) <= 0.5:
             # Remove food
             PacmanRules.consume(nearest, state)
+
     applyAction = staticmethod(applyAction)
 
     def consume(position, state):
@@ -316,18 +331,27 @@ class PacmanRules:
                 state.data.scoreChange += 500
                 state.data._win = True
         # Eat capsule
-        if(position in state.getCapsules()):
+        if position in state.getCapsules():
             state.data.capsules.remove(position)
             state.data._capsuleEaten = position
             # Reset all ghosts' scared timers
             for index in range(1, len(state.data.agentStates)):
-                state.data.agentStates[index].scaredTimer = SCARED_TIME
+                state.data.agentStates[index].overwrite_global_state("frightened", SCARED_TIME)
+                # =================== MY CODE ===================
+                state.data.agentStates[index].current_state = "frightened"
+                if state.data.agentStates[index].game_object is not None:
+                    state.data.agentStates[index].game_object.overwrite_global_state("frightened", SCARED_TIME)
+
+                # ================================================
+
     consume = staticmethod(consume)
 
 
 """
 NEURO 240: Check if modifying Ghost behavior or rules here will be useful as a kind of "modifying the transition function."
 """
+
+
 class GhostRules:
     """
     These functions dictate how ghosts interact with their environment.
@@ -339,30 +363,104 @@ class GhostRules:
         Ghosts cannot stop, and cannot turn around unless they
         reach a dead end, but can turn 90 degrees at intersections.
         """
-        conf = state.getGhostState(ghostIndex).configuration
-        possibleActions = Actions.getPossibleActions(
-            conf, state.data.layout.walls)
-        reverse = Actions.reverseDirection(conf.direction)
-        if Directions.STOP in possibleActions:
-            possibleActions.remove(Directions.STOP)
-        if reverse in possibleActions and len(possibleActions) > 1:
-            possibleActions.remove(reverse)
-        return possibleActions
+        # =================== MY CODE ===================
+        maze_data = utilities.layout_to_maze_data(state.data.layout)
+        inverted_position = utilities.invert_coords([(int(state.getGhostState(ghostIndex).configuration.getPosition()[0]),
+                                                      int(state.getGhostState(ghostIndex).configuration.getPosition()[1]))], state.data.layout.width,
+                                                    state.data.layout.height)[0]
+        direction = state.getGhostState(ghostIndex).configuration.getDirection()
+        my_actions = GhostRules.get_legal_actions(maze_data, inverted_position, direction)
+
+        # ================================================
+        # conf = state.getGhostState(ghostIndex).configuration
+        # possibleActions = Actions.getPossibleActions(
+        #     conf, state.data.layout.walls)
+        # reverse = Actions.reverseDirection(conf.direction)
+        # if Directions.STOP in possibleActions:
+        #     possibleActions.remove(Directions.STOP)
+        # if reverse in possibleActions and len(possibleActions) > 1:
+        #     possibleActions.remove(reverse)
+        # return possibleActions
+        return my_actions
+
     getLegalActions = staticmethod(getLegalActions)
+
+    def get_legal_actions(maze_data, int_position, direction):
+        """Return a list of legal actions for the ghost to take.
+        Rules:
+        1. Ghosts cannot turn around 180 degrees, unless there is no other option
+        2. Ghosts cannot move into a wall
+        3. Ghosts can move into the other side of the maze if they are at the edge of the maze
+        """
+        legal_actions = []
+        if int_position[1] - 1 >= 0:
+            top_position = (int_position[0], int_position[1] - 1)
+        else:
+            top_position = (int_position[0], len(maze_data) - 1)
+        if int_position[1] + 1 < len(maze_data):
+            bottom_position = (int_position[0], int_position[1] + 1)
+        else:
+            bottom_position = (int_position[0], 0)
+        if int_position[0] - 1 >= 0:
+            left_position = (int_position[0] - 1, int_position[1])
+        else:
+            left_position = (len(maze_data[0]) - 1, int_position[1])
+        if int_position[0] + 1 < len(maze_data[0]):
+            right_position = (int_position[0] + 1, int_position[1])
+        else:
+            right_position = (0, int_position[1])
+
+        if maze_data[top_position[1]][top_position[0]] != 1 and direction != Directions.SOUTH:
+            legal_actions.append(Directions.NORTH)
+        if maze_data[bottom_position[1]][bottom_position[0]] != 1 and direction != Directions.NORTH:
+            legal_actions.append(Directions.SOUTH)
+        if maze_data[left_position[1]][left_position[0]] != 1 and direction != Directions.EAST:
+            legal_actions.append(Directions.WEST)
+        if maze_data[right_position[1]][right_position[0]] != 1 and direction != Directions.WEST:
+            legal_actions.append(Directions.EAST)
+
+        # if no legal actions, attempt to reverse direction
+        if len(legal_actions) == 0:
+            if direction == Directions.NORTH and maze_data[bottom_position[1]][bottom_position[0]] != 1:
+                legal_actions.append(Directions.SOUTH)
+            elif direction == Directions.SOUTH and maze_data[top_position[1]][top_position[0]] != 1:
+                legal_actions.append(Directions.NORTH)
+            elif direction == Directions.EAST and maze_data[left_position[1]][left_position[0]] != 1:
+                legal_actions.append(Directions.WEST)
+            elif direction == Directions.WEST and maze_data[right_position[1]][right_position[0]] != 1:
+                legal_actions.append(Directions.EAST)
+
+        return legal_actions
+
+    get_legal_actions = staticmethod(get_legal_actions)
 
     def applyAction(state, action, ghostIndex):
 
         legal = GhostRules.getLegalActions(state, ghostIndex)
-        if action not in legal:
-            raise Exception("Illegal ghost action " + str(action))
+        # if action not in legal:
+        #     raise Exception("Illegal ghost action " + str(action))
 
         ghostState = state.data.agentStates[ghostIndex]
         speed = GhostRules.GHOST_SPEED
-        if ghostState.scaredTimer > 0:
-            speed /= 2.0
-        vector = Actions.directionToVector(action, speed)
+
+
+        # if action == Directions.NORTH:
+        #     ghostState.next_node = (int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]) - 1)
+        # elif action == Directions.SOUTH:
+        #     ghostState.next_node = (int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]) + 1)
+        # elif action == Directions.EAST:
+        #     ghostState.next_node = (int(ghostState.configuration.pos[0]) + 1, int(ghostState.configuration.pos[1]))
+        # elif action == Directions.WEST:
+        #     ghostState.next_node = (int(ghostState.configuration.pos[0]) - 1, int(ghostState.configuration.pos[1]))
+
+        my_action = action
+
+
+        # ghostState.previous_node = ghostState.configuration.getPosition()
+        vector = Actions.directionToVector(my_action, speed)
         ghostState.configuration = ghostState.configuration.generateSuccessor(
             vector)
+
     applyAction = staticmethod(applyAction)
 
     def decrementTimer(ghostState):
@@ -371,6 +469,7 @@ class GhostRules:
             ghostState.configuration.pos = nearestPoint(
                 ghostState.configuration.pos)
         ghostState.scaredTimer = max(0, timer - 1)
+
     decrementTimer = staticmethod(decrementTimer)
 
     def checkDeath(state, agentIndex):
@@ -386,6 +485,7 @@ class GhostRules:
             ghostPosition = ghostState.configuration.getPosition()
             if GhostRules.canKill(pacmanPosition, ghostPosition):
                 GhostRules.collide(state, ghostState, agentIndex)
+
     checkDeath = staticmethod(checkDeath)
 
     def collide(state, ghostState, agentIndex):
@@ -396,18 +496,22 @@ class GhostRules:
             # Added for first-person
             state.data._eaten[agentIndex] = True
         else:
-            if not state.data._win:
+            if not state.data._win and not utilities.invisibility_debug[0]:
                 state.data.scoreChange -= 500
                 state.data._lose = True
+
     collide = staticmethod(collide)
 
     def canKill(pacmanPosition, ghostPosition):
         return manhattanDistance(ghostPosition, pacmanPosition) <= COLLISION_TOLERANCE
+
     canKill = staticmethod(canKill)
 
     def placeGhost(state, ghostState):
         ghostState.configuration = ghostState.start
+
     placeGhost = staticmethod(placeGhost)
+
 
 #############################
 # FRAMEWORK TO START A GAME #
@@ -505,7 +609,7 @@ def readCommand(argv):
 
     # Choose a Pacman agent
     noKeyboard = options.gameToReplay == None and (
-        options.textGraphics or options.quietGraphics)
+            options.textGraphics or options.quietGraphics)
     pacmanType = loadAgent(options.pacman, noKeyboard)
     agentOpts = parseAgentArgs(options.agentArgs)
 
@@ -625,7 +729,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
     for i in range(numGames):
         beQuiet = i < numTraining
         if beQuiet:
-                # Suppress output and graphics
+            # Suppress output and graphics
             import textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
@@ -643,7 +747,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
             import time
             import pickle
             fname = ('recorded-game-%d' % (i + 1)) + \
-                '-'.join([str(t) for t in time.localtime()[1:6]])
+                    '-'.join([str(t) for t in time.localtime()[1:6]])
             f = file(fname, 'w')
             components = {'layout': layout, 'actions': game.moveHistory}
             pickle.dump(components, f)
@@ -661,6 +765,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
             [['Loss', 'Win'][int(w)] for w in wins])))
 
     return games
+
 
 if __name__ == '__main__':
     """

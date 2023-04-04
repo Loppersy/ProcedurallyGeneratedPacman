@@ -4,6 +4,8 @@
 NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all compared to the corresponding original Berkeley pacman file since the commit Tycho made was just pasting this code into the file.
 """
 import pygame
+
+import main
 import utilities
 
 from Ghost import Ghost
@@ -11,6 +13,7 @@ from PacmanOG import Pacman
 from Pellet import Pellet
 from PowerPellet import PowerPellet
 from Wall import Wall
+from main import global_state_stop_time, LEVEL_STATE_TIMES, FPS
 # game.py
 # -------
 # Licensing Information:  You are free to use or extend these projects for
@@ -135,8 +138,13 @@ class AgentState:
     """
     AgentStates hold the state of an agent (configuration, speed, scared, etc).
     """
+    GHOST_SPEED = 2.3
+    FRIGHTENED_SPEED = GHOST_SPEED * 0.7
+    DEAD_SPEED = GHOST_SPEED * 1.5
 
     def __init__(self, startConfiguration, isPacman):
+
+
         self.start = startConfiguration
         self.configuration = startConfiguration
         self.isPacman = isPacman
@@ -146,6 +154,177 @@ class AgentState:
 
         # =====================
         self.game_object = None
+        self.current_state = "scatter"  # scatter, chase, frightened, dead
+        self.global_state = None  # normal state for ghost when not frightened/dead
+        self.respawning = False
+        self.force_goal = None
+        self.goal = None
+        self.type = None
+        self.current_speed = 0
+        self.state_overwrite = False
+        self.overwrite_time = 0
+        self.overwrite_clock = 0
+        self.ghost_house = None
+        self.starting_position = startConfiguration.getPosition()
+        self.next_node = self.starting_position
+        self.previous_node = self.starting_position
+        self.reverse_direction = False
+        self.pivot = None
+        self.clyde_fleeing = False
+        self.is_permanent_overwrite = None
+
+    def get_goal(self):
+        if self.force_goal is not None:
+            return self.force_goal
+        else:
+            return self.goal
+
+    def set_force_goal(self, goal):
+        self.force_goal = goal
+        if self.game_object is not None:
+            self.game_object.set_force_goal(goal)
+
+    def set_goal(self, goal):
+        if self.game_object is not None:
+            self.game_object.set_goal(goal)
+        self.goal = goal
+
+    def update(self, pacman_configuration, blinky_position):
+        self.update_overwritten_state()
+
+        if self.respawning and not self.force_goal:
+            self.apply_speed(self.current_state)
+            self.respawning = False
+
+        # change ghosts goal depending on the state
+        if self.current_state == "spawnNOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO":
+            self.current_speed = self.speed * 0.7
+            self.spawn_clock += 1
+            ghost_house_entrance = self.ghost_house.get_entrance()
+            if self.spawn_clock >= self.time_to_spawn * self.fps and self.exit_house is False:
+                self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 3))
+                self.spawn_clock = 0
+                self.exit_house = True
+            elif self.movement_inside_house == "up" and self.force_goal is None:
+                if self.ghost_number == 1:
+                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 2))
+                elif self.ghost_number == 2:
+                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 2))
+                elif self.ghost_number == 3:
+                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 2))
+
+                self.movement_inside_house = "down"
+            elif self.movement_inside_house == "down" and self.force_goal is None:
+                if self.ghost_number == 1:
+                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 4))
+                elif self.ghost_number == 2:
+                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 4))
+                elif self.ghost_number == 3:
+                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 4))
+                self.movement_inside_house = "up"
+            if utilities.is_centered(self.float_position, self.force_goal) and self.exit_house:
+                self.set_force_goal(ghost_house_entrance)
+                self.stay_in_house = False
+                self.current_speed = self.speed * 0.5
+
+            if self.stay_in_house is False and self.next_node == ghost_house_entrance:
+                self.exit_house = False
+                self.exited_house = True
+                self.overwrite_global_state(self.global_state, 0)
+        elif self.current_state == "scatter":
+
+            if self.type == "blinky":
+                self.set_goal((31, 0))
+            elif self.type == "pinky":
+                self.set_goal((0, 0))
+            elif self.type == "inky":
+                self.set_goal((31, 31))
+            elif self.type == "clyde":
+                self.set_goal((0, 31))
+            else:
+                print("Error: ghost type not found when trying to scatter: " + self.type)
+                self.set_goal((0, 0))
+
+        elif self.current_state == "chase":
+            closest_pacman = utilities.invert_coords([pacman_configuration.getPosition()], 32, 32)[0]
+            pacman_direction = pacman_configuration.getDirection()
+            if pacman_direction == Directions.NORTH:
+                pacman_direction = "up"
+            elif pacman_direction == Directions.SOUTH:
+                pacman_direction = "down"
+            elif pacman_direction == Directions.EAST:
+                pacman_direction = "right"
+            elif pacman_direction == Directions.WEST:
+                pacman_direction = "left"
+            if self.type == "blinky":
+                self.set_goal(closest_pacman)
+
+            elif self.type == "pinky":
+                self.set_goal(closest_pacman)
+                if pacman_direction == "up":
+                    self.set_goal((self.goal[0], self.goal[1] - 4))
+                elif pacman_direction == "down":
+                    self.set_goal((self.goal[0], self.goal[1] + 4))
+                elif pacman_direction == "left":
+                    self.set_goal((self.goal[0] - 4, self.goal[1]))
+                elif pacman_direction == "right":
+                    self.set_goal((self.goal[0] + 4, self.goal[1]))
+            elif self.type == "inky":
+                self.pivot = closest_pacman
+                if pacman_direction == "up":
+                    self.pivot = (self.pivot[0], self.pivot[1] - 2)
+                elif pacman_direction == "down":
+                    self.pivot = (self.pivot[0], self.pivot[1] + 2)
+                elif pacman_direction == "left":
+                    self.pivot = (self.pivot[0] - 2, self.pivot[1])
+                elif pacman_direction == "right":
+                    self.pivot = (self.pivot[0] + 2, self.pivot[1])
+
+                # if no ghost to pivot is found, get a ghost's position from the same ghost house. If no ghost
+                # house is found, use a random ghost instead
+                # Set the goal by getting the vector from the pivot to the ghost and rotating it by 180 degrees
+                ghost_to_pivot_position = blinky_position
+                vector = (ghost_to_pivot_position[0] - self.pivot[0], ghost_to_pivot_position[1] - self.pivot[1])
+                vector = (vector[0] * -1, vector[1] * -1)
+                self.set_goal((self.pivot[0] + vector[0], self.pivot[1] + vector[1]))
+
+            elif self.type == "clyde":
+                if utilities.get_distance(self.configuration.getPosition()[0], self.configuration.getPosition()[1], closest_pacman[0],
+                                          closest_pacman[1], False) > 8 * main.SCALE:
+                    self.set_goal(closest_pacman)
+                    self.clyde_fleeing = False
+                else:
+                    self.set_goal((0, 31))
+                    self.clyde_fleeing = True
+
+        elif self.current_state == "frightened":
+            self.set_goal(None)
+        elif self.current_state == "dead":
+            if self.ghost_house is not None:
+                self.set_goal(self.ghost_house.get_entrance())
+                # entrance_int_pos = self.set_goal()
+            else:
+                self.set_goal(self.starting_position)
+                # entrance_int_pos = self.set_goal()
+
+            # if self.force_goal is None \
+            #         and self.int_pos[0] == entrance_int_pos[0] \
+            #         and self.int_pos[1] == entrance_int_pos[1]:
+            #     if self.ghost_house is not None:
+            #         self.set_force_goal((self.goal[0], self.goal[1] + 3))
+            #     else:
+            #         self.set_force_goal((self.goal[0], self.goal[1]))
+            #
+            # elif utilities.is_centered(float_position, self.force_goal):
+            #     self.is_permanent_overwrite = False
+            #     self.set_force_goal(entrance_int_pos)
+            #     self.switch_state(self.global_state)
+            #     self.respawning = True
+            #     self.current_speed = self.speed * 0.5
+
+        if self.force_goal is not None:
+            if utilities.is_centered(self.configuration.getPosition(), self.force_goal):
+                self.force_goal = None
 
     def set_game_object(self, game_object):
         self.game_object = game_object
@@ -166,12 +345,111 @@ class AgentState:
         state.numReturned = self.numReturned
         # =====================
         state.game_object = self.game_object
+        state.current_state = self.current_state  # scatter, chase, frightened, dead
+        state.global_state = self.global_state  # normal state for ghost when not frightened/dead
+        state.respawning = self.respawning
+        state.force_goal = self.force_goal
+        state.goal = self.goal
+        state.type = self.type
+        state.current_speed = self.current_speed
+        state.state_overwrite = self.state_overwrite
+        state.overwrite_time = self.overwrite_time
+        state.overwrite_clock = self.overwrite_clock
+        state.ghost_house = self.ghost_house
+        state.starting_position = self.starting_position
+        state.next_node = self.next_node
+        state.previous_node = self.previous_node
+        state.starting_position = self.starting_position
+        state.reverse_direction = self.reverse_direction
+        state.pivot = self.pivot
+        state.clyde_fleeing = self.clyde_fleeing
         return state
 
     def getPosition(self):
         if self.configuration == None:
             return None
         return self.configuration.getPosition()
+
+    def apply_speed(self, current_state):
+        if current_state == "frightened":
+            self.current_speed = self.FRIGHTENED_SPEED
+        elif current_state == "dead":
+            self.current_speed = self.DEAD_SPEED
+        else:
+            self.current_speed = self.GHOST_SPEED
+
+    def update_overwritten_state(self):
+        if not self.state_overwrite:
+            self.switch_state(self.global_state)
+            return self.overwrite_time - self.overwrite_clock
+
+        self.overwrite_clock += 1
+        print(self.overwrite_clock, self.overwrite_time)
+        if self.overwrite_clock >= self.overwrite_time and not self.is_permanent_overwrite:
+
+            self.state_overwrite = False
+            self.switch_state(self.global_state)
+            return self.overwrite_time - self.overwrite_clock
+
+        return self.overwrite_time - self.overwrite_clock
+
+    def overwrite_global_state(self, state, state_time):
+        self.switch_state(state)
+        self.state_overwrite = True
+        self.overwrite_clock = 0
+        if state_time == -1:
+            self.is_permanent_overwrite = True
+        else:
+            self.is_permanent_overwrite = False
+            self.overwrite_time = state_time * main.FPS
+
+    def switch_state(self, ghost_state):
+        if ghost_state is None or (ghost_state == "frightened" and self.current_state == "dead"):
+            # or (
+            #     self.exited_house is False and self.current_state == "spawn"):
+            return False
+        if ghost_state == self.current_state:  # reapply some ghost_state specific things
+            self.apply_speed(ghost_state)
+            # if ghost_state == "frightened":
+            #     self.flash_timer = pygame.time.get_ticks()
+            #     self.flash_last_update = pygame.time.get_ticks()
+            return False
+        self.current_state = ghost_state
+        # switch the ghost to a ghost_state
+        if ghost_state == "dead":
+            utilities.set_stop_time(0.5)
+            self.game_object.overwrite_global_state("dead", -1) if self.game_object is not None else None
+            # self.current_image = 3
+            # self.my_image = pygame.transform.scale(self.images[self.current_image],
+            #                                        (self.scale * self.image_scale, self.scale * self.image_scale))
+            # utilities.add_sfx_to_queue("eat_ghost.wav")
+        elif ghost_state == "frightened":
+            # reverse ghosts current direction
+            self.turn_around()
+            self.game_object.overwrite_global_state("frightened", -1) if self.game_object is not None else None
+
+            # self.current_image = 0
+            # self.my_image = pygame.transform.scale(self.frightened_images[self.current_image],
+            #                                        (self.scale * self.image_scale, self.scale * self.image_scale))
+            # self.flash_timer = pygame.time.get_ticks()
+            # self.flash_last_update = pygame.time.get_ticks()
+        elif ghost_state == "chase" or ghost_state == "scatter":
+            self.turn_around()
+            self.game_object.overwrite_global_state("chase", -1) if self.game_object is not None else None
+
+        self.apply_speed(ghost_state)
+        return True
+
+    def turn_around(self):
+        if self.force_goal:
+            return
+
+        # self.configuration.direction = Directions.REVERSE[self.configuration.direction]
+        # temp = self.next_node
+        # self.next_node = self.previous_node
+        # self.previous_node = temp
+        # self.configuration.position = self.previous_node
+        # self.reverse_direction = True
 
 
 class Grid:
@@ -404,6 +682,15 @@ class GameStateData:
                     numGhosts += 1
             self.agentStates.append(AgentState(
                 Configuration(pos, Directions.STOP), isPacman))
+            if not isPacman:
+                if numGhosts % 4 + 1 == 1:
+                    self.agentStates[numGhosts].type = "blinky"
+                elif numGhosts % 4 + 1 == 2:
+                    self.agentStates[numGhosts].type = "pinky"
+                elif numGhosts % 4 + 1 == 3:
+                    self.agentStates[numGhosts].type = "inky"
+                elif numGhosts % 4 + 1 == 4:
+                    self.agentStates[numGhosts].type = "clyde"
         self._eaten = [False for a in self.agentStates]
 
 
@@ -589,9 +876,25 @@ class Game:
 
         numAgents = len(self.agents)
         clock = pygame.time.Clock()
+        current_tim = 0
+        current_level = 0
+        stop_time_clock = 0  # To keep track of the time when the time is stopped
         while not self.gameOver:
             # ==================== MY CODE ====================
             clock.tick(self.FPS) if not self.display.checkNullDisplay() else None  # limit the game to 60 FPS if display is active
+
+            if len(global_state_stop_time) > 0:
+                global_state_stop_time[0] = (global_state_stop_time[0][0] + 1, global_state_stop_time[0][1])
+                if global_state_stop_time[0][0] >= global_state_stop_time[0][1] * FPS:
+                    global_state_stop_time.pop(0)
+            else:
+                current_tim += 1
+            if current_level == 0:
+                self.update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, self.state.data.agentStates[1:])
+            elif 0 < current_level < 4:
+                self.update_states(LEVEL_STATE_TIMES[1], current_tim / FPS, self.state.data.agentStates[1:])
+            else:
+                self.update_states(LEVEL_STATE_TIMES[2], current_tim / FPS, self.state.data.agentStates[1:])
 
             for agentIndex in range(numAgents):
                 if self.gameOver:
@@ -602,123 +905,52 @@ class Game:
                 agent = self.agents[agentIndex]
                 move_time = 0
                 skip_action = False
+                if not utilities.get_stop_time() or self.display.checkNullDisplay():  # stop time for that nice effect
+                    # ==================== MY CODE ====================
+                    # Move agent to the direction it is facing
+                    # State observations and actions happen once the agent reaches the center of the tile
 
-                # ==================== MY CODE ====================
-                # Move agent to the direction it is facing
-                # State observations and actions happen once the agent reaches the center of the tile
+                    if agentIndex > 0:  # update ghost specific things
+                        self.state.data.agentStates[agentIndex].scaredTimer -= 1
+                        self.state.data.agentStates[agentIndex].update(self.state.data.agentStates[0].configuration,
+                                                                       self.state.data.agentStates[1].configuration.getPosition())
+                    self.move_agent_forward(self.state.data.agentStates[agentIndex]) if not self.display.checkNullDisplay() else None
 
-                self.move_agent_forward(self.state.data.agentStates[agentIndex]) if not self.display.checkNullDisplay() else None
-                if self.display.checkNullDisplay() or (self.isInCenter(self.state.data.agentStates[agentIndex].game_object)):
-                    # Generate an observation of the state
-                    if 'observationFunction' in dir(agent):
-                        self.mute(agentIndex)
-                        if self.catchExceptions:
-                            try:
-                                timed_func = TimeoutFunction(agent.observationFunction, int(
-                                    self.rules.getMoveTimeout(agentIndex)))
-                                try:
-                                    start_time = time.time()
-                                    observation = timed_func(self.state.deepCopy())
-                                except TimeoutFunctionException:
-                                    skip_action = True
-                                move_time += time.time() - start_time
-                                self.unmute()
-                            except Exception(data):
-                                self._agentCrash(agentIndex, quiet=False)
-                                self.unmute()
-                                return
-                        else:
-                            observation = agent.observationFunction(
-                                self.state.deepCopy())
-                        self.unmute()
-                    else:
-                        observation = self.state.deepCopy()
-
-                    # Solicit an action
-                    action = None
-                    self.mute(agentIndex)
-                    if self.catchExceptions:
-                        try:
-                            timed_func = TimeoutFunction(agent.getAction, int(
-                                self.rules.getMoveTimeout(agentIndex)) - int(move_time))
-                            try:
-                                start_time = time.time()
-                                if skip_action:
-                                    raise TimeoutFunctionException()
-                                action = timed_func(observation)
-                            except TimeoutFunctionException:
-                                print("Agent %d timed out on a single move!" %
-                                      agentIndex, file=sys.stderr)
-                                self.agentTimeout = True
-                                self._agentCrash(agentIndex, quiet=True)
-                                self.unmute()
-                                return
-
-                            move_time += time.time() - start_time
-
-                            if move_time > self.rules.getMoveWarningTime(agentIndex):
-                                self.totalAgentTimeWarnings[agentIndex] += 1
-                                print("Agent %d took too long to make a move! This is warning %d" % (
-                                    agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
-                                if self.totalAgentTimeWarnings[agentIndex] > self.rules.getMaxTimeWarnings(agentIndex):
-                                    print("Agent %d exceeded the maximum number of warnings: %d" % (
-                                        agentIndex, self.totalAgentTimeWarnings[agentIndex]), file=sys.stderr)
-                                    self.agentTimeout = True
-                                    self._agentCrash(agentIndex, quiet=True)
-                                    self.unmute()
-                                    return
-
-                            self.totalAgentTimes[agentIndex] += move_time
-                            # print "Agent: %d, time: %f, total: %f" % (agentIndex,
-                            # move_time, self.totalAgentTimes[agentIndex])
-                            if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):
-                                print("Agent %d ran out of time! (time: %1.2f)" % (
-                                    agentIndex, self.totalAgentTimes[agentIndex]), file=sys.stderr)
-                                self.agentTimeout = True
-                                self._agentCrash(agentIndex, quiet=True)
-                                self.unmute()
-                                return
-                            self.unmute()
-                        except Exception(data):
-                            self._agentCrash(agentIndex)
-                            self.unmute()
-                            return
-                    else:
-                        action = agent.getAction(observation)
-                    self.unmute()
-
-                    # Execute the action
-                    self.moveHistory.append((agentIndex, action))
-                    if self.catchExceptions:
-                        try:
-                            self.state = self.state.generateSuccessor(
-                                agentIndex, action)
-                        except Exception(data):
+                    if self.display.checkNullDisplay() or (
+                            self.isInCenter(self.state.data.agentStates[agentIndex].game_object) and self.isAgentAndObjectTogether(
+                        self.state.data.agentStates[agentIndex], self.state.data.layout.width, self.state.data.layout.height)):
+                        # Generate an observation of the state
+                        if 'observationFunction' in dir(agent):
                             self.mute(agentIndex)
-                            self._agentCrash(agentIndex)
+                            observation = agent.observationFunction(self.state.deepCopy())
                             self.unmute()
-                            return
-                    else:
+                        else:
+                            observation = self.state.deepCopy()
+
+                        # Solicit an action
+                        self.mute(agentIndex)
+                        action = agent.getAction(observation)
+                        self.unmute()
+
+                        # Execute the action
+                        self.moveHistory.append((agentIndex, action))
                         self.state = self.state.generateSuccessor(agentIndex, action)
 
-                    ###idx = agentIndex - agentIndex % 2 + 1
-                    ###self.display.update( self.state.makeObservation(idx).data )
+                        # Allow for game specific conditions (winning, losing, etc.)
+                        self.rules.process(self.state, self)
 
-                    # Allow for game specific conditions (winning, losing, etc.)
-                    self.rules.process(self.state, self)
+                    # if game_over[0]:
+                    #     draw_ghosts[0] = False
+                    #     for bonus_fruit in bonus_fruits:
+                    #         bonus_fruit.despawn_fruit()
+                else:
+                    stop_time_clock += 1
+                    if stop_time_clock >= utilities.get_stop_time() * FPS:
+                        utilities.set_stop_time(0)
+                        stop_time_clock = 0
 
                 # # Change the display
                 self.display.update(self.state.data, self.sprite_groups)
-            # Next agent
-            # agentIndex = (agentIndex + 1) % numAgents
-
-            if not self.display.checkNullDisplay() and self.gameOver:
-                pass
-                # # Continue to move agents to the direction they are facing until they reach the center of the tile
-                # while not self.areGhostAndPacmanTouching(self.state.data.agentStates) and self.agents is False:
-                #     for agentIndex in range(numAgents):
-                #         self.move_agent_forward(self.state.data.agentStates[agentIndex], forceMovement=True)
-                #         self.display.update(self.state.data, self.sprite_groups)
 
         # inform a learning agent of the game result
         for agentIndex, agent in enumerate(self.agents):
@@ -802,7 +1034,7 @@ class Game:
         position_float = utilities.get_position_in_maze_float(game_object.get_pos()[0], game_object.get_pos()[1], game_object.scale,
                                                               game_object.window_width,
                                                               game_object.window_height)
-        min_threshold = (.05, .05)
+        min_threshold = (.07, .07)
         centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
 
         return centerness[0] < min_threshold[0] and centerness[1] < min_threshold[1]
@@ -822,3 +1054,28 @@ class Game:
             if utilities.get_distance(pacman.get_pos()[0], pacman.get_pos()[1], ghost.get_pos()[0], ghost.get_pos()[1]) < pacman.scale / 2:
                 return True
         return False
+
+    def isAgentAndObjectTogether(self, agentState, width, height):
+        """Returns true if the agent and object are in the same tile to avoid multiple actions in the same tile."""
+        game_object = agentState.game_object
+        agentState_pos = utilities.invert_coords([agentState.configuration.getPosition()], width, height)[0]
+        game_object_pos = game_object.get_int_pos()
+        return agentState_pos[0] == game_object_pos[0] and agentState_pos[1] == game_object_pos[1]
+
+    def update_states(self, level_times, current_time, ghost_states):
+        state = "scatter"
+        time = level_times[0][1]
+
+        for i in range(len(level_times)):
+            if current_time < time:
+                state = level_times[i][0]
+                break
+
+            if i != len(level_times) - 1 or level_times[i][1] != -1:
+                time += level_times[i + 1][1]
+            else:
+                state = level_times[i][0]
+                break
+
+        for ghost_state in ghost_states:
+            ghost_state.global_state = state

@@ -11,9 +11,11 @@ highlighted_tiles = []  # list of tiles to be highlighted, each element is a tup
 sfx_queue = []  # list of sfx to be played
 munch = [False]
 
+stop_time = [0]
+
 regenerate_maze = [True]
 AStarMode = [True]
-draw_paths = [True]
+draw_paths = [False]
 power_pellet_debug = [False]
 invisibility_debug = [False]
 new_maze = [True]  # Hit R to load a new maze
@@ -137,7 +139,6 @@ def get_occurrences_in_maze(maze_data, object_to_find):
     return occurrences
 
 
-stop_time = [0]
 
 
 def set_stop_time(var):
@@ -213,7 +214,7 @@ def get_movement_direction(old_pos, logic_pos):
 def layout_to_maze_data(layout):
 
     width, height = layout.width, layout.height
-    pellets = layout.food
+    pellets = layout.food.data
     walls = layout.walls
     power_pellets = layout.capsules
     maze_data = [[0 for _ in range(width)] for _ in range(height)]
@@ -221,7 +222,7 @@ def layout_to_maze_data(layout):
         for j in range(height):
             if walls[i][j]:
                 maze_data[height - j - 1][i] = 1
-            elif (i, j) in pellets:
+            elif pellets[i][j]:
                 maze_data[height - j - 1][i] = 2
             elif (i, j) in power_pellets:
                 maze_data[height - j - 1][i] = 3

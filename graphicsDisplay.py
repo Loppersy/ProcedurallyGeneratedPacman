@@ -283,6 +283,8 @@ class PacmanGraphics:
     def startGraphics(self, state):
         # ==================== MY CODE ====================
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        self.sfx_handler.initialize()
+
         self.ui_handler = UIHandler(self.SCALE, self.WIDTH, self.HEIGHT, self.FPS, self.lives, 0, self.sfx_handler, self.UI_IMAGES, self.BONUS_FRUIT)
         # ==================== End of MY CODE ====================
 
@@ -293,6 +295,8 @@ class PacmanGraphics:
         # self.make_window(self.width, self.height)
         # self.infoPane = InfoPane(layout, self.gridSize)
         self.currentState = layout
+        self.maze_data = utilities.layout_to_maze_data(layout)
+        self.og_pellet_count = len(utilities.get_occurrences_in_maze(self.maze_data, 2))
 
     def drawStaticObjects(self, state):
         layout = self.layout
@@ -364,7 +368,45 @@ class PacmanGraphics:
         self.ui_handler.update(cursor_click_pos, cursor_hover_pos, self.lives, utilities.high_score[0],utilities.current_score[0], self.current_level)
         self.ui_handler.draw(self.screen)
 
+        self.update_music(self.sfx_handler, self.maze_data, self.og_pellet_count, self.sprite_groups[4], (newState._win or newState._lose))
+
         pygame.display.update()
+
+    def update_music(self, sfx_handler, maze_data, og_pellets_count, ghosts, game_over):
+        if not utilities.SFX_and_Music[0]:
+            sfx_handler.stop_music()
+            return
+        sfx_handler.play_sfx(utilities.get_next_sfx())
+        if game_over:
+            sfx_handler.stop_music()
+            return
+
+        current_state = None
+        for ghost in ghosts:
+            if ghost.get_state() == "dead" and ghost.is_enabled():
+                current_state = "dead"
+
+            if ghost.get_state() == "frightened" and current_state != "dead" and ghost.is_enabled():
+                current_state = "frightened"
+
+        if current_state == "dead":
+            sfx_handler.play_music("retreating.wav")
+            return
+        elif current_state == "frightened":
+            sfx_handler.play_music("power_pellet.wav")
+            return
+
+        pellets_left = len(utilities.get_occurrences_in_maze(maze_data, 2))
+        if pellets_left / og_pellets_count > 0.8:
+            sfx_handler.play_music("siren_1.wav")
+        elif pellets_left / og_pellets_count > 0.6:
+            sfx_handler.play_music("siren_2.wav")
+        elif pellets_left / og_pellets_count > 0.4:
+            sfx_handler.play_music("siren_3.wav")
+        elif pellets_left / og_pellets_count > 0.2:
+            sfx_handler.play_music("siren_4.wav")
+        else:
+            sfx_handler.play_music("siren_5.wav")
 
     def make_window(self, width, height):
         grid_width = (width - 1) * self.gridSize

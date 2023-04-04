@@ -284,7 +284,7 @@ class PacmanDQN(game.Agent):
 
             for agentState in state.data.agentStates:
                 if not agentState.isPacman:
-                    if not agentState.scaredTimer > 0:
+                    if not agentState.scaredTimer > 0 and not agentState.current_state == "dead" and not agentState.current_state == "frightened":
                         pos = agentState.configuration.getPosition()
                         cell = 1
                         matrix[-1 - int(pos[1])][int(pos[0])] = cell

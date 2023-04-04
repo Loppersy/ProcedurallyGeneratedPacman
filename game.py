@@ -370,6 +370,8 @@ class AgentState:
         state.reverse_direction = self.reverse_direction
         state.pivot = self.pivot
         state.clyde_fleeing = self.clyde_fleeing
+        state.is_permanent_overwrite = self.is_permanent_overwrite
+        state.path = self.path
         return state
 
     def getPosition(self):
@@ -391,7 +393,6 @@ class AgentState:
             return self.overwrite_time - self.overwrite_clock
 
         self.overwrite_clock += 1
-        print(self.overwrite_clock, self.overwrite_time)
         if self.overwrite_clock >= self.overwrite_time and not self.is_permanent_overwrite:
 
             self.state_overwrite = False
@@ -424,7 +425,7 @@ class AgentState:
         self.current_state = ghost_state
         # switch the ghost to a ghost_state
         if ghost_state == "dead":
-            utilities.set_stop_time(0.5)
+            # utilities.set_stop_time(1)
             self.game_object.overwrite_global_state("dead", -1) if self.game_object is not None else None
             # self.current_image = 3
             # self.my_image = pygame.transform.scale(self.images[self.current_image],

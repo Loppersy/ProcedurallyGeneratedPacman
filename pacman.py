@@ -322,6 +322,7 @@ class PacmanRules:
         # Eat food
         if state.data.food[x][y]:
             state.data.scoreChange += 10
+            utilities.add_sfx_to_queue("munch")
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
@@ -334,6 +335,7 @@ class PacmanRules:
         if position in state.getCapsules():
             state.data.capsules.remove(position)
             state.data._capsuleEaten = position
+            utilities.add_sfx_to_queue("munch")
             # Reset all ghosts' scared timers
             for index in range(1, len(state.data.agentStates)):
                 state.data.agentStates[index].scaredTimer = SCARED_TIME * main.FPS
@@ -497,7 +499,8 @@ class GhostRules:
             # GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             ghostState.overwrite_global_state("dead", -1)
-            # utilities.add_sfx_to_queue("ghost_eaten.wav")
+            main.global_state_stop_time
+            utilities.add_sfx_to_queue("ghost_eaten.wav")
 
         elif ghostState.current_state == "chase" or ghostState.current_state == "scatter":
             if not state.data._win and not utilities.invisibility_debug[0]:

@@ -47,3 +47,7 @@ class SFXHandler:
 
         self.current_music = None
 
+    def initialize(self):
+        pygame.mixer.init()
+
+

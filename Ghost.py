@@ -998,11 +998,11 @@ class Ghost(pygame.sprite.Sprite):
         self.state = state
         # switch the ghost to a state
         if state == "dead":
-            utilities.set_stop_time(0.5)
             self.current_image = 3
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
             utilities.add_sfx_to_queue("eat_ghost.wav")
+            utilities.set_stop_time(1)
         elif state == "frightened":
             # reverse ghosts current direction
             self.turn_around()

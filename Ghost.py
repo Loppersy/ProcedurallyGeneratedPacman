@@ -424,6 +424,10 @@ class Ghost(pygame.sprite.Sprite):
         self.draw_goal(color, screen)
         self.draw_forced_goal(color, screen)
 
+
+    def set_path(self, path):
+        self.current_path = path
+
     def draw_lines_in_path(self, color, maze_data, offset, screen, path_to_draw):
         if path_to_draw is None or len(path_to_draw) < 0:
             return

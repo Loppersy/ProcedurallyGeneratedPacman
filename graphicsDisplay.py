@@ -266,6 +266,18 @@ class PacmanGraphics:
         # for bonus_fruit in self.sprite_groups[4]:
         #     bonus_fruit.my_draw(self.screen)
 
+        if utilities.draw_highlighted_tiles[0]:
+            size = 5
+            last_color = None
+            for int_pos in utilities.highlighted_tiles:
+                window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], main.SCALE, main.WIDTH, main.HEIGHT)
+                pygame.draw.rect(self.screen, int_pos[1],
+                                 (window_pos[0] + main.SCALE / 2 - size / 2, window_pos[1] + main.SCALE / 2 - size / 2, size, size),
+                                 2)
+                if last_color is not None and last_color != int_pos[1] or size > main.SCALE:
+                    size = 5
+                last_color = int_pos[1]
+                size += 1
         # pygame.display.update()
 
     def startGraphics(self, state):

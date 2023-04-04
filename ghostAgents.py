@@ -99,23 +99,24 @@ class AStarGhost(GhostAgent):
 
             path = [start, next_node]
 
-        if len(path) > 1:
-            # if the ghost is at the goal, but there are other possible paths, pick one of them randomly
-            if path[0] == path[1]:
-                legal = state.getLegalActions(self.index)
-                if len(legal) > 0:
-                    choice = random.choice(legal)
-                    next_node = None
-                    if choice == Directions.NORTH:
-                        next_node = (start[0], start[1] - 1)
-                    elif choice == Directions.SOUTH:
-                        next_node = (start[0], start[1] + 1)
-                    elif choice == Directions.EAST:
-                        next_node = (start[0] + 1, start[1])
-                    elif choice == Directions.WEST:
-                        next_node = (start[0] - 1, start[1])
-                    path = [start, next_node]
 
+        # if the ghost is at the goal, but there are other possible paths, pick one of them randomly
+        if len(path) == 1 or path[0] == path[1]:
+            legal = state.getLegalActions(self.index)
+            if len(legal) > 0:
+                choice = random.choice(legal)
+                next_node = None
+                if choice == Directions.NORTH:
+                    next_node = (start[0], start[1] - 1)
+                elif choice == Directions.SOUTH:
+                    next_node = (start[0], start[1] + 1)
+                elif choice == Directions.EAST:
+                    next_node = (start[0] + 1, start[1])
+                elif choice == Directions.WEST:
+                    next_node = (start[0] - 1, start[1])
+                path = [start, next_node]
+        if len(path) > 1:
+            state.getGhostState(self.index).set_path(path)
             next_step = path[1]
             if next_step[0] == start[0] - 1:
                 direction = Directions.WEST
@@ -128,7 +129,9 @@ class AStarGhost(GhostAgent):
             else:
                 direction = Directions.STOP
 
-        # Construct distribution
+        # Construct distribution and update "previous_node" in ghost state
+        state.getGhostState(self.index).previous_node = start
+        # utilities.add_highlighted_tile(start, (255, 0, 0)) if utilities.invisibility_debug[0] else None
         dist = util.Counter()
         dist[direction] = 1.0
         return dist

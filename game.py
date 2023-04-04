@@ -172,12 +172,18 @@ class AgentState:
         self.pivot = None
         self.clyde_fleeing = False
         self.is_permanent_overwrite = None
+        self.path = None
 
     def get_goal(self):
         if self.force_goal is not None:
             return self.force_goal
         else:
             return self.goal
+
+    def set_path(self, path):
+        self.path = path
+        if self.game_object is not None:
+            self.game_object.set_path(path)
 
     def set_force_goal(self, goal):
         self.force_goal = goal
@@ -290,7 +296,7 @@ class AgentState:
 
             elif self.type == "clyde":
                 if utilities.get_distance(self.configuration.getPosition()[0], self.configuration.getPosition()[1], closest_pacman[0],
-                                          closest_pacman[1], False) > 8 * main.SCALE:
+                                          closest_pacman[1], False) > 8:
                     self.set_goal(closest_pacman)
                     self.clyde_fleeing = False
                 else:

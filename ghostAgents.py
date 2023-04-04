@@ -130,7 +130,7 @@ class AStarGhost(GhostAgent):
                 direction = Directions.STOP
 
         # Construct distribution and update "previous_node" in ghost state
-        state.getGhostState(self.index).previous_node = start
+        # state.getGhostState(self.index).previous_node = start
         # utilities.add_highlighted_tile(start, (255, 0, 0)) if utilities.invisibility_debug[0] else None
         dist = util.Counter()
         dist[direction] = 1.0

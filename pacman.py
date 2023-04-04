@@ -443,7 +443,6 @@ class GhostRules:
         ghostState = state.data.agentStates[ghostIndex]
         speed = GhostRules.GHOST_SPEED
 
-
         # if action == Directions.NORTH:
         #     ghostState.next_node = (int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]) - 1)
         # elif action == Directions.SOUTH:
@@ -455,8 +454,11 @@ class GhostRules:
 
         my_action = action
 
+        ghostState.previous_node = \
+            utilities.invert_coords([(int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]))], state.data.layout.width,
+                                    state.data.layout.height)[0]
+        utilities.add_highlighted_tile(ghostState.previous_node, (255, 0, 0)) if utilities.invisibility_debug[0] else None
 
-        # ghostState.previous_node = ghostState.configuration.getPosition()
         vector = Actions.directionToVector(my_action, speed)
         ghostState.configuration = ghostState.configuration.generateSuccessor(
             vector)

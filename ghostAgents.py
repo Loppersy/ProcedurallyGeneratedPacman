@@ -22,13 +22,13 @@ from game import Actions
 from game import Directions
 import random
 
-
 from util import manhattanDistance
 import util
 
 """
 NEURO 240: Check if using or modifying Ghost agends here will be useful as a kind of "modifying the transition function." Spandan said we shouldn't start with this though, instead we should just experiment with really simple changes to ghost behavior, like not allowing ghosts to move in a certain direction (ex: can't move one of left, right, up, or down).
 """
+
 
 class GhostAgent(Agent):
 
@@ -60,6 +60,7 @@ class RandomGhost(GhostAgent):
 
 class AStarGhost(GhostAgent):
     """A ghost that uses A* search to find the shortest path to Pacman."""
+
     def __init__(self, index, prob_attack=0.8, prob_scaredFlee=0.8):
         self.index = index
         self.prob_attack = prob_attack
@@ -84,7 +85,7 @@ class AStarGhost(GhostAgent):
             path = self.path_finder.get_path(node_start, node_goal, [[0 for _ in range(32)] for _ in range(32)])
         elif state.getGhostState(self.index).goal is not None:
             path = self.path_finder.get_path(node_start, node_goal, maze_data, blocked_positions=[state.getGhostState(self.index).previous_node])
-        else: # if no goal is set, pick a valid direction randomly
+        else:  # if no goal is set, pick a valid direction randomly
             legal = state.getLegalActions(self.index)
             choice = random.choice(legal)
             next_node = None
@@ -98,7 +99,6 @@ class AStarGhost(GhostAgent):
                 next_node = (start[0] - 1, start[1])
 
             path = [start, next_node]
-
 
         # if the ghost is at the goal, but there are other possible paths, pick one of them randomly
         if len(path) == 1 or path[0] == path[1]:
@@ -115,16 +115,18 @@ class AStarGhost(GhostAgent):
                 elif choice == Directions.WEST:
                     next_node = (start[0] - 1, start[1])
                 path = [start, next_node]
+
         if len(path) > 1:
             state.getGhostState(self.index).set_path(path)
             next_step = path[1]
-            if next_step[0] == start[0] - 1:
+            # get the direction of the next step, taking into account that ghost can teleport to the other side of the maze if it is at the edge
+            if next_step[0] == start[0] - 1 or (next_step[0] == state.data.layout.width - 1 and start[0] == 0):
                 direction = Directions.WEST
-            elif next_step[0] == start[0] + 1:
+            elif next_step[0] == start[0] + 1 or (next_step[0] == 0 and start[0] == state.data.layout.width - 1):
                 direction = Directions.EAST
-            elif next_step[1] == start[1] - 1:
+            elif next_step[1] == start[1] - 1 or (next_step[1] == state.data.layout.height - 1 and start[1] == 0):
                 direction = Directions.NORTH
-            elif next_step[1] == start[1] + 1:
+            elif next_step[1] == start[1] + 1 or (next_step[1] == 0 and start[1] == state.data.layout.height - 1):
                 direction = Directions.SOUTH
             else:
                 direction = Directions.STOP
@@ -156,8 +158,7 @@ class DirectionalGhost(GhostAgent):
         if isScared:
             speed = 0.5
 
-        actionVectors = [Actions.directionToVector(
-            a, speed) for a in legalActions]
+        actionVectors = [Actions.directionToVector(a, speed) for a in legalActions]
         newPositions = [(pos[0] + a[0], pos[1] + a[1]) for a in actionVectors]
         pacmanPosition = state.getPacmanPosition()
 

@@ -20,6 +20,7 @@ from game import Grid
 import os
 import random
 from functools import reduce
+from PIL import Image
 
 VISIBILITY_MATRIX_CACHE = {}
 
@@ -29,7 +30,7 @@ class Layout:
     A Layout manages the static information about the game board.
     """
 
-    def __init__(self, layoutText):
+    def __init__(self, layoutText, maze_data=None):
         self.width = len(layoutText[0])
         self.height = len(layoutText)
         self.walls = Grid(self.width, self.height, False)
@@ -67,7 +68,7 @@ class Layout:
                 layoutChar = layoutText[maxY - y][x]
                 self.processLayoutChar(x, y, layoutChar)
         self.agentPositions.sort()
-        self.agentPositions = [(i == 0, pos) for i, pos in self.agentPositions]
+        self.agentPositions = [(i == 0, pos, ghost_h) for i, pos, ghost_h in self.agentPositions]
 
     def processLayoutChar(self, x, y, layoutChar):
         if layoutChar == '%':
@@ -77,13 +78,24 @@ class Layout:
         elif layoutChar == 'o':
             self.capsules.append((x, y))
         elif layoutChar == 'P':
-            self.agentPositions.append((0, (x, y)))
+            self.agentPositions.append((0, (x, y), None))
         elif layoutChar in ['G']:
-            self.agentPositions.append((1, (x, y)))
+            self.agentPositions.append((1, (x, y), None))
             self.numGhosts += 1
         elif layoutChar in ['1', '2', '3', '4']:
-            self.agentPositions.append((int(layoutChar), (x, y)))
+            self.agentPositions.append((int(layoutChar), (x, y), None))
             self.numGhosts += 1
+        elif layoutChar == 'H':
+            self.walls[x][y] = True
+            self.numGhosts += 4
+            self.agentPositions.append((1, (x + 5, y - 2), (x + 3, y + 1)))  # Ghost, starting position, Ghost house entrance
+            self.agentPositions.append((1, (x + 1, y - 2), (x + 3, y + 1)))
+            self.agentPositions.append((1, (x + 3, y - 2), (x + 3, y + 1)))
+            self.agentPositions.append((1, (x + 3, y + 1), (x + 3, y + 1)))
+
+
+
+
 
 
 def getLayout(name, back=2):
@@ -91,6 +103,10 @@ def getLayout(name, back=2):
         layout = tryToLoad('layouts/' + name)
         if layout == None:
             layout = tryToLoad(name)
+    elif name.endswith('.png'):
+        layout = tryToLoadImage('assets/' + name)
+        if layout == None:
+            layout = tryToLoadImage(name)
     else:
         layout = tryToLoad('layouts/' + name + '.lay')
         if layout == None:
@@ -104,10 +120,73 @@ def getLayout(name, back=2):
 
 
 def tryToLoad(fullname):
-    if(not os.path.exists(fullname)):
+    if (not os.path.exists(fullname)):
         return None
     f = open(fullname)
     try:
         return Layout([line.strip() for line in f])
     finally:
         f.close()
+
+
+def tryToLoadImage(fullname):
+    if (not os.path.exists(fullname)):
+        return None
+    MAZE1 = Image.open(fullname, 'r')
+
+    maze_data = []
+
+    for y in range(32):
+        maze_data.append([])
+        for x in range(32):
+            # If the pixel is black, add a 0 to the maze_data list (representing empty space)
+            if MAZE1.getpixel((x, y)) == (0, 0, 0):
+                maze_data[y].append(0)
+            # If the pixel is yellow, add a 2 to the maze_data list (representing a pellet)
+            elif MAZE1.getpixel((x, y)) == (255, 255, 0):
+                maze_data[y].append(2)
+            # If the pixel is green, add a 3 to the maze_data list (representing a power pellet)
+            elif MAZE1.getpixel((x, y)) == (0, 255, 0):
+                maze_data[y].append(3)
+            # If the pixel is red, add a 4 to the maze_data list (representing a ghost house)
+            elif MAZE1.getpixel((x, y)) == (255, 0, 0):
+                maze_data[y].append(4)
+            # If the pixel is blue, add a 5 to the maze_data list (representing the player's starting position)
+            elif MAZE1.getpixel((x, y)) == (0, 0, 255):
+                maze_data[y].append(5)
+            # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
+            elif MAZE1.getpixel((x, y)) == (255, 128, 0):
+                maze_data[y].append(6)
+            # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
+            else:
+                maze_data[y].append(1)
+
+    # conver maze_data to layoutText by concatenating the maze_data list into a string per row
+    characters = []
+    for y in range(32):
+        characters.append([])
+        for x in range(32):
+            if maze_data[y][x] == 0:
+                characters[y].append(' ')
+            elif maze_data[y][x] == 1:
+                characters[y].append('%')
+            elif maze_data[y][x] == 2:
+                characters[y].append('.')
+            elif maze_data[y][x] == 3:
+                characters[y].append('o')
+            elif maze_data[y][x] == 4:
+                characters[y].append('H')
+            elif maze_data[y][x] == 5:
+                characters[y].append('P')
+            else:
+                characters[y].append(' ')
+            # elif maze_data[y][x] == 6:
+            #     layoutText[y].append('1')
+
+
+
+    layoutText = []
+    for y in range(32):
+        layoutText.append(''.join(characters[y]))
+
+    return Layout(layoutText)

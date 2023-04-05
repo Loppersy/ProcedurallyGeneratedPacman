@@ -305,8 +305,7 @@ class PacmanRules:
 
         # Update Configuration
         vector = Actions.directionToVector(action, PacmanRules.PACMAN_SPEED)
-        pacmanState.configuration = pacmanState.configuration.generateSuccessor(
-            vector)
+        pacmanState.configuration, teleport = pacmanState.configuration.generateSuccessor(vector)
 
         # Eat
         next = pacmanState.configuration.getPosition()
@@ -314,6 +313,11 @@ class PacmanRules:
         if manhattanDistance(nearest, next) <= 0.5:
             # Remove food
             PacmanRules.consume(nearest, state)
+
+        # telport gameobject if needed
+        if teleport and state.getPacmanState().game_object is not None:
+            pacmanState.game_object.teleport(utilities.invert_coords([next], state.data.layout.width, state.data.layout.height)[0],pacmanState.configuration.direction)
+            pacmanState.teleported = True
 
     applyAction = staticmethod(applyAction)
 
@@ -460,11 +464,16 @@ class GhostRules:
         ghostState.previous_node = \
             utilities.invert_coords([(int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]))], state.data.layout.width,
                                     state.data.layout.height)[0]
-        utilities.add_highlighted_tile(ghostState.previous_node, (255, 0, 0)) if utilities.invisibility_debug[0] else None
+        # utilities.add_highlighted_tile(ghostState.previous_node, (255, 0, 0)) if utilities.invisibility_debug[0] else None
 
         vector = Actions.directionToVector(my_action, speed)
-        ghostState.configuration = ghostState.configuration.generateSuccessor(
-            vector)
+        ghostState.configuration, teleport = ghostState.configuration.generateSuccessor(vector)
+
+
+        # telport gameobject if needed
+        if teleport and ghostState.game_object is not None:
+            ghostState.game_object.teleport(utilities.invert_coords([ghostState.configuration.getPosition()], state.data.layout.width, state.data.layout.height)[0], ghostState.configuration.direction)
+            ghostState.teleported = True
 
     applyAction = staticmethod(applyAction)
 

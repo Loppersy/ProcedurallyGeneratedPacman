@@ -37,11 +37,11 @@ class Pacman(pygame.sprite.Sprite):
         self.start_animation_completed = False
         self.dead_animation_completed = False
 
-    def move(self, x, y):
+    def move(self, x, y, teleport=False):
         # print("Pacman move: ", x, y)
         old_pos = self.logic_pos
         self.logic_pos = x, y
-        self.direction = utilities.get_movement_direction(old_pos, self.logic_pos)
+        self.direction = utilities.get_movement_direction(old_pos, self.logic_pos) if not teleport else self.direction
         self.moving = self.direction != "stay"
         self.int_pos = utilities.get_position_in_maze_int(x, y, self.scale, self.window_width, self.window_height)
         # self.rect.x = int(x + self.scale * 0.25)
@@ -262,3 +262,18 @@ class Pacman(pygame.sprite.Sprite):
 
     def get_int_pos(self):
         return self.int_pos
+
+    def teleport(self, position, direction):
+        new_pos = utilities.get_position_in_window(position[0], position[1], self.scale, self.window_width, self.window_height)
+
+        # move pacman to the new position slighly behid the center of the tile
+        if direction == "West":
+            new_pos = (new_pos[0] + self.scale * .5, new_pos[1])
+        elif direction == "East":
+            new_pos = (new_pos[0] - self.scale * .5, new_pos[1])
+        elif direction == "North":
+            new_pos = (new_pos[0], new_pos[1] + self.scale * .5)
+        elif direction == "South":
+            new_pos = (new_pos[0], new_pos[1] - self.scale * .5)
+
+        self.move(new_pos[0], new_pos[1], True)

@@ -129,9 +129,28 @@ class Configuration:
         x, y = self.pos
         dx, dy = vector
         direction = Actions.vectorToDirection(vector)
+
+        new_x = x + dx
+        new_y = y + dy
+        teleport = False
+        # if the new position were the go outside the layout, teleport to the other side
+        if new_x < 0:
+            new_x = 31
+            teleport = True
+        elif new_x >= 32:
+            new_x = 0
+            teleport = True
+
+        if new_y < 0:
+            new_y = 31
+            teleport = True
+        elif new_y >= 32:
+            new_y = 0
+            teleport = True
+
         # if direction == Directions.STOP:
         #     direction = self.direction  # There is no stop direction
-        return Configuration((x + dx, y + dy), direction)
+        return Configuration((new_x, new_y), direction), teleport
 
 
 class AgentState:
@@ -143,7 +162,6 @@ class AgentState:
     DEAD_SPEED = GHOST_SPEED * 1.5
 
     def __init__(self, startConfiguration, isPacman):
-
 
         self.start = startConfiguration
         self.configuration = startConfiguration
@@ -173,7 +191,8 @@ class AgentState:
         self.clyde_fleeing = False
         self.is_permanent_overwrite = None
         self.path = None
-
+        self.ghost_house_entrance = None
+        self.teleported = False
 
     def get_goal(self):
         if self.force_goal is not None:
@@ -363,7 +382,6 @@ class AgentState:
         state.overwrite_time = self.overwrite_time
         state.overwrite_clock = self.overwrite_clock
         state.ghost_house = self.ghost_house
-        state.starting_position = self.starting_position
         state.next_node = self.next_node
         state.previous_node = self.previous_node
         state.starting_position = self.starting_position
@@ -372,6 +390,8 @@ class AgentState:
         state.clyde_fleeing = self.clyde_fleeing
         state.is_permanent_overwrite = self.is_permanent_overwrite
         state.path = self.path
+        state.ghost_house_entrance = self.ghost_house_entrance
+        state.teleported = self.teleported
         return state
 
     def getPosition(self):
@@ -394,7 +414,6 @@ class AgentState:
 
         self.overwrite_clock += 1
         if self.overwrite_clock >= self.overwrite_time and not self.is_permanent_overwrite:
-
             self.state_overwrite = False
             self.switch_state(self.global_state)
             return self.overwrite_time - self.overwrite_clock
@@ -574,7 +593,8 @@ class Actions:
 
     def directionToVector(direction, speed=1.0):
         dx, dy = Actions._directions[direction]
-        return (dx * speed, dy * speed)
+        new_x, new_y = dx * speed, dy * speed
+        return (new_x, new_y)
 
     directionToVector = staticmethod(directionToVector)
 
@@ -591,6 +611,17 @@ class Actions:
             dx, dy = vec
             next_y = y_int + dy
             next_x = x_int + dx
+
+            # if position were to be out of bounds, place it on the other side of the maze
+            if next_x < 0:
+                next_x = 31
+            elif next_x >= 32:
+                next_x = 0
+            if next_y < 0:
+                next_y = 31
+            elif next_y >= 32:
+                next_y = 0
+
             if not walls[next_x][next_y]:
                 possible.append(dir)
 
@@ -682,7 +713,7 @@ class GameStateData:
 
         self.agentStates = []
         numGhosts = 0
-        for isPacman, pos in layout.agentPositions:
+        for isPacman, pos, ghost_house_entrance in layout.agentPositions:
             if not isPacman:
                 if numGhosts == numGhostAgents:
                     continue  # Max ghosts reached already
@@ -691,14 +722,18 @@ class GameStateData:
             self.agentStates.append(AgentState(
                 Configuration(pos, Directions.STOP), isPacman))
             if not isPacman:
-                if numGhosts % 4 + 1 == 1:
+                if numGhosts % 4 + 1 == 4:
                     self.agentStates[numGhosts].type = "blinky"
-                elif numGhosts % 4 + 1 == 2:
-                    self.agentStates[numGhosts].type = "pinky"
                 elif numGhosts % 4 + 1 == 3:
+                    self.agentStates[numGhosts].type = "pinky"
+                elif numGhosts % 4 + 1 == 2:
                     self.agentStates[numGhosts].type = "inky"
-                elif numGhosts % 4 + 1 == 4:
+                elif numGhosts % 4 + 1 == 1:
                     self.agentStates[numGhosts].type = "clyde"
+
+                if ghost_house_entrance is not None:
+                    self.agentStates[numGhosts].ghost_house_entrance = ghost_house_entrance
+                    self.agentStates[numGhosts].starting_position = utilities.invert_coords([pos], self.layout.width, self.layout.height)[0]
         self._eaten = [False for a in self.agentStates]
 
 
@@ -803,20 +838,22 @@ class Game:
         for i in range(1, len(state.agentStates)):
             ghostStates.append(state.agentStates[i])
 
-        ghost_types = [("blinky", self.display.BLINKY_SHEET_IMAGE),
-                       ("pinky", self.display.PINKY_SHEET_IMAGE),
-                       ("inky", self.display.INKY_SHEET_IMAGE),
-                       ("clyde", self.display.CLYDE_SHEET_IMAGE)]
+        ghost_types = {"blinky": self.display.BLINKY_SHEET_IMAGE,
+                       "pinky": self.display.PINKY_SHEET_IMAGE,
+                       "inky": self.display.INKY_SHEET_IMAGE,
+                       "clyde": self.display.CLYDE_SHEET_IMAGE}
+        i = 0
         for ghostState in ghostStates:
             logic_pos = ghostState.configuration.getPosition()
             logic_pos = (logic_pos[0], state.layout.height - logic_pos[1] - 1)
             spawn_point = utilities.get_position_in_window(logic_pos[0], logic_pos[1], self.SCALE, self.WIDTH, self.HEIGHT)
             ghost = Ghost(spawn_point[0], spawn_point[1],
-                          utilities.load_ghost_sheet(ghost_types[0][1], 1, 4, 16, 16, self.display.EYES_SHEET_IMAGE),
-                          utilities.load_sheet(self.display.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), ghost_types.pop(0)[0],
+                          utilities.load_ghost_sheet(ghost_types[ghostState.type], 1, 4, 16, 16, self.display.EYES_SHEET_IMAGE),
+                          utilities.load_sheet(self.display.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), ghostState.type,
                           self.WIDTH, self.HEIGHT, self.SCALE, self.FPS, 2.3, None, 0)
             self.ghosts.add(ghost)
             ghostState.set_game_object(ghost)
+            i += 1
 
     def run(self):
         """
@@ -926,7 +963,7 @@ class Game:
 
                     if self.display.checkNullDisplay() or (
                             self.isInCenter(self.state.data.agentStates[agentIndex].game_object) and self.isAgentAndObjectTogether(
-                        self.state.data.agentStates[agentIndex], self.state.data.layout.width, self.state.data.layout.height)):
+                            self.state.data.agentStates[agentIndex], self.state.data.layout.width, self.state.data.layout.height)):
                         # Generate an observation of the state
                         if 'observationFunction' in dir(agent):
                             self.mute(agentIndex)

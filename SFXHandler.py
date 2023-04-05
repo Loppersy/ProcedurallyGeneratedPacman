@@ -48,6 +48,8 @@ class SFXHandler:
         self.current_music = None
 
     def initialize(self):
+        utilities.sfx_queue = []
         pygame.mixer.init()
+
 
 

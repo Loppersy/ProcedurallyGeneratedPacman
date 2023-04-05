@@ -345,7 +345,6 @@ class PacmanRules:
                 state.data.agentStates[index].scaredTimer = SCARED_TIME * main.FPS
                 state.data.agentStates[index].overwrite_global_state("frightened", SCARED_TIME)
                 # =================== MY CODE ===================
-                state.data.agentStates[index].current_state = "frightened"
                 if state.data.agentStates[index].game_object is not None:
                     state.data.agentStates[index].game_object.overwrite_global_state("frightened", SCARED_TIME)
 
@@ -468,6 +467,7 @@ class GhostRules:
 
         vector = Actions.directionToVector(my_action, speed)
         ghostState.configuration, teleport = ghostState.configuration.generateSuccessor(vector)
+        ghostState.next_node = utilities.invert_coords([(int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]))], state.data.layout.width, state.data.layout.height)[0]
 
 
         # telport gameobject if needed

@@ -160,9 +160,9 @@ class AgentState:
     GHOST_SPEED = 2.3
     FRIGHTENED_SPEED = GHOST_SPEED * 0.7
     DEAD_SPEED = GHOST_SPEED * 1.5
+    SPAWN_SPEED = GHOST_SPEED * 0.5
 
     def __init__(self, startConfiguration, isPacman):
-
         self.start = startConfiguration
         self.configuration = startConfiguration
         self.isPacman = isPacman
@@ -172,7 +172,7 @@ class AgentState:
 
         # =====================
         self.game_object = None
-        self.current_state = "scatter"  # scatter, chase, frightened, dead
+        self.current_state = "spawn"  # scatter, chase, frightened, dead
         self.global_state = None  # normal state for ghost when not frightened/dead
         self.respawning = False
         self.force_goal = None
@@ -183,8 +183,9 @@ class AgentState:
         self.overwrite_time = 0
         self.overwrite_clock = 0
         self.ghost_house = None
-        self.starting_position = startConfiguration.getPosition()
+        self.starting_position = utilities.invert_coords([startConfiguration.getPosition()], 32,32)[0]
         self.next_node = self.starting_position
+        #========
         self.previous_node = self.starting_position
         self.reverse_direction = False
         self.pivot = None
@@ -193,6 +194,13 @@ class AgentState:
         self.path = None
         self.ghost_house_entrance = None
         self.teleported = False
+        self.exit_house = False
+        self.ghost_number = None
+        self.spawn_clock = 0
+        self.time_to_spawn = 999
+        self.movement_inside_house = "up"
+        self.stay_in_house = None
+        self.exited_house = False
 
     def get_goal(self):
         if self.force_goal is not None:
@@ -202,6 +210,7 @@ class AgentState:
 
     def set_path(self, path):
         self.path = path
+        self.next_node = path[1]
         if self.game_object is not None:
             self.game_object.set_path(path)
 
@@ -223,37 +232,36 @@ class AgentState:
             self.respawning = False
 
         # change ghosts goal depending on the state
-        if self.current_state == "spawnNOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO":
-            self.current_speed = self.speed * 0.7
+        if self.current_state == "spawn":
+            self.current_speed = self.FRIGHTENED_SPEED
             self.spawn_clock += 1
-            ghost_house_entrance = self.ghost_house.get_entrance()
-            if self.spawn_clock >= self.time_to_spawn * self.fps and self.exit_house is False:
-                self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 3))
+            if self.spawn_clock >= self.time_to_spawn * main.FPS and self.exit_house is False:
+                self.set_force_goal((self.ghost_house_entrance[0], self.ghost_house_entrance[1] + 3))
                 self.spawn_clock = 0
                 self.exit_house = True
             elif self.movement_inside_house == "up" and self.force_goal is None:
                 if self.ghost_number == 1:
-                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 2))
+                    self.set_force_goal((self.ghost_house_entrance[0], self.ghost_house_entrance[1] + 2))
                 elif self.ghost_number == 2:
-                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 2))
+                    self.set_force_goal((self.ghost_house_entrance[0] - 2, self.ghost_house_entrance[1] + 2))
                 elif self.ghost_number == 3:
-                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 2))
+                    self.set_force_goal((self.ghost_house_entrance[0] + 2, self.ghost_house_entrance[1] + 2))
 
                 self.movement_inside_house = "down"
             elif self.movement_inside_house == "down" and self.force_goal is None:
                 if self.ghost_number == 1:
-                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 4))
+                    self.set_force_goal((self.ghost_house_entrance[0], self.ghost_house_entrance[1] + 4))
                 elif self.ghost_number == 2:
-                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 4))
+                    self.set_force_goal((self.ghost_house_entrance[0] - 2, self.ghost_house_entrance[1] + 4))
                 elif self.ghost_number == 3:
-                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 4))
+                    self.set_force_goal((self.ghost_house_entrance[0] + 2, self.ghost_house_entrance[1] + 4))
                 self.movement_inside_house = "up"
-            if utilities.is_centered(self.float_position, self.force_goal) and self.exit_house:
-                self.set_force_goal(ghost_house_entrance)
+            if utilities.invert_coords([self.configuration.getPosition()], 32, 32)[0] == self.force_goal and self.exit_house:
+                self.set_force_goal(self.ghost_house_entrance)
                 self.stay_in_house = False
-                self.current_speed = self.speed * 0.5
+                self.current_speed = self.FRIGHTENED_SPEED
 
-            if self.stay_in_house is False and self.next_node == ghost_house_entrance:
+            if self.stay_in_house is False and self.next_node == self.ghost_house_entrance:
                 self.exit_house = False
                 self.exited_house = True
                 self.overwrite_global_state(self.global_state, 0)
@@ -326,31 +334,32 @@ class AgentState:
         elif self.current_state == "frightened":
             self.set_goal(None)
         elif self.current_state == "dead":
-            if self.ghost_house is not None:
-                self.set_goal(self.ghost_house.get_entrance())
-                # entrance_int_pos = self.set_goal()
+            if self.ghost_house_entrance is not None:
+                # self.set_goal(self.ghost_house.get_entrance())
+                self.set_goal(self.ghost_house_entrance)
             else:
                 self.set_goal(self.starting_position)
                 # entrance_int_pos = self.set_goal()
 
-            # if self.force_goal is None \
-            #         and self.int_pos[0] == entrance_int_pos[0] \
-            #         and self.int_pos[1] == entrance_int_pos[1]:
-            #     if self.ghost_house is not None:
-            #         self.set_force_goal((self.goal[0], self.goal[1] + 3))
-            #     else:
-            #         self.set_force_goal((self.goal[0], self.goal[1]))
-            #
-            # elif utilities.is_centered(float_position, self.force_goal):
-            #     self.is_permanent_overwrite = False
-            #     self.set_force_goal(entrance_int_pos)
-            #     self.switch_state(self.global_state)
-            #     self.respawning = True
-            #     self.current_speed = self.speed * 0.5
+            int_pos = utilities.invert_coords([self.configuration.getPosition()], 32, 32)[0]
+            if self.force_goal is None \
+                    and int_pos[0] == self.ghost_house_entrance[0] \
+                    and int_pos[1] == self.ghost_house_entrance[1]:
+                if self.ghost_house_entrance is not None:
+                    self.set_force_goal((self.goal[0], self.goal[1] + 3))
+                else:
+                    self.set_force_goal((self.goal[0], self.goal[1]))
+
+            elif int_pos == self.force_goal:
+                self.is_permanent_overwrite = False
+                self.set_force_goal(self.ghost_house_entrance)
+                self.switch_state(self.global_state)
+                self.respawning = True
+                self.current_speed = self.SPAWN_SPEED
 
         if self.force_goal is not None:
-            if utilities.is_centered(self.configuration.getPosition(), self.force_goal):
-                self.force_goal = None
+            if utilities.invert_coords([self.configuration.getPosition()], 32, 32)[0] == self.force_goal:
+                self.set_force_goal(None)
 
     def set_game_object(self, game_object):
         self.game_object = game_object
@@ -382,9 +391,10 @@ class AgentState:
         state.overwrite_time = self.overwrite_time
         state.overwrite_clock = self.overwrite_clock
         state.ghost_house = self.ghost_house
-        state.next_node = self.next_node
-        state.previous_node = self.previous_node
         state.starting_position = self.starting_position
+        state.next_node = self.next_node
+        #=========
+        state.previous_node = self.previous_node
         state.reverse_direction = self.reverse_direction
         state.pivot = self.pivot
         state.clyde_fleeing = self.clyde_fleeing
@@ -392,6 +402,13 @@ class AgentState:
         state.path = self.path
         state.ghost_house_entrance = self.ghost_house_entrance
         state.teleported = self.teleported
+        state.exit_house = self.exit_house
+        state.ghost_number = self.ghost_number
+        state.spawn_clock = self.spawn_clock
+        state.time_to_spawn = self.time_to_spawn
+        state.movement_inside_house = self.movement_inside_house
+        state.stay_in_house = self.stay_in_house
+        state.exited_house = self.exited_house
         return state
 
     def getPosition(self):
@@ -477,6 +494,30 @@ class AgentState:
         # self.previous_node = temp
         # self.configuration.position = self.previous_node
         # self.reverse_direction = True
+
+    def set_type(self, type):
+        self.type = type
+        if type == "blinky":
+            self.ghost_number = 0
+            self.time_to_spawn = 0
+            self.stay_in_house = False
+        elif type == "pinky":
+            self.ghost_number = 1
+            self.time_to_spawn = 5
+            self.stay_in_house = True
+            self.movement_inside_house = "down"
+            self.overwrite_global_state("spawn", -1)
+        elif type == "inky":
+            self.ghost_number = 2
+            self.time_to_spawn = 10
+            self.stay_in_house = True
+            self.overwrite_global_state("spawn", -1)
+        elif type == "clyde":
+            self.ghost_number = 3
+            self.time_to_spawn = 15
+            self.stay_in_house = True
+            self.overwrite_global_state("spawn", -1)
+        pass
 
 
 class Grid:
@@ -723,16 +764,16 @@ class GameStateData:
                 Configuration(pos, Directions.STOP), isPacman))
             if not isPacman:
                 if numGhosts % 4 + 1 == 4:
-                    self.agentStates[numGhosts].type = "blinky"
+                    self.agentStates[numGhosts].set_type("blinky")
                 elif numGhosts % 4 + 1 == 3:
-                    self.agentStates[numGhosts].type = "pinky"
+                    self.agentStates[numGhosts].set_type("pinky")
                 elif numGhosts % 4 + 1 == 2:
-                    self.agentStates[numGhosts].type = "inky"
+                    self.agentStates[numGhosts].set_type("inky")
                 elif numGhosts % 4 + 1 == 1:
-                    self.agentStates[numGhosts].type = "clyde"
+                    self.agentStates[numGhosts].set_type("clyde")
 
                 if ghost_house_entrance is not None:
-                    self.agentStates[numGhosts].ghost_house_entrance = ghost_house_entrance
+                    self.agentStates[numGhosts].ghost_house_entrance = utilities.invert_coords([ghost_house_entrance], self.layout.width, self.layout.height)[0]
                     self.agentStates[numGhosts].starting_position = utilities.invert_coords([pos], self.layout.width, self.layout.height)[0]
         self._eaten = [False for a in self.agentStates]
 

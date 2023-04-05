@@ -118,6 +118,7 @@ class AStarGhost(GhostAgent):
 
         if len(path) > 1:
             state.getGhostState(self.index).set_path(path)
+
             next_step = path[1]
             # get the direction of the next step, taking into account that ghost can teleport to the other side of the maze if it is at the edge
             if next_step[0] == start[0] - 1 or (next_step[0] == state.data.layout.width - 1 and start[0] == 0):

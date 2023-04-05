@@ -493,22 +493,22 @@ class GhostRules:
                 ghostState = state.data.agentStates[index]
                 ghostPosition = ghostState.configuration.getPosition()
                 if GhostRules.canKill(pacmanPosition, ghostPosition):
-                    GhostRules.collide(state, ghostState, index)
+                    GhostRules.collide(state, ghostState)
         else:
             ghostState = state.data.agentStates[agentIndex]
             ghostPosition = ghostState.configuration.getPosition()
             if GhostRules.canKill(pacmanPosition, ghostPosition):
-                GhostRules.collide(state, ghostState, agentIndex)
+                GhostRules.collide(state, ghostState)
 
     checkDeath = staticmethod(checkDeath)
 
-    def collide(state, ghostState, agentIndex):
-        if ghostState.scaredTimer > 0:
+    def collide(state, ghostState):
+        if ghostState.current_state == "frightened":
             state.data.scoreChange += 200
             # GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             ghostState.overwrite_global_state("dead", -1)
-            main.global_state_stop_time
+            utilities.set_stop_time(0.5)
             utilities.add_sfx_to_queue("ghost_eaten.wav")
 
         elif ghostState.current_state == "chase" or ghostState.current_state == "scatter":

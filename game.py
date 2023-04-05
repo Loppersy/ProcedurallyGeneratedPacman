@@ -345,20 +345,25 @@ class AgentState:
                 # entrance_int_pos = self.set_goal()
 
             int_pos = utilities.invert_coords([self.configuration.getPosition()], 32, 32)[0]
-            if self.force_goal is None \
-                    and int_pos[0] == self.ghost_house_entrance[0] \
-                    and int_pos[1] == self.ghost_house_entrance[1]:
-                if self.ghost_house_entrance is not None:
-                    self.set_force_goal((self.goal[0], self.goal[1] + 3))
-                else:
-                    self.set_force_goal((self.goal[0], self.goal[1]))
+            if self.ghost_house_entrance is not None:
+                if self.force_goal is None \
+                        and int_pos[0] == self.ghost_house_entrance[0] \
+                        and int_pos[1] == self.ghost_house_entrance[1]:
+                    if self.ghost_house_entrance is not None:
+                        self.set_force_goal((self.goal[0], self.goal[1] + 3))
+                    else:
+                        self.set_force_goal((self.goal[0], self.goal[1]))
 
-            elif int_pos == self.force_goal:
-                self.is_permanent_overwrite = False
-                self.set_force_goal(self.ghost_house_entrance)
-                self.switch_state(self.global_state)
-                self.respawning = True
-                self.current_speed = self.SPAWN_SPEED
+                elif int_pos == self.force_goal:
+                    self.is_permanent_overwrite = False
+                    self.set_force_goal(self.ghost_house_entrance)
+                    self.switch_state(self.global_state)
+                    self.respawning = True
+                    self.current_speed = self.SPAWN_SPEED
+            else:
+                if int_pos == self.goal:
+                    self.is_permanent_overwrite = False
+                    self.overwrite_global_state(self.global_state,0)
 
         if self.force_goal is not None:
             if utilities.invert_coords([self.configuration.getPosition()], 32, 32)[0] == self.force_goal:

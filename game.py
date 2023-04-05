@@ -183,9 +183,9 @@ class AgentState:
         self.overwrite_time = 0
         self.overwrite_clock = 0
         self.ghost_house = None
-        self.starting_position = utilities.invert_coords([startConfiguration.getPosition()], 32,32)[0]
+        self.starting_position = utilities.invert_coords([startConfiguration.getPosition()], 32, 32)[0]
         self.next_node = self.starting_position
-        #========
+        # ========
         self.previous_node = self.starting_position
         self.reverse_direction = False
         self.pivot = None
@@ -233,6 +233,9 @@ class AgentState:
 
         # change ghosts goal depending on the state
         if self.current_state == "spawn":
+            if self.ghost_house_entrance is None:
+                self.overwrite_global_state("scatter", 0)
+                return
             self.current_speed = self.FRIGHTENED_SPEED
             self.spawn_clock += 1
             if self.spawn_clock >= self.time_to_spawn * main.FPS and self.exit_house is False:
@@ -393,7 +396,7 @@ class AgentState:
         state.ghost_house = self.ghost_house
         state.starting_position = self.starting_position
         state.next_node = self.next_node
-        #=========
+        # =========
         state.previous_node = self.previous_node
         state.reverse_direction = self.reverse_direction
         state.pivot = self.pivot
@@ -773,7 +776,8 @@ class GameStateData:
                     self.agentStates[numGhosts].set_type("clyde")
 
                 if ghost_house_entrance is not None:
-                    self.agentStates[numGhosts].ghost_house_entrance = utilities.invert_coords([ghost_house_entrance], self.layout.width, self.layout.height)[0]
+                    self.agentStates[numGhosts].ghost_house_entrance = \
+                    utilities.invert_coords([ghost_house_entrance], self.layout.width, self.layout.height)[0]
                     self.agentStates[numGhosts].starting_position = utilities.invert_coords([pos], self.layout.width, self.layout.height)[0]
         self._eaten = [False for a in self.agentStates]
 
@@ -1004,7 +1008,7 @@ class Game:
 
                     if self.display.checkNullDisplay() or (
                             self.isInCenter(self.state.data.agentStates[agentIndex].game_object) and self.isAgentAndObjectTogether(
-                            self.state.data.agentStates[agentIndex], self.state.data.layout.width, self.state.data.layout.height)):
+                        self.state.data.agentStates[agentIndex], self.state.data.layout.width, self.state.data.layout.height)):
                         # Generate an observation of the state
                         if 'observationFunction' in dir(agent):
                             self.mute(agentIndex)

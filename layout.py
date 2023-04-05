@@ -157,6 +157,9 @@ def tryToLoadImage(fullname):
             # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
             elif MAZE1.getpixel((x, y)) == (255, 128, 0):
                 maze_data[y].append(6)
+            # If the pixel is purple, add a 7 to the maze_data list (representing an orphan ghost starting position)
+            elif MAZE1.getpixel((x, y)) == (255, 0, 255):
+                maze_data[y].append(7)
             # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
             else:
                 maze_data[y].append(1)
@@ -178,6 +181,8 @@ def tryToLoadImage(fullname):
                 characters[y].append('H')
             elif maze_data[y][x] == 5:
                 characters[y].append('P')
+            elif maze_data[y][x] == 7:
+                characters[y].append('G')
             else:
                 characters[y].append(' ')
             # elif maze_data[y][x] == 6:

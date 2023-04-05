@@ -36,7 +36,7 @@ params = {
     # Model backups
     #'load_file': "saves/model-python pacman.py -p PacmanDQN -n 10100 -x 10000 -l smallGrid -q_4972_65",
     'load_file': None,
-    'save_file': r"""32x32""",
+    'save_file': r"""saves/-n 4100 -x 4000 -l maze2.png -g AStarGhost -q""",
     'save_interval': 10000,
 
     # Training parameters

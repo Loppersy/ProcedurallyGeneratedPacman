@@ -1,9 +1,14 @@
-import os
-
 import pygame
 
 from Consumable import Consumable
 from utilities import load_sheet
+
+"""
+Loppersy: This class is used for visualizing the power pellets on the screen, rather than for the actual logic of the game.
+
+File taken from: https://github.com/Loppersy/ProcedurallyGeneratedPacman (where the subclasses actually have
+game logic in it)
+"""
 
 POWER_PELLET_SCORE = 50
 

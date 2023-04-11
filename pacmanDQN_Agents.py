@@ -6,21 +6,18 @@
 # The Pacman AI projects were developed at UC Berkeley found at
 # http://ai.berkeley.edu/project_overview.html
 
+# Used code from:
+# Tycho van der Ouderaa
+# https://github.com/tychovdo/PacmanDQN
+
 """
-NEURO 240: Seems like one of the files added for Pacman DQN by Tycho van der Ouderaa that was not part of the original Berkeley Pacman files. Based on the Git history, he modified this in several commits (like 4-6?) but the changes weren't massive).
+Loppersy: This file contains the code for the DQN agent. The file remains largely unchanged from the original
+by Tycho van der Ouderaa, except for the addition of a few comments and the removal of some unused code.
 """
 
-import numpy as np
 import random
-import util
-import time
 import sys
-
-# Pacman game
-from pacman import Directions
-from game import Agent
-import game
-
+import time
 # Replay memory
 from collections import deque
 
@@ -28,15 +25,22 @@ from collections import deque
 # import tensorflow as tf
 import tensorflow.compat.v1 as tf
 
+import game
+# Pacman game
+from pacman import Directions
+
 tf.disable_v2_behavior()
 
 from DQN import *
 
 params = {
     # Model backups
-    #'load_file': "saves/model-python pacman.py -p PacmanDQN -n 10100 -x 10000 -l smallGrid -q_4972_65",
-    'load_file': None,
-    'save_file': r"""saves/-n 4100 -x 4000 -l maze2.png -g AStarGhost -q""",
+
+    # 'load_file': "saves/model-saves/-n 2100 -x 2000 -l maze1.png -g AStarGhost -q_314359_651",
+    # 'load_file': "saves/model-saves/-n 4500 -x 4000 -l maze3.png -g AStarGhost -q_722018_3004",
+    'load_file': "saves/model-saves/model-32x32_71757_3774",
+    # 'load_file': None,
+    'save_file': None,
     'save_interval': 10000,
 
     # Training parameters
@@ -90,7 +94,7 @@ class PacmanDQN(game.Agent):
         self.replay_mem = deque()
         self.last_scores = deque()
 
-    def getMove(self, state):
+    def getMove(self):
         # Exploit / Explore
         if np.random.rand() > self.params['eps']:
             # Exploit action
@@ -374,7 +378,7 @@ class PacmanDQN(game.Agent):
         self.numeps += 1
 
     def getAction(self, state):
-        move = self.getMove(state)
+        move = self.getMove()
 
         # Stop moving when not legal
         legal = state.getLegalActions(0)

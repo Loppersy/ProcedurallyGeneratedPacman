@@ -1,6 +1,12 @@
 """
-NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all compared to the corresponding original Berkeley pacman file since the commit Tycho made was just pasting this code into the file.
+Loppersy: File taken from the UC Berkeley AI materials and used (unmodified) by Tycho van der Ouderaa.
+
+This file was modified by Loppersy to allow ghosts to use A* search to find the shortest path to their goal.
+(Yes, the original game did not use A* search, but this way crazier maps can be used)
 """
+
+
+
 import utilities
 from AStar import AStar, Node
 # ghostAgents.py
@@ -16,7 +22,6 @@ from AStar import AStar, Node
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
-
 from game import Agent
 from game import Actions
 from game import Directions
@@ -24,10 +29,6 @@ import random
 
 from util import manhattanDistance
 import util
-
-"""
-NEURO 240: Check if using or modifying Ghost agends here will be useful as a kind of "modifying the transition function." Spandan said we shouldn't start with this though, instead we should just experiment with really simple changes to ghost behavior, like not allowing ghosts to move in a certain direction (ex: can't move one of left, right, up, or down).
-"""
 
 
 class GhostAgent(Agent):

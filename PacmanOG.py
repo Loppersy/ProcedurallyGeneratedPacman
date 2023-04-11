@@ -2,6 +2,13 @@ import pygame
 
 import utilities
 from utilities import load_sheet
+"""
+Loppersy: This class is used for visualizing pacman on the screen, rather than for the actual logic of the game.
+pacman are controlled by the pacmanDQN_Agent class, which is a subclass of the Agent class in the game.py file.
+
+File taken from: https://github.com/Loppersy/ProcedurallyGeneratedPacman (where the class actually have
+game logic in it)
+"""
 
 
 class Pacman(pygame.sprite.Sprite):
@@ -38,32 +45,17 @@ class Pacman(pygame.sprite.Sprite):
         self.dead_animation_completed = False
 
     def move(self, x, y, teleport=False):
-        # print("Pacman move: ", x, y)
         old_pos = self.logic_pos
         self.logic_pos = x, y
         self.direction = utilities.get_movement_direction(old_pos, self.logic_pos) if not teleport else self.direction
         self.moving = self.direction != "stay"
         self.int_pos = utilities.get_position_in_maze_int(x, y, self.scale, self.window_width, self.window_height)
-        # self.rect.x = int(x + self.scale * 0.25)
-        # self.rect.y = int(y + self.scale * 0.25)
         self.rect.topleft = round(x + self.scale * 0.25), round(y + self.scale * 0.25)
 
     def get_pos(self):
         return self.logic_pos
 
-    def update(self, maze_data, consumables):
-        if self.direction == "dead":
-            self.kill()
-
-        # consume any consumable in the current position
-        maze_data = self.check_consumables(maze_data, consumables)
-
-        return maze_data
-
-    def my_update(self, pos, consumables):
-        """ neural network update function """
-        # pos_in_window = utilities.get_position_in_window(pos[0], pos[1], self.scale, self.window_width, self.window_height)
-        # self.move(pos_in_window[0], pos_in_window[1])
+    def my_update(self, consumables):
 
         # check if pacman is touching any consumables. If so, consume them
         for pellet in consumables[0]:
@@ -144,121 +136,7 @@ class Pacman(pygame.sprite.Sprite):
         # visualize rect boundaries
         # pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)
 
-    # check collision with walls in a given direction
-    def can_change_direction(self, maze_data, direction, ignore_centerness=False):
-        if self.direction == "dying" or self.direction == "dead":
-            return False
 
-        position = utilities.get_position_in_maze_int(self.get_pos()[0], self.get_pos()[1], self.scale,
-                                                      self.window_width,
-                                                      self.window_height)
-
-        min_threshold = (.07, .07)
-        if ignore_centerness:
-            centerness = (0, 0)
-        else:
-            centerness = (
-                abs(position[0] - (self.get_pos()[0] - (self.window_width - self.scale * 32) / 2) / self.scale),
-                abs(position[1] - (self.get_pos()[1] - (self.window_height - self.scale * 32) / 2) / self.scale))
-        # print(position, ((self.rect.x - (window_width - self.scale * 32) / 2)/ self.scale,(self.rect.y - (
-        # window_height - self.scale * 32) / 2)/ self.scale), centerness)
-
-        # if the pacman is not in the center of the tile, it can't change direction. if pacman is in the edge of the
-        # maze, check if it can change direction by looking at the other side of the maze to account for the wrapping
-        # / teleporting
-        if direction == "left":
-            if position[0] == 0:
-                return maze_data[position[1]][31] != 1 and centerness[1] < min_threshold[1]
-            else:
-                return maze_data[position[1]][position[0] - 1] != 1 and centerness[1] < min_threshold[1]
-        elif direction == "right":
-            if position[0] == 31:
-                return maze_data[position[1]][0] != 1 and centerness[1] < min_threshold[1]
-            else:
-                return maze_data[position[1]][position[0] + 1] != 1 and centerness[1] < min_threshold[1]
-        elif direction == "up":
-            if position[1] == 0:
-                return maze_data[31][position[0]] != 1 and centerness[0] < min_threshold[0]
-            else:
-                return maze_data[position[1] - 1][position[0]] != 1 and centerness[0] < min_threshold[0]
-        elif direction == "down":
-            if position[1] == 31:
-                return maze_data[0][position[0]] != 1 and centerness[0] < min_threshold[0]
-            else:
-                return maze_data[position[1] + 1][position[0]] != 1 and centerness[0] < min_threshold[0]
-
-    def check_open_path(self, maze_data, direction):
-        temp_pos = self.get_pos()
-        position_int = utilities.get_position_in_maze_int(temp_pos[0], temp_pos[1], self.scale, self.window_width,
-                                                          self.window_height)
-        position_float = utilities.get_position_in_maze_float(temp_pos[0], temp_pos[1], self.scale, self.window_width,
-                                                              self.window_height)
-        min_threshold = (.07, .07)
-        centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
-        # check if the pacman is in the middle of the tile and if there is a wall in the direction of the movement
-        # if it is the end of the maze, check the tile in the other side of the maze.
-        if direction == "left":
-            if direction == "left":
-                if position_int[0] <= 0:
-                    return maze_data[position_int[1]][31] != 1 or centerness[0] > min_threshold[0]
-                else:
-                    return maze_data[position_int[1]][position_int[0] - 1] != 1 or centerness[0] > min_threshold[0]
-        elif direction == "right":
-            if position_int[0] >= 31:
-                return maze_data[position_int[1]][0] != 1 or centerness[0] > min_threshold[0]
-            else:
-                return maze_data[position_int[1]][position_int[0] + 1] != 1 or centerness[0] > min_threshold[0]
-        elif direction == "up":
-            if position_int[1] <= 0:
-                return maze_data[31][position_int[0]] != 1 or centerness[1] > min_threshold[1]
-            else:
-                return maze_data[position_int[1] - 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
-        elif direction == "down":
-            if position_int[1] >= 31:
-                return maze_data[0][position_int[0]] != 1 or centerness[1] > min_threshold[1]
-            else:
-                return maze_data[position_int[1] + 1][position_int[0]] != 1 or centerness[1] > min_threshold[1]
-
-    def check_consumables(self, maze_data, consumables):
-        for i in range(len(consumables)):
-            for consumable in consumables[i]:
-                position_int = utilities.get_position_in_maze_int(consumable.rect.x, consumable.rect.y, self.scale,
-                                                                  self.window_width,
-                                                                  self.window_height)
-                position_float = utilities.get_position_in_maze_float(self.logic_pos[0], self.logic_pos[1], self.scale,
-                                                                      self.window_width,
-                                                                      self.window_height)
-                min_threshold = (.2, .2)
-                centerness = (abs(position_int[0] - position_float[0]), abs(position_int[1] - position_float[1]))
-                if centerness[0] < min_threshold[0] and centerness[1] < min_threshold[1]:
-                    # print(consumable.type)
-                    if consumable.type == "pellet":
-                        consumable.kill()
-                        maze_data[position_int[1]][position_int[0]] = 0
-
-                        utilities.add_sfx_to_queue("munch")
-                        utilities.add_score(consumable.get_score())
-                    elif consumable.type == "power_pellet":
-                        utilities.add_sfx_to_queue("munch")
-                        consumable.kill()
-                        maze_data[position_int[1]][position_int[0]] = 0
-                        utilities.add_score(consumable.get_score())
-                        self.consumed_power_pellet = True
-
-                # check collision with bonus fruit and pacman
-                if consumable.type == "bonus_fruit" and consumable.rect.colliderect(self.rect):
-                    if consumable.consume():
-                        utilities.add_score(consumable.get_score())
-                        utilities.add_sfx_to_queue("eat_fruit.wav")
-                        utilities.queued_popups.append(
-                            (consumable.rect.x + consumable.rect.width / 2, consumable.rect.y + consumable.rect.height / 2, consumable.score,
-                             (217, 104, 200), 2, 11))
-
-        return maze_data
-
-    def die(self):
-        if self.direction != "dead" and self.direction != "dying":
-            self.direction = "dying"
 
     def get_int_pos(self):
         return self.int_pos

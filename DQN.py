@@ -1,18 +1,19 @@
-# TODO: explain this and give credits to authors
 # Modified version of
 # DQN implementation by Tejas Kulkarni found at
 # https://github.com/mrkulk/deepQN_tensorflow
 
+# Code modified by: https://github.com/tychovdo/PacmanDQN
+
+"""
+Loppersy: File added/modified by Tycho van der Ouderaa. The original code remains unchanged.
+This file contains the DQN class, which is used to create the neural network that is used to
+train the agent/pacman.
+"""
+
 import numpy as np
-# import tensorflow as tf
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
-
-"""
-NEURO 240: Seems like one of the files added for Pacman DQN by Tycho van der Ouderaa that was not part of the original Berkeley Pacman files.
-"""
-
 
 class DQN:
     def __init__(self, params):

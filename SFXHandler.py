@@ -3,7 +3,11 @@ import os
 import pygame
 
 import utilities
+"""
+Loppersy: This class is used for playing sound effects and music in the game.
 
+File taken from: https://github.com/Loppersy/ProcedurallyGeneratedPacman and it is mostly the same as the original
+"""
 
 class SFXHandler:
 

@@ -1,11 +1,18 @@
-# TODO: explain this and give credits to authors
 
 """
-NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all compared to the corresponding original Berkeley pacman file since the commit Tycho made was just pasting this code into the file.
+Loppersy: File taken from the UC Berkeley AI materials and used (unmodified) by Tycho van der Ouderaa.
+
+This file was heavily modified by Loppersy to fit the needs of the project to more closely match the original Pacman Game.
+
+Some of the major changes:
+- Agent States heavily modified to allow ghosts to have different states (chase, dead, scatter, frightened),
+  spawning animations, and A* Star pathfinding.
+- Merged code from https://github.com/Loppersy/ProcedurallyGeneratedPacman to make display and animation more
+  similar to the original Pacman game.
 """
+
+
 import pygame
-
-import main
 import utilities
 
 from Ghost import Ghost
@@ -13,7 +20,7 @@ from PacmanOG import Pacman
 from Pellet import Pellet
 from PowerPellet import PowerPellet
 from Wall import Wall
-from main import global_state_stop_time, LEVEL_STATE_TIMES, FPS
+
 # game.py
 # -------
 # Licensing Information:  You are free to use or extend these projects for
@@ -42,6 +49,21 @@ import os
 import traceback
 import sys
 
+WIDTH, HEIGHT = 1080, 720
+BLACK = (0, 0, 0)
+SCALE = 22
+MAZE_SIZE = (32, 32)
+FPS = 60
+global_state_stop_time = []
+
+# times of the different modes for each level. In seconds
+LEVEL_STATE_TIMES = [
+    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
+     ("scatter", 5), ("chase", -1)],  # level 1
+    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 1033),
+     ("scatter", 1), ("chase", -1)],  # level 2 - 4
+    [("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 1037),
+     ("scatter", 1), ("chase", -1)]]  # level 5+
 
 #######################
 # Parts worth reading #
@@ -148,14 +170,13 @@ class Configuration:
             new_y = 0
             teleport = True
 
-        # if direction == Directions.STOP:
-        #     direction = self.direction  # There is no stop direction
         return Configuration((new_x, new_y), direction), teleport
 
 
 class AgentState:
     """
     AgentStates hold the state of an agent (configuration, speed, scared, etc).
+    Most game logic for ghosts is handled here (Combination of 1-player and github repo code)
     """
     GHOST_SPEED = 2.3
     FRIGHTENED_SPEED = GHOST_SPEED * 0.7
@@ -185,7 +206,6 @@ class AgentState:
         self.ghost_house = None
         self.starting_position = utilities.invert_coords([startConfiguration.getPosition()], 32, 32)[0]
         self.next_node = self.starting_position
-        # ========
         self.previous_node = self.starting_position
         self.reverse_direction = False
         self.pivot = None
@@ -238,7 +258,7 @@ class AgentState:
                 return
             self.current_speed = self.FRIGHTENED_SPEED
             self.spawn_clock += 1
-            if self.spawn_clock >= self.time_to_spawn * main.FPS and self.exit_house is False:
+            if self.spawn_clock >= self.time_to_spawn * FPS and self.exit_house is False:
                 self.set_force_goal((self.ghost_house_entrance[0], self.ghost_house_entrance[1] + 3))
                 self.spawn_clock = 0
                 self.exit_house = True
@@ -401,7 +421,6 @@ class AgentState:
         state.ghost_house = self.ghost_house
         state.starting_position = self.starting_position
         state.next_node = self.next_node
-        # =========
         state.previous_node = self.previous_node
         state.reverse_direction = self.reverse_direction
         state.pivot = self.pivot
@@ -453,38 +472,24 @@ class AgentState:
             self.is_permanent_overwrite = True
         else:
             self.is_permanent_overwrite = False
-            self.overwrite_time = state_time * main.FPS
+            self.overwrite_time = state_time * FPS
 
     def switch_state(self, ghost_state):
-        if ghost_state is None or (ghost_state == "frightened" and self.current_state == "dead"):
-            # or (
-            #     self.exited_house is False and self.current_state == "spawn"):
+        if ghost_state is None or (ghost_state == "frightened" and self.current_state == "dead")\
+            or (self.exited_house is False and self.current_state == "spawn" and self.type != "blinky" and self.ghost_house_entrance is not None):
             return False
         if ghost_state == self.current_state:  # reapply some ghost_state specific things
             self.apply_speed(ghost_state)
-            # if ghost_state == "frightened":
-            #     self.flash_timer = pygame.time.get_ticks()
-            #     self.flash_last_update = pygame.time.get_ticks()
+
             return False
         self.current_state = ghost_state
         # switch the ghost to a ghost_state
         if ghost_state == "dead":
-            # utilities.set_stop_time(1)
             self.game_object.overwrite_global_state("dead", -1) if self.game_object is not None else None
-            # self.current_image = 3
-            # self.my_image = pygame.transform.scale(self.images[self.current_image],
-            #                                        (self.scale * self.image_scale, self.scale * self.image_scale))
-            # utilities.add_sfx_to_queue("eat_ghost.wav")
         elif ghost_state == "frightened":
             # reverse ghosts current direction
             self.turn_around()
             self.game_object.overwrite_global_state("frightened", -1) if self.game_object is not None else None
-
-            # self.current_image = 0
-            # self.my_image = pygame.transform.scale(self.frightened_images[self.current_image],
-            #                                        (self.scale * self.image_scale, self.scale * self.image_scale))
-            # self.flash_timer = pygame.time.get_ticks()
-            # self.flash_last_update = pygame.time.get_ticks()
         elif ghost_state == "chase" or ghost_state == "scatter":
             self.turn_around()
             self.game_object.overwrite_global_state("chase", -1) if self.game_object is not None else None
@@ -495,13 +500,6 @@ class AgentState:
     def turn_around(self):
         if self.force_goal:
             return
-
-        # self.configuration.direction = Directions.REVERSE[self.configuration.direction]
-        # temp = self.next_node
-        # self.next_node = self.previous_node
-        # self.previous_node = temp
-        # self.configuration.position = self.previous_node
-        # self.reverse_direction = True
 
     def set_type(self, type):
         self.type = type
@@ -681,7 +679,7 @@ class Actions:
 
 class GameStateData:
     """
-
+    A GameStateData object stores the state of the game at a particular point in time.
     """
 
     def __init__(self, prevState=None):
@@ -726,7 +724,6 @@ class GameStateData:
         """
         if other == None:
             return False
-        # TODO Check for type of other
         if not self.agentStates == other.agentStates:
             return False
         if not self.food == other.food:
@@ -837,51 +834,42 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-    WIDTH, HEIGHT = 1080, 720
-    BLACK = (0, 0, 0)
-    SCALE = 22
-    MAZE_SIZE = (32, 32)
-    FPS = 60
+
 
     def create_my_objects(self, state):
 
         # create the walls
         wall_coords = utilities.bool_to_coords_inverted(state.layout.walls)
         for wall in wall_coords:
-            self.walls.add(Wall(wall[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                wall[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                self.SCALE, self.WIDTH, self.HEIGHT,
+            self.walls.add(Wall(wall[0] * SCALE + (WIDTH - 32 * SCALE) / 2,
+                                wall[1] * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                                SCALE, WIDTH, HEIGHT,
                                 utilities.load_sheet(self.display.WALLS_SHEET_IMAGE, 12, 4, 16, 16),
                                 utilities.load_sheet(self.display.WALLS_WHITE_SHEET_IMAGE, 12, 4, 16, 16)))
 
         # create the pellets
         pellet_coords = utilities.bool_to_coords_inverted(state.layout.food)
         for pellet in pellet_coords:
-            self.pellets.add(Pellet(pellet[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                    pellet[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                    self.SCALE, self.SCALE, self.display.PELLETS_SHEET_IMAGE))
+            self.pellets.add(Pellet(pellet[0] * SCALE + (WIDTH - 32 * SCALE) / 2,
+                                    pellet[1] * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                                    SCALE, SCALE, self.display.PELLETS_SHEET_IMAGE))
 
         # create the power pellets
         power_pellet_coords = utilities.invert_coords(state.layout.capsules, state.layout.width, state.layout.height)
         for power_pellet in power_pellet_coords:
-            self.power_pellets.add(PowerPellet(power_pellet[0] * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                                               power_pellet[1] * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                                               self.SCALE, self.SCALE, self.display.PELLETS_SHEET_IMAGE))
-
-        # create the ghost houses
-        # TODO: implement ghost houses
+            self.power_pellets.add(PowerPellet(power_pellet[0] * SCALE + (WIDTH - 32 * SCALE) / 2,
+                                               power_pellet[1] * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                                               SCALE, SCALE, self.display.PELLETS_SHEET_IMAGE))
 
         # create pacman
         pacman_x = state.agentStates[0].configuration.getPosition()[0]
         pacman_y = state.agentStates[0].configuration.getPosition()[1]
         pacman_y = state.layout.height - pacman_y - 1
-        pacman = Pacman(pacman_x * self.SCALE + (self.WIDTH - 32 * self.SCALE) / 2,
-                        pacman_y * self.SCALE + (self.HEIGHT - 32 * self.SCALE) / 2,
-                        self.WIDTH, self.HEIGHT, self.display.PACMAN_SHEET_IMAGE, self.SCALE, 2.5)
+        pacman = Pacman(pacman_x * SCALE + (WIDTH - 32 * SCALE) / 2,
+                        pacman_y * SCALE + (HEIGHT - 32 * SCALE) / 2,
+                        WIDTH, HEIGHT, self.display.PACMAN_SHEET_IMAGE, SCALE, 2.5)
         self.pacmans.add(pacman)
         state.agentStates[0].set_game_object(pacman)
-        # create the bonus fruits
-        # TODO: implement bonus fruits
 
         # create the ghosts
         ghostStates = []
@@ -896,11 +884,11 @@ class Game:
         for ghostState in ghostStates:
             logic_pos = ghostState.configuration.getPosition()
             logic_pos = (logic_pos[0], state.layout.height - logic_pos[1] - 1)
-            spawn_point = utilities.get_position_in_window(logic_pos[0], logic_pos[1], self.SCALE, self.WIDTH, self.HEIGHT)
+            spawn_point = utilities.get_position_in_window(logic_pos[0], logic_pos[1], SCALE, WIDTH, HEIGHT)
             ghost = Ghost(spawn_point[0], spawn_point[1],
                           utilities.load_ghost_sheet(ghost_types[ghostState.type], 1, 4, 16, 16, self.display.EYES_SHEET_IMAGE),
                           utilities.load_sheet(self.display.FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), ghostState.type,
-                          self.WIDTH, self.HEIGHT, self.SCALE, self.FPS, 2.3, None, 0)
+                          WIDTH, HEIGHT, SCALE, FPS, 2.3, None, 0)
             self.ghosts.add(ghost)
             ghostState.set_game_object(ghost)
             i += 1
@@ -908,10 +896,10 @@ class Game:
     def run(self):
         """
         Main control loop for game play.
+        Lots of code merged between 1-player implementation and github repo code.
         """
         self.display.initialize(self.state.data)
-
-        # ==================== MY CODE ====================
+        utilities.current_score = [0]
 
         self.walls = pygame.sprite.Group()
         self.pellets = pygame.sprite.Group()
@@ -922,15 +910,14 @@ class Game:
         self.bonus_fruits = pygame.sprite.Group()
         self.score_popups = pygame.sprite.Group()
 
+        # sprites are visual elements in this implementation, rather than holding the game logic
         self.sprite_groups = [self.walls, self.pellets, self.power_pellets, self.ghost_houses, self.ghosts, self.pacmans, self.bonus_fruits,
                               self.score_popups]
         if not self.display.checkNullDisplay():
             self.create_my_objects(self.state.data)
 
             self.walls.update(utilities.bool_to_maze_data_inverted(self.state.data.layout.walls))
-        # ==================== END MY CODE =================
 
-        # self.display.initialize(self.state.makeObservation(1).data)
         # inform learning agents of the game start
         for i in range(len(self.agents)):
             agent = self.agents[i]
@@ -975,8 +962,8 @@ class Game:
         current_level = 0
         stop_time_clock = 0  # To keep track of the time when the time is stopped
         while not self.gameOver:
-            # ==================== MY CODE ====================
-            clock.tick(self.FPS) if not self.display.checkNullDisplay() else None  # limit the game to 60 FPS if display is active
+
+            clock.tick(FPS) if not self.display.checkNullDisplay() else None  # limit the game to 60 FPS if display is active
 
             if len(global_state_stop_time) > 0:
                 global_state_stop_time[0] = (global_state_stop_time[0][0] + 1, global_state_stop_time[0][1])
@@ -994,14 +981,11 @@ class Game:
             for agentIndex in range(numAgents):
                 if self.gameOver:
                     break
-                # ==================== END MY CODE =================
+
 
                 # Fetch the next agent
                 agent = self.agents[agentIndex]
-                move_time = 0
-                skip_action = False
                 if not utilities.get_stop_time() or self.display.checkNullDisplay():  # stop time for that nice effect
-                    # ==================== MY CODE ====================
                     # Move agent to the direction it is facing
                     # State observations and actions happen once the agent reaches the center of the tile
 
@@ -1034,10 +1018,6 @@ class Game:
                         # Allow for game specific conditions (winning, losing, etc.)
                         self.rules.process(self.state, self)
 
-                    # if game_over[0]:
-                    #     draw_ghosts[0] = False
-                    #     for bonus_fruit in bonus_fruits:
-                    #         bonus_fruit.despawn_fruit()
                 else:
                     stop_time_clock += 1
                     if stop_time_clock >= utilities.get_stop_time() * FPS:
@@ -1060,6 +1040,9 @@ class Game:
                     self._agentCrash(agentIndex)
                     self.unmute()
                     return
+
+        for sprite_group in self.sprite_groups:
+            sprite_group.empty()
         self.display.finish()
 
     def move_agent_forward(self, agentState, forceMovement=False):

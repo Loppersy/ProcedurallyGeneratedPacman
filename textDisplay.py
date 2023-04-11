@@ -1,3 +1,10 @@
+"""
+Loppersy: Code by UC Berkeley AI Materials.
+
+File used (unmodified) by Tycho van der Ouderaa. The original code remains unchanged.
+"""
+
+
 # textDisplay.py
 # --------------
 # Licensing Information:  You are free to use or extend these projects for

@@ -1,10 +1,17 @@
 import random
 
-import numpy as np
 import pygame
 
 import utilities
 from AStar import AStar, Node
+
+"""
+Loppersy: This class is used for visualizing the ghosts on the screen, rather than for the actual logic of the game.
+Ghosts are controlled by the GhostAgent class, which is a subclass of the Agent class in the game.py file.
+
+File taken from: https://github.com/Loppersy/ProcedurallyGeneratedPacman (where the class actually have
+game logic in it)
+"""
 
 
 class Ghost(pygame.sprite.Sprite):
@@ -153,257 +160,6 @@ class Ghost(pygame.sprite.Sprite):
     def get_pos(self):
         return self.position
 
-    # Update method. It handles the animation of the ghost, the movement of the ghost, the pathfinding and the hurtbox
-    # It also handles the different modes of the ghosts (chase, scatter, frightened, dead), that change depending on the
-    # game time.
-    def update(self, maze_data, pacmans, ghosts):
-        self.empty_maze_data = [[0] * len(maze_data[0]) for _ in range(len(maze_data))]
-        self.int_pos = utilities.get_position_in_maze_int(self.rect.x, self.rect.y, self.scale, self.window_width,
-                                                          self.window_height)
-        self.float_position = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale,
-                                                                   self.window_width,
-                                                                   self.window_height)
-        self.pivot = None
-
-        self.check_collision(pacmans)
-        self.update_overwritten_state()
-
-        if self.respawning and not self.force_goal:  # return to normal speed after respawning
-            self.apply_speed(self.state)
-            self.respawning = False
-
-        # change ghosts goal depending on the state
-        if self.state == "spawn":
-            self.current_speed = self.speed * 0.7
-            self.spawn_clock += 1
-            ghost_house_entrance = self.ghost_house.get_entrance()
-            if self.spawn_clock >= self.time_to_spawn * self.fps and self.exit_house is False:
-                self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 3))
-                self.spawn_clock = 0
-                self.exit_house = True
-            elif self.movement_inside_house == "up" and self.force_goal is None:
-                if self.ghost_number == 1:
-                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 2))
-                elif self.ghost_number == 2:
-                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 2))
-                elif self.ghost_number == 3:
-                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 2))
-
-                self.movement_inside_house = "down"
-            elif self.movement_inside_house == "down" and self.force_goal is None:
-                if self.ghost_number == 1:
-                    self.set_force_goal((ghost_house_entrance[0], ghost_house_entrance[1] + 4))
-                elif self.ghost_number == 2:
-                    self.set_force_goal((ghost_house_entrance[0] - 2, ghost_house_entrance[1] + 4))
-                elif self.ghost_number == 3:
-                    self.set_force_goal((ghost_house_entrance[0] + 2, ghost_house_entrance[1] + 4))
-                self.movement_inside_house = "up"
-            if utilities.is_centered(self.float_position, self.force_goal) and self.exit_house:
-                self.set_force_goal(ghost_house_entrance)
-                self.stay_in_house = False
-                self.current_speed = self.speed * 0.5
-
-            if self.stay_in_house is False and self.next_node == ghost_house_entrance:
-                self.exit_house = False
-                self.exited_house = True
-                self.overwrite_global_state(self.global_state, 0)
-        elif self.state == "scatter":
-
-            if self.type == "blinky":
-                self.goal = (31, 0)
-            elif self.type == "pinky":
-                self.goal = (0, 0)
-            elif self.type == "inky":
-                self.goal = (31, 31)
-            elif self.type == "clyde":
-                self.goal = (0, 31)
-            else:
-                print("Error: ghost type not found when trying to scatter: " + self.type)
-                self.goal = (0, 0)
-
-        elif self.state == "chase":
-            # self.current_path, self.goal = self.update_path_to_pacman(pacmans, maze_data)
-            self.closest_pacman = None
-            for pacman in pacmans:
-                if not self.closest_pacman or utilities.get_distance(self.rect.x, self.rect.y, pacman.rect.x,
-                                                                     pacman.rect.y) < utilities.get_distance(
-                    self.rect.x,
-                    self.rect.y,
-                    self.closest_pacman.rect.x,
-                    self.closest_pacman.rect.y):
-                    self.closest_pacman = pacman
-            if self.type == "blinky":  # get the closest pacman and set its position as the goal
-
-                if self.closest_pacman is not None:
-                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
-                                                                   self.closest_pacman.rect.y,
-                                                                   self.scale,
-                                                                   self.window_width, self.window_height)
-                else:
-                    self.goal = None
-
-            elif self.type == "pinky":  # get the closest pacman and set its position + 4 tiles in the direction it is
-                # moving as the goal
-
-                if self.closest_pacman is not None:
-                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
-                                                                   self.closest_pacman.rect.y,
-                                                                   self.scale,
-                                                                   self.window_width, self.window_height)
-                    if self.closest_pacman.direction == "up":
-                        self.goal = (self.goal[0], self.goal[1] - 4)
-                    elif self.closest_pacman.direction == "down":
-                        self.goal = (self.goal[0], self.goal[1] + 4)
-                    elif self.closest_pacman.direction == "left":
-                        self.goal = (self.goal[0] - 4, self.goal[1])
-                    elif self.closest_pacman.direction == "right":
-                        self.goal = (self.goal[0] + 4, self.goal[1])
-                else:
-                    self.goal = None
-
-            elif self.type == "inky":  # get the closest pacman and set its position
-
-                if self.closest_pacman is not None:
-                    self.pivot = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
-                                                                    self.closest_pacman.rect.y,
-                                                                    self.scale,
-                                                                    self.window_width, self.window_height)
-                    if self.closest_pacman.direction == "up":
-                        self.pivot = (self.pivot[0], self.pivot[1] - 2)
-                    elif self.closest_pacman.direction == "down":
-                        self.pivot = (self.pivot[0], self.pivot[1] + 2)
-                    elif self.closest_pacman.direction == "left":
-                        self.pivot = (self.pivot[0] - 2, self.pivot[1])
-                    elif self.closest_pacman.direction == "right":
-                        self.pivot = (self.pivot[0] + 2, self.pivot[1])
-
-                    # if no ghost to pivot is found, get a ghost's position from the same ghost house. If no ghost
-                    # house is found, use a random ghost instead
-                    if self.ghost_to_pivot is None:
-                        if self.ghost_house is not None:
-                            # Get the position of the ghost with number equal to this
-                            # ghost_number - 2. If it goes below 0, wrap around to the last ghost
-
-                            ghosts_in_ghost_house = self.ghost_house.get_ghosts()
-                            index = self.ghost_number
-                            for i in range(2):
-                                index -= 1
-                                if index < 0:
-                                    index = len(ghosts_in_ghost_house) - 1
-
-                            self.ghost_to_pivot = ghosts_in_ghost_house[index]
-                        else:
-                            self.ghost_to_pivot = random.choice(ghosts.sprites())
-
-                    # Set the goal by getting the vector from the pivot to the ghost and rotating it by 180 degrees
-                    ghost_to_pivot_position = utilities.get_position_in_maze_int(self.ghost_to_pivot.rect.x,
-                                                                                 self.ghost_to_pivot.rect.y,
-                                                                                 self.scale,
-                                                                                 self.window_width, self.window_height)
-                    vector = (ghost_to_pivot_position[0] - self.pivot[0], ghost_to_pivot_position[1] - self.pivot[1])
-                    vector = (vector[0] * -1, vector[1] * -1)
-                    self.goal = (self.pivot[0] + vector[0], self.pivot[1] + vector[1])
-                else:
-                    self.goal = None
-            elif self.type == "clyde":
-                if self.closest_pacman is not None and utilities.get_distance(self.rect.x, self.rect.y,
-                                                                              self.closest_pacman.rect.x,
-                                                                              self.closest_pacman.rect.y) > 8 * self.scale:
-                    self.goal = utilities.get_position_in_maze_int(self.closest_pacman.rect.x,
-                                                                   self.closest_pacman.rect.y,
-                                                                   self.scale,
-                                                                   self.window_width, self.window_height)
-                    self.clyde_fleeing = False
-                elif self.closest_pacman is not None:
-                    self.goal = (0, 31)
-                    self.clyde_fleeing = True
-                else:
-                    self.goal = None
-        elif self.state == "frightened":
-            self.goal = None
-        elif self.state == "dead":
-            if self.ghost_house is not None:
-                self.goal = self.ghost_house.get_entrance()
-                entrance_int_pos = self.goal
-            else:
-                self.goal = utilities.get_position_in_maze_int(self.starting_position[0],
-                                                               self.starting_position[1],
-                                                               self.scale,
-                                                               self.window_width, self.window_height)
-                entrance_int_pos = self.goal
-            float_position = utilities.get_position_in_maze_float(self.rect.x, self.rect.y, self.scale,
-                                                                  self.window_width,
-                                                                  self.window_height)
-
-            if self.force_goal is None \
-                    and self.int_pos[0] == entrance_int_pos[0] \
-                    and self.int_pos[1] == entrance_int_pos[1]:
-                if self.ghost_house is not None:
-                    self.set_force_goal((self.goal[0], self.goal[1] + 3))
-                else:
-                    self.set_force_goal((self.goal[0], self.goal[1]))
-
-            elif utilities.is_centered(float_position, self.force_goal):
-                self.is_permanent_overwrite = False
-                self.set_force_goal(entrance_int_pos)
-                self.switch_state(self.global_state)
-                self.respawning = True
-                self.current_speed = self.speed * 0.5
-
-        # self.change_direction(self.current_path)
-        # self.move()
-        if self.force_goal is not None:
-            self.move_ghost_classic(self.force_goal, self.empty_maze_data)
-            if utilities.is_centered(self.float_position, self.force_goal):
-                self.force_goal = None
-        else:
-            if utilities.AStarMode[0]:
-                use_wrap_around = not (self.state == "scatter" or (self.type == "clyde" and self.clyde_fleeing))
-                self.move_ghost_astar(self.goal, maze_data, use_wrap_around)
-            else:
-                self.move_ghost_classic(self.goal, maze_data)
-
-    def moveOG(self):
-
-        if self.direction == "up":
-            self.position = (self.position[0], self.position[1] - self.current_speed)
-        elif self.direction == "down":
-            self.position = (self.position[0], self.position[1] + self.current_speed)
-        elif self.direction == "left":
-            self.position = (self.position[0] - self.current_speed, self.position[1])
-        elif self.direction == "right":
-            self.position = (self.position[0] + self.current_speed, self.position[1])
-
-        # if the position is out of the maze, move it to the other side
-        if utilities.get_position_in_maze_float(self.position[0], self.position[1], self.scale, self.window_width,
-                                                self.window_height)[0] < 0:
-            self.position = (
-                utilities.get_position_in_window(31, self.position[1], self.scale, self.window_width,
-                                                 self.window_height)[
-                    0], self.position[1])
-        elif utilities.get_position_in_maze_float(self.position[0], self.position[1], self.scale, self.window_width,
-                                                  self.window_height)[0] > 31:
-            self.position = (
-                utilities.get_position_in_window(0, self.position[1], self.scale, self.window_width,
-                                                 self.window_height)[
-                    0], self.position[1])
-        elif utilities.get_position_in_maze_float(self.position[0], self.position[1], self.scale, self.window_width,
-                                                  self.window_height)[1] < 0:
-            self.position = (
-                self.position[0],
-                utilities.get_position_in_window(self.position[0], 31, self.scale, self.window_width,
-                                                 self.window_height)[
-                    1])
-        elif utilities.get_position_in_maze_float(self.position[0], self.position[1], self.scale, self.window_width,
-                                                  self.window_height)[1] > 31:
-            self.position = (
-                self.position[0],
-                utilities.get_position_in_window(self.position[0], 0, self.scale, self.window_width,
-                                                 self.window_height)[
-                    1])
-
-        self.rect.topleft = round(self.position[0]), round(self.position[1])
-
     # draw the path to the objective on the screen, taking into account the scale of the maze and the position of the
     # maze in the window. Drawn with a thin red line
     def draw_astar_path(self, screen, maze_data):
@@ -498,23 +254,6 @@ class Ghost(pygame.sprite.Sprite):
             color = (255, 128, 0)
         return color
 
-    # Check collision with pacman. If collision, that pacman dies
-    def check_collision(self, pacmans):
-        if (self.state == "chase" or self.state == "scatter") and not utilities.invisibility_debug[0]:
-            for pacman in pacmans:
-                if self.rect.colliderect(pacman.rect):
-                    pacman.die()
-        elif self.state == "frightened":
-            for pacman in pacmans:
-                if self.rect.colliderect(pacman.rect) and (pacman.direction != "dying" and pacman.direction != "dead"):
-                    self.overwrite_global_state("dead", -1)
-                    utilities.add_score(utilities.ghost_eaten_score[0])
-                    utilities.add_sfx_to_queue("ghost_eaten.wav")
-                    utilities.queued_popups.append(
-                        (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2,
-                         utilities.ghost_eaten_score[0],
-                         (65, 167, 200), 1, 11))
-                    utilities.ghost_eaten_score[0] *= 2
 
     def change_direction(self, path):
         # find in what direction is the next node in the path by comparing path[0] with path[1]

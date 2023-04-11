@@ -2,6 +2,14 @@ import pygame
 
 import utilities
 
+"""
+Loppersy: This class is used for visualizing the ghosts on the screen, rather than for the actual logic of the game.
+Ghosts are controlled by the GhostAgent class, which is a subclass of the Agent class in the game.py file.
+
+File taken from: https://github.com/Loppersy/ProcedurallyGeneratedPacman (where the class actually have
+game logic in it)
+"""
+
 
 class Wall(pygame.sprite.Sprite):
     def __init__(self, x, y, scale, window_width, window_height, wall_blue_images, wall_white_images):

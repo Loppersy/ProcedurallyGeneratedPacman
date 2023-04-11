@@ -1,6 +1,18 @@
 """
-NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all compared to the corresponding original Berkeley pacman file since the commit Tycho made was just pasting this code into the file.
+Loppersy: File taken from the UC Berkeley AI materials and used (unmodified) by Tycho van der Ouderaa.
+
+This file contains the code to generate layouts from files.
+The original implementation used text files, but this version uses
+an image scanner to generate layouts from images, because it is
+easier to create new layouts this way.
+
+layouts use the bottom left corner as the origin while images and the new display use the top left corner as the origin.
+
+the code for the image scanner is based on the code from:
+https://github.com/Loppersy/ProcedurallyGeneratedPacman
 """
+
+
 # layout.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
@@ -15,12 +27,11 @@ NEURO 240: Based on Git history, Tycho van der Ouderaa did not edit this at all 
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from util import manhattanDistance
-from game import Grid
 import os
-import random
-from functools import reduce
+
 from PIL import Image
+
+from game import Grid
 
 VISIBILITY_MATRIX_CACHE = {}
 
@@ -30,7 +41,7 @@ class Layout:
     A Layout manages the static information about the game board.
     """
 
-    def __init__(self, layoutText, maze_data=None):
+    def __init__(self, layoutText):
         self.width = len(layoutText[0])
         self.height = len(layoutText)
         self.walls = Grid(self.width, self.height, False)
@@ -41,7 +52,6 @@ class Layout:
         self.processLayoutText(layoutText)
         self.layoutText = layoutText
         self.totalFood = len(self.food.asList())
-        # self.initializeVisibilityMatrix()
 
     def getNumGhosts(self):
         return self.numGhosts
@@ -185,8 +195,6 @@ def tryToLoadImage(fullname):
                 characters[y].append('G')
             else:
                 characters[y].append(' ')
-            # elif maze_data[y][x] == 6:
-            #     layoutText[y].append('1')
 
 
 

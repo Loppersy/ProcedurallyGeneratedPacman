@@ -1,10 +1,14 @@
-import os
 
 import pygame
 
 import utilities
 
+"""
+Loppersy: This class is used for handling the UI in the game.
 
+File taken from: https://github.com/Loppersy/ProcedurallyGeneratedPacman and it is mostly the same as the original
+Many of the ui buttons are not used in the game, since their functionality is not implemented in this version.
+"""
 class UIHandler:
 
     def __init__(self, scale, window_width, window_height, fps, lives, high_score, sfx_handler, ui_images,
@@ -211,34 +215,34 @@ class UIHandler:
 
     def update(self, cursor_click_pos, cursor_hover_pos, lives, high_score, score, current_level):
         if cursor_click_pos is not None:
-            if self.regenerate_button_rect.collidepoint(cursor_click_pos):
-                utilities.set_regenerate_new_maze(True)
-                self.regenerate_button_image = self.regenerate_button_normal_image
-            if self.blinky_button_rect.collidepoint(cursor_click_pos):
-                utilities.update_blinky[0] = not utilities.update_blinky[0]
-            if self.pinky_button_rect.collidepoint(cursor_click_pos):
-                utilities.update_pinky[0] = not utilities.update_pinky[0]
-            if self.inky_button_rect.collidepoint(cursor_click_pos):
-                utilities.update_inky[0] = not utilities.update_inky[0]
-            if self.clyde_button_rect.collidepoint(cursor_click_pos):
-                utilities.update_clyde[0] = not utilities.update_clyde[0]
+            # if self.regenerate_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.set_regenerate_new_maze(True)
+            #     self.regenerate_button_image = self.regenerate_button_normal_image
+            # if self.blinky_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.update_blinky[0] = not utilities.update_blinky[0]
+            # if self.pinky_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.update_pinky[0] = not utilities.update_pinky[0]
+            # if self.inky_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.update_inky[0] = not utilities.update_inky[0]
+            # if self.clyde_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.update_clyde[0] = not utilities.update_clyde[0]
             if self.path_button_rect.collidepoint(cursor_click_pos):
                 utilities.draw_paths[0] = not utilities.draw_paths[0]
-            if self.pathfinder_button_rect.collidepoint(cursor_click_pos):
-                utilities.AStarMode[0] = not utilities.AStarMode[0]
-            if self.no_dmg_button_rect.collidepoint(cursor_click_pos):
-                utilities.invisibility_debug[0] = not utilities.invisibility_debug[0]
+            # if self.pathfinder_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.AStarMode[0] = not utilities.AStarMode[0]
+            # if self.no_dmg_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.invisibility_debug[0] = not utilities.invisibility_debug[0]
             if self.sound_button_rect.collidepoint(cursor_click_pos):
                 utilities.SFX_and_Music[0] = not utilities.SFX_and_Music[0]
-            if self.classic_button_rect.collidepoint(cursor_click_pos):
-                utilities.classic_mode[0] = not utilities.classic_mode[0]
-                utilities.set_regenerate_new_maze(True)
-                self.classic_button_image = self.classic_button_normal_image
+            # if self.classic_button_rect.collidepoint(cursor_click_pos):
+            #     utilities.classic_mode[0] = not utilities.classic_mode[0]
+            #     utilities.set_regenerate_new_maze(True)
+            #     self.classic_button_image = self.classic_button_normal_image
 
-        self.ghost_1_enabled = utilities.update_blinky[0]
-        self.ghost_2_enabled = utilities.update_pinky[0]
-        self.ghost_3_enabled = utilities.update_inky[0]
-        self.ghost_4_enabled = utilities.update_clyde[0]
+        # self.ghost_1_enabled = utilities.update_blinky[0]
+        # self.ghost_2_enabled = utilities.update_pinky[0]
+        # self.ghost_3_enabled = utilities.update_inky[0]
+        # self.ghost_4_enabled = utilities.update_clyde[0]
 
         if utilities.invisibility_debug[0]:
             self.no_dmg_state_image = self.no_dmg_state_on_image
@@ -250,15 +254,15 @@ class UIHandler:
         else:
             self.sound_state_image = self.sound_state_off_image
 
-        if utilities.AStarMode[0]:
-            self.pathfinder_state_image = self.pathfinder_state_a_star_image
-        else:
-            self.pathfinder_state_image = self.pathfinder_state_classic_image
-
-        if utilities.classic_mode[0]:
-            self.classic_button_state_image = self.classic_button_state_on_image
-        else:
-            self.classic_button_state_image = self.classic_button_state_off_image
+        # if utilities.AStarMode[0]:
+        #     self.pathfinder_state_image = self.pathfinder_state_a_star_image
+        # else:
+        #     self.pathfinder_state_image = self.pathfinder_state_classic_image
+        #
+        # if utilities.classic_mode[0]:
+        #     self.classic_button_state_image = self.classic_button_state_on_image
+        # else:
+        #     self.classic_button_state_image = self.classic_button_state_off_image
 
         if self.high_score != high_score:
             self.high_score_number = utilities.get_text_image(str(high_score), self.font_size, (255, 255, 255))
@@ -330,29 +334,29 @@ class UIHandler:
                 self.classic_button_image = self.classic_button_normal_image
 
     def draw(self, screen):
-        screen.blit(self.regenerate_button_image, self.regenerate_button_rect)
-        screen.blit(self.ghost_button_image_1, self.ghost_button_rect_1)
-        screen.blit(self.ghost_button_image_2, self.ghost_button_rect_2)
-        screen.blit(self.ghost_button_image_3, self.ghost_button_rect_3)
-        screen.blit(self.ghost_button_image_4, self.ghost_button_rect_4)
-        screen.blit(self.blinky_button_image, self.blinky_button_rect)
-        screen.blit(self.pinky_button_image, self.pinky_button_rect)
-        screen.blit(self.inky_button_image, self.inky_button_rect)
-        screen.blit(self.clyde_button_image, self.clyde_button_rect)
+        # screen.blit(self.regenerate_button_image, self.regenerate_button_rect)
+        # screen.blit(self.ghost_button_image_1, self.ghost_button_rect_1)
+        # screen.blit(self.ghost_button_image_2, self.ghost_button_rect_2)
+        # screen.blit(self.ghost_button_image_3, self.ghost_button_rect_3)
+        # screen.blit(self.ghost_button_image_4, self.ghost_button_rect_4)
+        # screen.blit(self.blinky_button_image, self.blinky_button_rect)
+        # screen.blit(self.pinky_button_image, self.pinky_button_rect)
+        # screen.blit(self.inky_button_image, self.inky_button_rect)
+        # screen.blit(self.clyde_button_image, self.clyde_button_rect)
         screen.blit(self.path_button_image, self.path_button_rect)
-        screen.blit(self.pathfinder_button_image, self.pathfinder_button_rect)
-        screen.blit(self.pathfinder_state_image, self.pathfinder_state_rect)
-        screen.blit(self.no_dmg_button_image, self.no_dmg_button_rect)
-        screen.blit(self.no_dmg_state_image, self.no_dmg_state_rect)
+        # screen.blit(self.pathfinder_button_image, self.pathfinder_button_rect)
+        # screen.blit(self.pathfinder_state_image, self.pathfinder_state_rect)
+        # screen.blit(self.no_dmg_button_image, self.no_dmg_button_rect)
+        # screen.blit(self.no_dmg_state_image, self.no_dmg_state_rect)
         screen.blit(self.sound_button_image, self.sound_button_rect)
         screen.blit(self.sound_state_image, self.sound_state_rect)
-        screen.blit(self.classic_button_image, self.classic_button_rect)
-        screen.blit(self.classic_button_state_image, self.classic_button_state_rect)
+        # screen.blit(self.classic_button_image, self.classic_button_rect)
+        # screen.blit(self.classic_button_state_image, self.classic_button_state_rect)
 
-        screen.blit(self.author_text, self.author_text_rect)
-        screen.blit(self.author_text_2, self.author_text_rect_2)
-        screen.blit(self.author_text_3, self.author_text_rect_3)
-        screen.blit(self.author_text_4, self.author_text_rect_4)
+        # screen.blit(self.author_text, self.author_text_rect)
+        # screen.blit(self.author_text_2, self.author_text_rect_2)
+        # screen.blit(self.author_text_3, self.author_text_rect_3)
+        # screen.blit(self.author_text_4, self.author_text_rect_4)
 
         if not self.ghost_1_enabled:
             screen.blit(self.ghost_button_disabled_image, self.blinky_button_rect)

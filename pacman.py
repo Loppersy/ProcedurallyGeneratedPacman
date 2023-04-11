@@ -1,9 +1,13 @@
 """
-NEURO 240: Based on Git history, Tycho van der Ouderaa edited this file only slightly compared to the corresponding original Berkeley pacman file since the primary/largest commit Tycho made was just pasting this code into the file.
+Loppersy: File taken from the UC Berkeley AI materials and used (unmodified) by Tycho van der Ouderaa.
+NEURO 240 modified it for a research paper/project that does Pacman DQN.
 
-Now, I'm not sure if Tycho used this GitHub the whole time - he might have made changes that weren't captured in commits to this GitHub, in which case I can't see them.
+Loppersy modified the file to account for the new states the ghosts have as well as the ability for pacman and the ghosts
+to teleport to the other side of the map when they reach the edge of the map.
 """
-import main
+
+
+import game
 import utilities
 
 # pacman.py
@@ -56,21 +60,11 @@ from game import Directions
 from game import Actions
 from util import nearestPoint
 from util import manhattanDistance
-import util
 import layout
 import sys
-import types
-import time
 import random
 import os
 
-import pacmanDQN_Agents
-import ghostAgents
-
-
-###################################################
-# YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
-###################################################
 
 
 class GameState:
@@ -130,6 +124,7 @@ class GameState:
         # Time passes
         if agentIndex == 0:
             state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
+            utilities.add_score(-TIME_PENALTY)
         else:
             pass
             # GhostRules.decrementTimer(state.data.agentStates[agentIndex])
@@ -326,6 +321,7 @@ class PacmanRules:
         # Eat food
         if state.data.food[x][y]:
             state.data.scoreChange += 10
+            utilities.add_score(10)
             utilities.add_sfx_to_queue("munch")
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
@@ -334,6 +330,7 @@ class PacmanRules:
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
                 state.data.scoreChange += 500
+                utilities.add_score(500)
                 state.data._win = True
         # Eat capsule
         if position in state.getCapsules():
@@ -342,7 +339,7 @@ class PacmanRules:
             utilities.add_sfx_to_queue("munch")
             # Reset all ghosts' scared timers
             for index in range(1, len(state.data.agentStates)):
-                state.data.agentStates[index].scaredTimer = SCARED_TIME * main.FPS
+                state.data.agentStates[index].scaredTimer = SCARED_TIME * game.FPS
                 state.data.agentStates[index].overwrite_global_state("frightened", SCARED_TIME)
                 # =================== MY CODE ===================
                 if state.data.agentStates[index].game_object is not None:
@@ -369,7 +366,6 @@ class GhostRules:
         Ghosts cannot stop, and cannot turn around unless they
         reach a dead end, but can turn 90 degrees at intersections.
         """
-        # =================== MY CODE ===================
         maze_data = utilities.layout_to_maze_data(state.data.layout)
         inverted_position = utilities.invert_coords([(int(state.getGhostState(ghostIndex).configuration.getPosition()[0]),
                                                       int(state.getGhostState(ghostIndex).configuration.getPosition()[1]))], state.data.layout.width,
@@ -377,16 +373,7 @@ class GhostRules:
         direction = state.getGhostState(ghostIndex).configuration.getDirection()
         my_actions = GhostRules.get_legal_actions(maze_data, inverted_position, direction)
 
-        # ================================================
-        # conf = state.getGhostState(ghostIndex).configuration
-        # possibleActions = Actions.getPossibleActions(
-        #     conf, state.data.layout.walls)
-        # reverse = Actions.reverseDirection(conf.direction)
-        # if Directions.STOP in possibleActions:
-        #     possibleActions.remove(Directions.STOP)
-        # if reverse in possibleActions and len(possibleActions) > 1:
-        #     possibleActions.remove(reverse)
-        # return possibleActions
+
         return my_actions
 
     getLegalActions = staticmethod(getLegalActions)
@@ -442,28 +429,14 @@ class GhostRules:
 
     def applyAction(state, action, ghostIndex):
 
-        legal = GhostRules.getLegalActions(state, ghostIndex)
-        # if action not in legal:
-        #     raise Exception("Illegal ghost action " + str(action))
-
         ghostState = state.data.agentStates[ghostIndex]
         speed = GhostRules.GHOST_SPEED
-
-        # if action == Directions.NORTH:
-        #     ghostState.next_node = (int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]) - 1)
-        # elif action == Directions.SOUTH:
-        #     ghostState.next_node = (int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]) + 1)
-        # elif action == Directions.EAST:
-        #     ghostState.next_node = (int(ghostState.configuration.pos[0]) + 1, int(ghostState.configuration.pos[1]))
-        # elif action == Directions.WEST:
-        #     ghostState.next_node = (int(ghostState.configuration.pos[0]) - 1, int(ghostState.configuration.pos[1]))
 
         my_action = action
 
         ghostState.previous_node = \
             utilities.invert_coords([(int(ghostState.configuration.pos[0]), int(ghostState.configuration.pos[1]))], state.data.layout.width,
                                     state.data.layout.height)[0]
-        # utilities.add_highlighted_tile(ghostState.previous_node, (255, 0, 0)) if utilities.invisibility_debug[0] else None
 
         vector = Actions.directionToVector(my_action, speed)
         ghostState.configuration, teleport = ghostState.configuration.generateSuccessor(vector)
@@ -505,6 +478,7 @@ class GhostRules:
     def collide(state, ghostState):
         if ghostState.current_state == "frightened":
             state.data.scoreChange += 200
+            utilities.add_score(200)
             # GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             ghostState.overwrite_global_state("dead", -1)
@@ -514,6 +488,7 @@ class GhostRules:
         elif ghostState.current_state == "chase" or ghostState.current_state == "scatter":
             if not state.data._win and not utilities.invisibility_debug[0]:
                 state.data.scoreChange -= 500
+                utilities.add_score(-500)
                 state.data._lose = True
 
     collide = staticmethod(collide)
@@ -661,7 +636,7 @@ def readCommand(argv):
     else:
         import graphicsDisplay
         args['display'] = graphicsDisplay.PacmanGraphics(
-            options.zoom, frameTime=options.frameTime)
+        )
     args['numGames'] = options.numGames
     args['record'] = options.record
     args['catchExceptions'] = options.catchExceptions
@@ -711,28 +686,6 @@ def loadAgent(pacman, nographics):
                 return getattr(module, pacman)
     raise Exception('The agent ' + pacman +
                     ' is not specified in any *Agents.py.')
-
-
-# TODO: remove replay functionality
-# def replayGame(layout, actions, display):
-#     import pacmanAgents
-#     import ghostAgents
-#     rules = ClassicGameRules()
-#     agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.RandomGhost(i + 1)
-#                                              for i in range(layout.getNumGhosts())]
-#     game = rules.newGame(layout, agents[0], agents[1:], display)
-#     state = game.state
-#     display.initialize(state.data)
-#
-#     for action in actions:
-#             # Execute the action
-#         state = state.generateSuccessor(*action)
-#         # Change the display
-#         display.update(state.data)
-#         # Allow for game specific conditions (winning, losing, etc.)
-#         rules.process(state, game)
-#
-#     display.finish()
 
 
 def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30):

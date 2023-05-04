@@ -48,7 +48,7 @@ however, if you want to spawn them yourself you will have to modify the `populat
 
 ## Credits
 - The original Pac-Man game.
-- https://pacman.holenet.info/
+- J. Pittman. "The Pacman Dossier" [Online]. https://pacman.holenet.info/
 
 ## License
 See the LICENSE file for details.

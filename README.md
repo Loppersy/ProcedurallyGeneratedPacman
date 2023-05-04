@@ -5,7 +5,7 @@ learn to play using deep Q-learning.
 
 (For the deep Q-learning implementation, see the [machine learning branch](https://github.com/Loppersy/ProcedurallyGeneratedPacman/tree/Machine_Learning_Implementation))
 
-![Screenshot Example](https://imgur.com/clmO7ob)
+![Screenshot Example](https://i.imgur.com/clmO7ob.jpeg)
 
 ## Features
 - Randomly generated mazes

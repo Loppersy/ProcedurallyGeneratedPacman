@@ -3,7 +3,9 @@ This project is a Python implementation of the classic arcade game Pacman, with 
 is randomly generated every time you play. You can either play as Pacman yourself, or watch an AI agent 
 learn to play using deep Q-learning.
 
-(For the deep Q-learning implementation, see the machine learning branch)
+(For the deep Q-learning implementation, see the [machine learning branch](https://github.com/Loppersy/ProcedurallyGeneratedPacman/tree/Machine_Learning_Implementation))
+
+![Screenshot Example](https://imgur.com/clmO7ob)
 
 ## Features
 - Randomly generated mazes
@@ -26,7 +28,9 @@ them for extra points. The game will save your high score in a file called “hi
 
 ## Maze Creation
 To create your own maze, just edit the `maze1.png` image with any image editor of your choice.
-It is a 32x32 pixel image where each pixel represents a tile in the maze. Here are the possible tiles with its RGB values.
+It is a 32x32 pixel image where each pixel represents a tile in the maze. 
+Once you are done editing, load the maze by cliking on the "Classic" button.
+Here are the possible tiles with its RGB values.
 
 - Empty Space: (0,0,0)
 - Pac-Man*: (0,0,255)
@@ -36,8 +40,9 @@ It is a 32x32 pixel image where each pixel represents a tile in the maze. Here a
 - Ghost House**: (255,0,0)
 - Wall: Any other color
 
-* This objects will be shifted to the right by half a tile when spawned, to aling with the original game.
-** Ghost houses ocupy 8x5 tiles with the red tile being its top left corner. When spawned, ghost houses will replace any tiles that would ocupy their space. 
+\* This objects will be shifted to the right by half a tile when spawned, to aling with the original game.
+
+\** Ghost houses ocupy 8x5 tiles with the red tile being its top left corner. When spawned, ghost houses will replace any tiles that would ocupy their space. 
 Ghost houses spawn all 4 classic ghosts like the original game, whom will return to the same ghost house when eaten. Code for "homeless" ghosts is written;
 however, if you want to spawn them yourself you will have to modify the `populate_maze` function in `main.py` and add its sprite to the respective sprite group.
 

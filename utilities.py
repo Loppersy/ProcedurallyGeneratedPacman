@@ -31,9 +31,9 @@ def add_sfx_to_queue(sfx):
         return
     if sfx == "munch":
         if munch[0]:
-            sfx = "munch_1.wav"
+            sfx = "munch_1"
         else:
-            sfx = "munch_2.wav"
+            sfx = "munch_2"
         munch[0] = not munch[0]
     sfx_queue.append(sfx)
 

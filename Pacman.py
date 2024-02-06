@@ -61,7 +61,7 @@ class Pacman(pygame.sprite.Sprite):
         now = pygame.time.get_ticks()
         if self.direction == "dying" and animated:
             if self.current_image == 13 and not self.dead_sounds_played:
-                utilities.add_sfx_to_queue("death_1.wav")
+                utilities.add_sfx_to_queue("death_1")
                 self.dead_sounds_played = True
             if not self.start_animation_completed:
                 self.current_image = 11
@@ -78,12 +78,12 @@ class Pacman(pygame.sprite.Sprite):
             if now - self.last_update > self.dying_animation_cooldown and self.start_animation_completed:
                 self.last_update = now
                 if self.current_image == 20:
-                    utilities.add_sfx_to_queue("death_2.wav")
+                    utilities.add_sfx_to_queue("death_2")
                 if self.current_image != 21:
                     self.current_image = (self.current_image + 1) % len(self.images)
                 else:
                     self.dead_animation_completed = True
-                    utilities.add_sfx_to_queue("death_2.wav")
+                    utilities.add_sfx_to_queue("death_2")
 
 
             self.my_image = pygame.transform.scale(self.images[self.current_image],
@@ -233,7 +233,7 @@ class Pacman(pygame.sprite.Sprite):
                 if consumable.type == "bonus_fruit" and consumable.rect.colliderect(self.rect):
                     if consumable.consume():
                         utilities.add_score(consumable.get_score())
-                        utilities.add_sfx_to_queue("eat_fruit.wav")
+                        utilities.add_sfx_to_queue("eat_fruit")
                         utilities.queued_popups.append(
                             (consumable.rect.x + consumable.rect.width/2, consumable.rect.y + consumable.rect.height/2, consumable.score,
                              (217, 104, 200), 2,11))

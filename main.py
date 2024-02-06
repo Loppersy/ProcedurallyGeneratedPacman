@@ -1,7 +1,7 @@
 import copy
 
 import pygame
-import os
+from pygame.sprite import Group
 
 import utilities
 from BonusFruit import BonusFruit
@@ -16,112 +16,23 @@ from ScorePopup import ScorePopup
 from UIHandler import UIHandler
 from Wall import Wall
 
-WIDTH, HEIGHT = 1080, 720
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+import ResourceManager
+import config
+
+pygame.init()
+screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
 pygame.display.set_caption("Procedurally Generated Pacman")
-BLACK = (0, 0, 0)
 
-SCALE = 22
-MAZE_SIZE = (32, 32)
-FPS = 60
-
-INKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "inky.png")).convert_alpha()
-PINKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pinky.png")).convert_alpha()
-BLINKY_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "blinky.png")).convert_alpha()
-CLYDE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "clyde.png")).convert_alpha()
-PACMAN_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pacman.png")).convert_alpha()
-EYES_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "eyes.png")).convert_alpha()
-PELLETS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "pallets.png")).convert_alpha()
-FRIGHTENED_GHOST_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "frightened_ghost.png")).convert_alpha()
-BONUS_FRUIT_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "bonus_fruit.png")).convert_alpha()
-WALLS_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls.png")).convert_alpha()
-WALLS_WHITE_SHEET_IMAGE = pygame.image.load(os.path.join("assets", "walls_white.png")).convert_alpha()
-
-REGENERATE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "regen_button.png")).convert_alpha()
-REGENERATE_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "regen_button_hover.png")).convert_alpha()
-GHOST_BUTTON = pygame.image.load(os.path.join("assets", "UI", "ghost_button.png")).convert_alpha()
-GHOST_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "ghost_button_hover.png")).convert_alpha()
-BLINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "blinky_button.png")).convert_alpha()
-PINKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pinky_button.png")).convert_alpha()
-INKY_BUTTON = pygame.image.load(os.path.join("assets", "UI", "inky_button.png")).convert_alpha()
-CLYDE_BUTTON = pygame.image.load(os.path.join("assets", "UI", "clyde_button.png")).convert_alpha()
-PATH_BUTTON = pygame.image.load(os.path.join("assets", "UI", "path_button.png")).convert_alpha()
-PATH_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "path_button_hover.png")).convert_alpha()
-PATHFINDER_BUTTON = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button.png")).convert_alpha()
-PATHFINDER_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "pathfinder_button_hover.png")).convert_alpha()
-A_STAR_TEXT = pygame.image.load(os.path.join("assets", "UI", "a_star.png")).convert_alpha()
-CLASSIC_TEXT = pygame.image.load(os.path.join("assets", "UI", "classic.png")).convert_alpha()
-NO_DMG_BUTTON = pygame.image.load(os.path.join("assets", "UI", "no_dmg.png")).convert_alpha()
-NO_DMG_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "no_dmg_hover.png")).convert_alpha()
-ON = pygame.image.load(os.path.join("assets", "UI", "on.png")).convert_alpha()
-OFF = pygame.image.load(os.path.join("assets", "UI", "off.png")).convert_alpha()
-DISABLED_BUTTON = pygame.image.load(os.path.join("assets", "UI", "disabled_button.png")).convert_alpha()
-SOUND_BUTTON = pygame.image.load(os.path.join("assets", "UI", "sound_button.png")).convert_alpha()
-SOUND_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "sound_button_hover.png")).convert_alpha()
-SOUND_ON = pygame.image.load(os.path.join("assets", "UI", "sound_on.png")).convert_alpha()
-SOUND_OFF = pygame.image.load(os.path.join("assets", "UI", "sound_off.png")).convert_alpha()
-CLASSIC_BUTTON = pygame.image.load(os.path.join("assets", "UI", "classic_button.png")).convert_alpha()
-CLASSIC_BUTTON_HOVER = pygame.image.load(os.path.join("assets", "UI", "classic_button_hover.png")).convert_alpha()
-
-UI_IMAGES = [REGENERATE_BUTTON, REGENERATE_BUTTON_HOVER,
-             GHOST_BUTTON, GHOST_BUTTON_HOVER, BLINKY_BUTTON, PINKY_BUTTON, INKY_BUTTON, CLYDE_BUTTON,
-             PATH_BUTTON, PATH_BUTTON_HOVER,
-             PATHFINDER_BUTTON, PATHFINDER_BUTTON_HOVER, A_STAR_TEXT, CLASSIC_TEXT,
-             NO_DMG_BUTTON, NO_DMG_BUTTON_HOVER, ON, OFF,
-             DISABLED_BUTTON,
-             SOUND_BUTTON, SOUND_BUTTON_HOVER, SOUND_ON, SOUND_OFF,
-             utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16),
-             utilities.load_sheet(PACMAN_SHEET_IMAGE, 1, 5, 16, 16)[4],
-             CLASSIC_BUTTON, CLASSIC_BUTTON_HOVER]
-
-MAZE1 = pygame.image.load(os.path.join("assets", "maze1.png")).convert_alpha()
-
-# times of the different modes for each level. In seconds
-LEVEL_STATE_TIMES = [
-    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 20),
-     ("scatter", 5), ("chase", -1)],  # level 1
-    # [("scatter", 10), ("chase", 7), ("scatter", 5), ("chase", 3), ("scatter", 5), ("chase", 5),
-    #  ("scatter", 5), ("chase", -1)],  # level 1
-    [("scatter", 7), ("chase", 20), ("scatter", 7), ("chase", 20), ("scatter", 5), ("chase", 1033),
-     ("scatter", 1), ("chase", -1)],  # level 2 - 4
-    [("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 20), ("scatter", 5), ("chase", 1037),
-     ("scatter", 1), ("chase", -1)]]  # level 5+
-
-# What bonus fruit will appear in each level (repeat last level's bonus fruit if there are more levels than bonus fruits)
-BONUS_FRUIT = [["cherry", "cherry"],  # level 1
-               ["strawberry", "strawberry"],  # level 2
-               ["peach", "peach"],  # level 3
-               ["peach", "peach"],  # level 4
-               ["apple", "apple"],  # level 5
-               ["apple", "apple"],  # level 6
-               ["melon", "melon"],  # level 7
-               ["melon", "melon"],  # level 8
-               ["galaxian", "galaxian"],  # level 9
-               ["galaxian", "galaxian"],  # level 10
-               ["bell", "bell"],  # level 11
-               ["bell", "bell"],  # level 12
-               ["key", "key"]]  # level 13
-# After how many dots the fruits will appear as percentage of the total dots
-FRUIT_SPAWN_TRIGGER = [0.3, 0.7]
-
-# For how long the fruit will remain on the screen (in seconds)
-FRUIT_DURATION = 10
+# Load all resources at the start
+resources = ResourceManager.initialize_resources()
 
 global_state_stop_time = []
 game_over = [False]
 draw_ghosts = [True]
 
-# Music and SFX
-SFX_NAMES = ["credit.wav", "death_1.wav", "death_2.wav", "eat_fruit.wav", "eat_ghost.wav", "extend.wav",
-             "game_start.wav",
-             "intermission.wav", "munch_1.wav", "munch_2.wav"]
-
-MUSIC_NAMES = ["power_pellet.wav", "retreating.wav", "siren_1.wav",
-               "siren_2.wav", "siren_3.wav", "siren_4.wav", "siren_5.wav"]
-
 
 def draw_window(sprite_list, maze_data, animated=True):
-    screen.fill(BLACK)
+    screen.fill(config.BLACK)
 
     for sprite in sprite_list:
         sprite.draw(screen)
@@ -148,11 +59,11 @@ def draw_window(sprite_list, maze_data, animated=True):
         size = 5
         last_color = None
         for int_pos in utilities.highlighted_tiles:
-            window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], SCALE, WIDTH, HEIGHT)
+            window_pos = utilities.get_position_in_window(int_pos[0][0], int_pos[0][1], config.config.SCALE, config.WIDTH, config.HEIGHT)
             pygame.draw.rect(screen, int_pos[1],
-                             (window_pos[0] + SCALE / 2 - size / 2, window_pos[1] + SCALE / 2 - size / 2, size, size),
+                             (window_pos[0] + config.SCALE / 2 - size / 2, window_pos[1] + config.SCALE / 2 - size / 2, size, size),
                              2)
-            if last_color is not None and last_color != int_pos[1] or size > SCALE:
+            if last_color is not None and last_color != int_pos[1] or size > config.SCALE:
                 size = 5
             last_color = int_pos[1]
             size += 1
@@ -334,7 +245,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
         old_pos = pacman.get_pos()  # in window coordinates
         # Move pacman in the direction he is facing by adding the speed to the x or y position.
         # If pacman is at the edge of the maze, move him to the other side taking into account the size of the maze
-        # and its offset (using SCALE and WIDTH and HEIGHT).
+        # and its offset (using config.SCALE and config.WIDTH and config.HEIGHT).
 
         # print(last_keys) print(old_pos, pacman.logic_pos) print(pacman.check_open_path(maze_data, "left"),
         # pacman.check_open_path(maze_data, "right"), pacman.check_open_path(maze_data, "up"),
@@ -346,7 +257,7 @@ def move_pacmans(last_keys, pacmans, maze_data):
         elif pacman.direction == "left" and pacman.check_open_path(maze_data, "left"):
             # position in window of next tile
             next_tile_pos = utilities.get_position_in_window(
-                pacman.int_pos[0], pacman.int_pos[1], SCALE, WIDTH, HEIGHT)
+                pacman.int_pos[0], pacman.int_pos[1], config.SCALE, config.WIDTH, config.HEIGHT)
             # if pacman where to overshoot the center of the tile, move him back to the center instead
             if old_pos[0] - pacman.current_speed < next_tile_pos[0] and old_pos[0] != next_tile_pos[0]:
                 pacman.move(next_tile_pos[0], old_pos[1])
@@ -356,15 +267,15 @@ def move_pacmans(last_keys, pacmans, maze_data):
             if pacman.get_pos()[0] < \
                     utilities.get_position_in_window(0, utilities.get_position_in_maze_int(pacman.get_pos()[0],
                                                                                            pacman.get_pos()[1],
-                                                                                           SCALE, WIDTH,
-                                                                                           HEIGHT)[1],
-                                                     SCALE, WIDTH, HEIGHT)[0]:
-                pacman.move(utilities.get_position_in_window(31, 0, SCALE, WIDTH, HEIGHT)[0],
+                                                                                           config.SCALE, config.WIDTH,
+                                                                                           config.HEIGHT)[1],
+                                                     config.SCALE, config.WIDTH, config.HEIGHT)[0]:
+                pacman.move(utilities.get_position_in_window(31, 0, config.SCALE, config.WIDTH, config.HEIGHT)[0],
                             pacman.get_pos()[1])  # Teleport to other side if needed
         elif pacman.direction == "right" and pacman.check_open_path(maze_data, "right"):
             # if pacman where to overshoot the center of the tile, move him back to the center instead
             next_tile_pos = utilities.get_position_in_window(
-                pacman.int_pos[0] + 1, pacman.int_pos[1], SCALE, WIDTH, HEIGHT)
+                pacman.int_pos[0] + 1, pacman.int_pos[1], config.SCALE, config.WIDTH, config.HEIGHT)
             if old_pos[0] + pacman.current_speed > next_tile_pos[0]:
                 pacman.move(next_tile_pos[0], old_pos[1])
             else:
@@ -372,15 +283,15 @@ def move_pacmans(last_keys, pacmans, maze_data):
             if pacman.get_pos()[0] > \
                     utilities.get_position_in_window(31, utilities.get_position_in_maze_int(pacman.get_pos()[0],
                                                                                             pacman.get_pos()[1],
-                                                                                            SCALE, WIDTH,
-                                                                                            HEIGHT)[1],
-                                                     SCALE, WIDTH, HEIGHT)[0]:
-                pacman.move(utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[0], pacman.get_pos()[1])
+                                                                                            config.SCALE, config.WIDTH,
+                                                                                            config.HEIGHT)[1],
+                                                     config.SCALE, config.WIDTH, config.HEIGHT)[0]:
+                pacman.move(utilities.get_position_in_window(0, 0, config.SCALE, config.WIDTH, config.HEIGHT)[0], pacman.get_pos()[1])
 
         elif pacman.direction == "up" and pacman.check_open_path(maze_data, "up"):
             # pacman.get_pos()[1] -= pacman.current_speed
             next_tile_pos = utilities.get_position_in_window(
-                pacman.int_pos[0], pacman.int_pos[1], SCALE, WIDTH, HEIGHT)
+                pacman.int_pos[0], pacman.int_pos[1], config.SCALE, config.WIDTH, config.HEIGHT)
             if old_pos[1] - pacman.current_speed < next_tile_pos[1] and old_pos[1] != next_tile_pos[1]:
                 pacman.move(old_pos[0], next_tile_pos[1])
             else:
@@ -388,15 +299,15 @@ def move_pacmans(last_keys, pacmans, maze_data):
             if pacman.get_pos()[1] < \
                     utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
                                                                                         pacman.get_pos()[1],
-                                                                                        SCALE, WIDTH,
-                                                                                        HEIGHT)[0], 0,
-                                                     SCALE, WIDTH, HEIGHT)[1]:
-                pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 31, SCALE, WIDTH, HEIGHT)[1])
+                                                                                        config.SCALE, config.WIDTH,
+                                                                                        config.HEIGHT)[0], 0,
+                                                     config.SCALE, config.WIDTH, config.HEIGHT)[1]:
+                pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 31, config.SCALE, config.WIDTH, config.HEIGHT)[1])
 
         elif pacman.direction == "down" and pacman.check_open_path(maze_data, "down"):
             # pacman.get_pos()[1] += pacman.current_speed
             next_tile_pos = utilities.get_position_in_window(
-                pacman.int_pos[0], pacman.int_pos[1] + 1, SCALE, WIDTH, HEIGHT)
+                pacman.int_pos[0], pacman.int_pos[1] + 1, config.SCALE, config.WIDTH, config.HEIGHT)
             if old_pos[1] + pacman.current_speed > next_tile_pos[1]:
                 pacman.move(old_pos[0], next_tile_pos[1])
             else:
@@ -404,10 +315,10 @@ def move_pacmans(last_keys, pacmans, maze_data):
             if pacman.get_pos()[1] > \
                     utilities.get_position_in_window(utilities.get_position_in_maze_int(pacman.get_pos()[0],
                                                                                         pacman.get_pos()[1],
-                                                                                        SCALE, WIDTH,
-                                                                                        HEIGHT)[0], 31,
-                                                     SCALE, WIDTH, HEIGHT)[1]:
-                pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 0, SCALE, WIDTH, HEIGHT)[1])
+                                                                                        config.SCALE, config.WIDTH,
+                                                                                        config.HEIGHT)[0], 31,
+                                                     config.SCALE, config.WIDTH, config.HEIGHT)[1]:
+                pacman.move(pacman.get_pos()[0], utilities.get_position_in_window(0, 0, config.SCALE, config.WIDTH, config.HEIGHT)[1])
 
         pacman.moving = not (old_pos[0] == pacman.get_pos()[0] and pacman.get_pos()[1] == old_pos[1])
     # print(last_keys)
@@ -473,7 +384,7 @@ def update_score_popups(score_popups):
     if len(utilities.queued_popups) > 0:
         popup_info = utilities.queued_popups.pop()
         score_popups.add(
-            ScorePopup(popup_info[0], popup_info[1], popup_info[5], WIDTH, HEIGHT, FPS, popup_info[2], popup_info[3],
+            ScorePopup(popup_info[0], popup_info[1], popup_info[5], config.WIDTH, config.HEIGHT, config.FPS, popup_info[2], popup_info[3],
                        popup_info[4]))
 
     for popup in score_popups:
@@ -481,67 +392,78 @@ def update_score_popups(score_popups):
 
 
 def spawn_pacmans(pacmans, maze_data):
+    pacman_image = resources["images"]["pacman_sheet_image"]
     for y in range(len(maze_data)):
         for x in range(len(maze_data[y])):
-            if maze_data[y][x] == 5:
+            if maze_data[y][x] == 5: # Assuming 5 indicates the starting position of a pacman
                 pacmans.add(
-                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2,
-                           y * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                           WIDTH, HEIGHT,
-                           PACMAN_SHEET_IMAGE,
-                           SCALE,
+                    Pacman(x * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2 + config.SCALE / 2,
+                           y * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2,
+                           config.WIDTH, config.HEIGHT,
+                           pacman_image,
+                           config.SCALE,
                            2.5))
 
 
 def main():
+
+
     clock = pygame.time.Clock()
     run = True
 
-    maze_data = []
-    maze_gen = MazeGenerator(32, 32)
+    maze_gen = MazeGenerator(config.MAZE_SIZE[0], config.MAZE_SIZE[1])
 
-    for y in range(32):
+    # Load the maze image from the resources
+    maze_image = resources["images"]["maze_image"]
+
+    # Generate the maze data based on the maze image
+    maze_data = []
+    for y in range(config.MAZE_SIZE[1]):  # Dynamically use the maze size from config
         maze_data.append([])
-        for x in range(32):
-            # If the pixel is black, add a 0 to the maze_data list (representing empty space)
-            if MAZE1.get_at((x, y)) == (0, 0, 0):
+        for x in range(config.MAZE_SIZE[0]):
+            color = maze_image.get_at((x, y))
+
+            # Color guide:
+            # (0, 0, 0, 255): Black - Empty space
+            # (255, 255, 0, 255): Yellow - Pellet
+            # (0, 255, 0, 255): Green - Power Pellet
+            # (255, 0, 0, 255): Red - Ghost House
+            # (0, 0, 255, 255): Blue - Player's starting position
+            # (255, 128, 0, 255): Orange - Bonus fruit spawning position
+            # Any other color: Wall
+
+            if color == (0, 0, 0, 255):  # Black - Empty space
                 maze_data[y].append(0)
-            # If the pixel is yellow, add a 2 to the maze_data list (representing a pellet)
-            elif MAZE1.get_at((x, y)) == (255, 255, 0):
+            elif color == (255, 255, 0, 255):  # Yellow - Pellet
                 maze_data[y].append(2)
-            # If the pixel is green, add a 3 to the maze_data list (representing a power pellet)
-            elif MAZE1.get_at((x, y)) == (0, 255, 0):
+            elif color == (0, 255, 0, 255):  # Green - Power Pellet
                 maze_data[y].append(3)
-            # If the pixel is red, add a 4 to the maze_data list (representing a ghost house)
-            elif MAZE1.get_at((x, y)) == (255, 0, 0):
+            elif color == (255, 0, 0, 255):  # Red - Ghost House
                 maze_data[y].append(4)
-            # If the pixel is blue, add a 5 to the maze_data list (representing the player's starting position)
-            elif MAZE1.get_at((x, y)) == (0, 0, 255):
+            elif color == (0, 0, 255, 255):  # Blue - Player's starting position
                 maze_data[y].append(5)
-            # If the pixel is orange, add a 6 to the maze_data list (representing a bonus fruit spawning position)
-            elif MAZE1.get_at((x, y)) == (255, 128, 0):
+            elif color == (255, 128, 0, 255):  # Orange - Bonus fruit spawning position
                 maze_data[y].append(6)
-            # If the pixel is any other color, add a 1 to the maze_data list (representing a wall)
-            else:
+            else:  # Any other color - Wall
                 maze_data[y].append(1)
 
     # Create a list for the sprites
-    walls = pygame.sprite.Group()
-    pellets = pygame.sprite.Group()
-    power_pellets = pygame.sprite.Group()
-    ghost_houses = pygame.sprite.Group()
-    ghosts = pygame.sprite.Group()
-    pacmans = pygame.sprite.Group()
-    bonus_fruits = pygame.sprite.Group()
-    score_popups = pygame.sprite.Group()
+    walls = Group()
+    pellets = Group()
+    power_pellets = Group()
+    ghost_houses = Group()
+    ghosts = Group()
+    pacmans = Group()
+    bonus_fruits = Group()
+    score_popups = Group()
 
     sprite_groups = [walls, pellets, power_pellets, ghost_houses, ghosts, pacmans, bonus_fruits, score_popups]
 
     # TEST: ghosts
-    # ghosts.add(Ghost(3 * SCALE + (WIDTH - 32 * SCALE) / 2, 2 * SCALE + (HEIGHT - 32 * SCALE) / 2,
+    # ghosts.add(Ghost(3 * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2, 2 * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2,
     #                  utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-    #                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
-    #                  HEIGHT, SCALE, FPS, 1.9, None, 0))
+    #                  utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", config.WIDTH,
+    #                  config.HEIGHT, config.SCALE, config.FPS, 1.9, None, 0))
 
     last_keys = ["none", "none", "none", "none"]
     current_tim = 0
@@ -565,12 +487,21 @@ def main():
     extra_life_given = False
 
     # Initialize sfx and music handlers
-    sfx_handler = SFXHandler(SFX_NAMES, MUSIC_NAMES, FPS)
+    sfx_handler = SFXHandler(resources, config.FPS)
     og_pellet_count = 0
 
     # UI handler
-    ui_handler = UIHandler(SCALE, WIDTH, HEIGHT, FPS, lives, 0, sfx_handler, UI_IMAGES, BONUS_FRUIT)
-
+    ui_handler = UIHandler(
+        config.SCALE,
+        config.WIDTH,
+        config.HEIGHT,
+        config.FPS,
+        lives,
+        0, # High score
+        sfx_handler,
+        resources,
+        config.BONUS_FRUIT
+    )
     # Get high score from file
     high_score_file = open("high_score.txt", "a+")
     high_score_file.seek(0)
@@ -581,7 +512,7 @@ def main():
     high_score_file.close()
 
     while run:
-        clock.tick(FPS)
+        clock.tick(config.FPS)
         cursor_click_pos = None
         cursor_hover_pos = None
         for event in pygame.event.get():
@@ -631,9 +562,9 @@ def main():
             sfx_handler.stop_music()
             utilities.sfx_queue.clear()
             win_animation_clock += 1
-            if win_animation_clock >= WIN_ANIMATION_STOP_TIME * FPS:
+            if win_animation_clock >= WIN_ANIMATION_STOP_TIME * config.FPS:
 
-                if win_animation_clock % 25 * FPS == 0:
+                if win_animation_clock % 25 * config.FPS == 0:
                     for wall in walls:
                         wall.switch_color()
 
@@ -645,7 +576,7 @@ def main():
                 ui_handler.draw(screen)
                 pygame.display.update()
 
-            if win_animation_clock >= WIN_ANIMATION_TIME * FPS:
+            if win_animation_clock >= WIN_ANIMATION_TIME * config.FPS:
                 win_animation = False
                 win_animation_clock = 0
                 current_level += 1
@@ -674,8 +605,8 @@ def main():
             walls.update(maze_data)
             new_maze_animation_clock = 0
             maze_animation_time = NEW_MAZE_ANIMATION_TIME
-            ready_text_pos = utilities.get_position_in_window(16, 18, SCALE, WIDTH, HEIGHT)
-            utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + SCALE / 2,
+            ready_text_pos = utilities.get_position_in_window(16, 18, config.SCALE, config.WIDTH, config.HEIGHT)
+            utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + config.SCALE / 2,
                                             "READY!", (255, 255, 0), NEW_MAZE_ANIMATION_TIME, 20))
 
             game_over[0] = False
@@ -683,7 +614,7 @@ def main():
             current_tim = 0
             stop_time_clock = 0
 
-            sfx_handler.play_sfx("game_start.wav")
+            sfx_handler.play_sfx("game_start")
             continue
 
         if generate_old_maze:
@@ -697,8 +628,8 @@ def main():
             spawn_pacmans(pacmans, maze_data)
             new_maze_animation_clock = 0
             maze_animation_time = OLD_MAZE_ANIMATION_TIME
-            ready_text_pos = utilities.get_position_in_window(16, 18, SCALE, WIDTH, HEIGHT)
-            utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + SCALE / 2,
+            ready_text_pos = utilities.get_position_in_window(16, 18, config.SCALE, config.WIDTH, config.HEIGHT)
+            utilities.queued_popups.append((ready_text_pos[0], ready_text_pos[1] + config.SCALE / 2,
                                             "READY!", (255, 255, 0), OLD_MAZE_ANIMATION_TIME, 20))
 
             generate_old_maze = False
@@ -708,7 +639,7 @@ def main():
             stop_time_clock = 0
             continue
 
-        if new_maze_animation_clock < maze_animation_time * FPS:
+        if new_maze_animation_clock < maze_animation_time * config.FPS:
             new_maze_animation_clock += 1
 
             draw_window([pacmans, ghosts, walls, pellets, power_pellets, ghost_houses, bonus_fruits], maze_data)
@@ -753,23 +684,23 @@ def main():
 
             if len(global_state_stop_time) > 0:
                 global_state_stop_time[0] = (global_state_stop_time[0][0] + 1, global_state_stop_time[0][1])
-                if global_state_stop_time[0][0] >= global_state_stop_time[0][1] * FPS:
+                if global_state_stop_time[0][0] >= global_state_stop_time[0][1] * config.FPS:
                     global_state_stop_time.pop(0)
             else:
                 current_tim += 1
             if current_level == 0:
-                update_states(LEVEL_STATE_TIMES[current_level], current_tim / FPS, ghosts)
+                update_states(config.LEVEL_STATE_TIMES[current_level], current_tim / config.FPS, ghosts)
             elif 0 < current_level < 4:
-                update_states(LEVEL_STATE_TIMES[1], current_tim / FPS, ghosts)
+                update_states(config.LEVEL_STATE_TIMES[1], current_tim / config.FPS, ghosts)
             else:
-                update_states(LEVEL_STATE_TIMES[2], current_tim / FPS, ghosts)
+                update_states(config.LEVEL_STATE_TIMES[2], current_tim / config.FPS, ghosts)
             if game_over[0]:
                 draw_ghosts[0] = False
                 for bonus_fruit in bonus_fruits:
                     bonus_fruit.despawn_fruit()
         else:
             stop_time_clock += 1
-            if stop_time_clock >= utilities.get_stop_time() * FPS:
+            if stop_time_clock >= utilities.get_stop_time() * config.FPS:
                 utilities.set_stop_time(0)
                 stop_time_clock = 0
 
@@ -779,7 +710,7 @@ def main():
         if utilities.current_score[0] >= extra_life and not extra_life_given:
             lives += 1
             extra_life_given = True
-            utilities.sfx_queue.append("extend.wav")
+            utilities.sfx_queue.append("extend")
 
         ui_handler.update(cursor_click_pos, cursor_hover_pos, lives, utilities.high_score[0],utilities.current_score[0], current_level)
         ui_handler.draw(screen)
@@ -809,44 +740,60 @@ def update_music(sfx_handler, maze_data, og_pellets_count, ghosts):
             current_state = "frightened"
 
     if current_state == "dead":
-        sfx_handler.play_music("retreating.wav")
+        sfx_handler.play_music("retreating")
         return
     elif current_state == "frightened":
-        sfx_handler.play_music("power_pellet.wav")
+        sfx_handler.play_music("power_pellet")
         return
 
     pellets_left = len(utilities.get_occurrences_in_maze(maze_data, 2))
     if pellets_left / og_pellets_count > 0.8:
-        sfx_handler.play_music("siren_1.wav")
+        sfx_handler.play_music("siren_1")
     elif pellets_left / og_pellets_count > 0.6:
-        sfx_handler.play_music("siren_2.wav")
+        sfx_handler.play_music("siren_2")
     elif pellets_left / og_pellets_count > 0.4:
-        sfx_handler.play_music("siren_3.wav")
+        sfx_handler.play_music("siren_3")
     elif pellets_left / og_pellets_count > 0.2:
-        sfx_handler.play_music("siren_4.wav")
+        sfx_handler.play_music("siren_4")
     else:
-        sfx_handler.play_music("siren_5.wav")
+        sfx_handler.play_music("siren_5")
 
 
 def spawn_ghosts(ghosts, ghost_houses):
+    blinky_sheet = utilities.load_ghost_sheet(resources["images"]["blinky_sheet_image"], 1, 4, 16, 16, resources["images"]["eyes_sheet_image"])
+    pinky_sheet = utilities.load_ghost_sheet(resources["images"]["pinky_sheet_image"], 1, 4, 16, 16, resources["images"]["eyes_sheet_image"])
+    inky_sheet = utilities.load_ghost_sheet(resources["images"]["inky_sheet_image"], 1, 4, 16, 16, resources["images"]["eyes_sheet_image"])
+    clyde_sheet = utilities.load_ghost_sheet(resources["images"]["clyde_sheet_image"], 1, 4, 16, 16, resources["images"]["eyes_sheet_image"])
+    frightened_ghost_sheet = utilities.load_sheet(resources["images"]["frightened_ghost_sheet_image"], 1, 4, 16, 16)
+
     for ghost_house in ghost_houses:
         ghost_house_entrance = ghost_house.get_entrance()
-        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                         utilities.load_ghost_sheet(BLINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "blinky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 0))
-        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                         utilities.load_ghost_sheet(PINKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "pinky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 1))
-        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                         utilities.load_ghost_sheet(INKY_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "inky", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 2))
-        ghosts.add(Ghost(ghost_house_entrance[0], ghost_house_entrance[1],
-                         utilities.load_ghost_sheet(CLYDE_SHEET_IMAGE, 1, 4, 16, 16, EYES_SHEET_IMAGE),
-                         utilities.load_sheet(FRIGHTENED_GHOST_SHEET_IMAGE, 1, 4, 16, 16), "clyde", WIDTH,
-                         HEIGHT, SCALE, FPS, 2.3, ghost_house, 3))
+        # Instantiate Ghost objects with pre-loaded sprite sheets
+        ghosts.add(Ghost(
+            ghost_house_entrance[0], ghost_house_entrance[1],
+            blinky_sheet,
+            frightened_ghost_sheet, "blinky", config.WIDTH,
+            config.HEIGHT, config.SCALE, config.FPS, 2.3, ghost_house, 0
+        ))
+
+        ghosts.add(Ghost(
+            ghost_house_entrance[0], ghost_house_entrance[1],
+            pinky_sheet,
+            frightened_ghost_sheet, "pinky", config.WIDTH,
+            config.HEIGHT, config.SCALE, config.FPS, 2.3, ghost_house, 1
+        ))
+        ghosts.add(Ghost(
+            ghost_house_entrance[0], ghost_house_entrance[1],
+            inky_sheet,
+            frightened_ghost_sheet, "inky", config.WIDTH,
+            config.HEIGHT, config.SCALE, config.FPS, 2.3, ghost_house, 2
+        ))
+        ghosts.add(Ghost(
+            ghost_house_entrance[0], ghost_house_entrance[1],
+            clyde_sheet,
+            frightened_ghost_sheet, "clyde", config.WIDTH,
+            config.HEIGHT, config.SCALE, config.FPS, 2.3, ghost_house, 3
+        ))
 
 
 def populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellets, power_pellets, walls, current_level):
@@ -855,8 +802,8 @@ def populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellet
     # ghost house is 8x5 tiles
     ghost_house_placements = []  # list of ghost house placements to stop generation of new ghost houses if they overlap
     ghost_house_dimensions = (8, 5)
-    for y in range(MAZE_SIZE[1]):
-        for x in range(MAZE_SIZE[0]):
+    for y in range(config.MAZE_SIZE[1]):
+        for x in range(config.MAZE_SIZE[0]):
             if maze_data[y][x] == 4:
                 print("Found ghost house at " + str(x) + ", " + str(y))
                 # check if ghost house overlaps with another ghost house
@@ -864,7 +811,7 @@ def populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellet
                     maze_data[y][x] = 0
 
                 # check if ghost house would generate out of bounds
-                if x + ghost_house_dimensions[0] > MAZE_SIZE[0] or y + ghost_house_dimensions[1] > MAZE_SIZE[1]:
+                if x + ghost_house_dimensions[0] > config.MAZE_SIZE[0] or y + ghost_house_dimensions[1] > config.MAZE_SIZE[1]:
                     print("Error trying to place ghost house at", x, y, ": Out of bounds")
                     maze_data[y][x] = 0
 
@@ -893,63 +840,69 @@ def populate_maze(bonus_fruits, ghost_houses, ghosts, maze_data, pacmans, pellet
                             maze_data[y + i][x + j] = 1
 
                 # create ghost house instance
-                pos_in_window = utilities.get_position_in_window(x, y, SCALE, WIDTH, HEIGHT)
+                pos_in_window = utilities.get_position_in_window(x, y, config.SCALE, config.WIDTH, config.HEIGHT)
 
-                ghost_house = GhostHouse(pos_in_window[0], pos_in_window[1], WIDTH,
-                                         HEIGHT, SCALE, FPS)
+                ghost_house = GhostHouse(pos_in_window[0], pos_in_window[1], config.WIDTH,
+                                         config.HEIGHT, config.SCALE, config.FPS)
                 ghost_houses.add(ghost_house)
                 ghost_house_entrance = utilities.get_position_in_window(ghost_house.get_entrance()[0],
-                                                                        ghost_house.get_entrance()[1], SCALE, WIDTH,
-                                                                        HEIGHT)
+                                                                        ghost_house.get_entrance()[1], config.SCALE, config.WIDTH,
+                                                                        config.HEIGHT)
                 # TODO: add the entrance to the ghost house
     # add ghosts to the ghost house
     spawn_ghosts(ghosts, ghost_houses)
-    # populate maze with sprites based on maze_data. Maze centered and scaled to fit screen (using SCALE)
-    for y in range(32):
-        for x in range(32):
+    # populate maze with sprites based on maze_data. Maze centered and config.scaled to fit screen (using config.SCALE)
+    for y in range(config.MAZE_SIZE[1]):
+        for x in range(config.MAZE_SIZE[0]):
             if maze_data[y][x] == 1:
                 walls.add(
-                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
-                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16),
-                         utilities.load_sheet(WALLS_WHITE_SHEET_IMAGE, 12, 4, 16, 16)))
+                    Wall(x * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2,
+                         y * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2,
+                         config.SCALE, config.WIDTH, config.HEIGHT,
+                         utilities.load_sheet(resources["images"]["walls_sheet_image"], 12, 4, 16, 16),
+                         utilities.load_sheet(resources["images"]["walls_white_sheet_image"], 12, 4, 16, 16)))
             elif maze_data[y][x] == 2:
                 pellets.add(
-                    Pellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, SCALE,
-                           PELLETS_SHEET_IMAGE))
+                    Pellet(x * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2,
+                           y * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2,
+                           config.SCALE, config.SCALE,
+                           resources["images"]["pellets_sheet_image"]))
             elif maze_data[y][x] == 3:
                 power_pellets.add(
-                    PowerPellet(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE,
-                                SCALE, PELLETS_SHEET_IMAGE))
+                    PowerPellet(x * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2,
+                                y * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2,
+                                config.SCALE, config.SCALE,
+                                resources["images"]["pellets_sheet_image"]))
             elif maze_data[y][x] == 4:
                 # if (somehow) there is a ghost house in the maze data still, replace it with a wall
                 maze_data[y][x] = 1
                 walls.add(
-                    Wall(x * SCALE + (WIDTH - 32 * SCALE) / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2, SCALE, WIDTH,
-                         HEIGHT, utilities.load_sheet(WALLS_SHEET_IMAGE, 12, 4, 16, 16),
-                         utilities.load_sheet(WALLS_WHITE_SHEET_IMAGE, 12, 4, 16, 16)))
+                    Wall(x * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2, y * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2, config.SCALE, config.WIDTH,
+                         config.HEIGHT, utilities.load_sheet(resources["images"]["walls_sheet_image"], 12, 4, 16, 16),
+                         utilities.load_sheet(resources["images"]["walls_white_sheet_image"], 12, 4, 16, 16)))
             elif maze_data[y][x] == 5:
-                # pacmans.add( Pacman(x * SCALE + (WIDTH - 31 * SCALE) / 2, y * SCALE + (HEIGHT - 32.4 * SCALE) / 2,
-                # SCALE, SCALE, 2))
+                # pacmans.add( Pacman(x * config.SCALE + (config.WIDTH - 31 * config.SCALE) / 2, y * config.SCALE + (config.HEIGHT - 32.4 * config.SCALE) / 2,
+                # config.SCALE, config.SCALE, 2))
                 pacmans.add(
-                    Pacman(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2,
-                           y * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                           WIDTH, HEIGHT,
-                           PACMAN_SHEET_IMAGE,
-                           SCALE,
+                    Pacman(x * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2 + config.SCALE / 2,
+                           y * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2,
+                           config.WIDTH, config.HEIGHT,
+                           resources["images"]["pacman_sheet_image"],
+                           config.SCALE,
                            2.5))
             elif maze_data[y][x] == 6:
-                if current_level < len(BONUS_FRUIT):
+                if current_level < len(config.BONUS_FRUIT):
                     level = current_level
                 else:
-                    level = len(BONUS_FRUIT) - 1
+                    level = len(config.BONUS_FRUIT) - 1
                 bonus_fruits.add(
-                    BonusFruit(x * SCALE + (WIDTH - 32 * SCALE) / 2 + SCALE / 2, y * SCALE + (HEIGHT - 32 * SCALE) / 2,
-                               SCALE, WIDTH, HEIGHT,
-                               utilities.load_sheet(BONUS_FRUIT_SHEET_IMAGE, 1, 9, 16, 16), FPS,
-                               BONUS_FRUIT[level], FRUIT_SPAWN_TRIGGER,
+                    BonusFruit(x * config.SCALE + (config.WIDTH - 32 * config.SCALE) / 2 + config.SCALE / 2, y * config.SCALE + (config.HEIGHT - 32 * config.SCALE) / 2,
+                               config.SCALE, config.WIDTH, config.HEIGHT,
+                               utilities.load_sheet(resources["images"]["bonus_fruit_sheet_image"], 1, 9, 16, 16), config.FPS,
+                               config.BONUS_FRUIT[level], config.FRUIT_SPAWN_TRIGGER,
                                len(utilities.get_occurrences_in_maze(maze_data,
                                                                      2) + utilities.get_occurrences_in_maze(
-                                   maze_data, 3)), FRUIT_DURATION))
+                                   maze_data, 3)), config.FRUIT_DURATION))
 
 
 def check_ghost_house_overlap(ghost_house_dimensions, ghost_house_placements, x, y):

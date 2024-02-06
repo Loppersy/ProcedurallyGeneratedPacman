@@ -488,7 +488,7 @@ class Ghost(pygame.sprite.Sprite):
                 if self.rect.colliderect(pacman.rect) and (pacman.direction != "dying" and pacman.direction != "dead"):
                     self.overwrite_global_state("dead", -1)
                     utilities.add_score(utilities.ghost_eaten_score[0])
-                    utilities.add_sfx_to_queue("ghost_eaten.wav")
+                    utilities.add_sfx_to_queue("ghost_eaten")
                     utilities.queued_popups.append(
                         (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2,
                          utilities.ghost_eaten_score[0],
@@ -991,7 +991,7 @@ class Ghost(pygame.sprite.Sprite):
             self.current_image = 3
             self.my_image = pygame.transform.scale(self.images[self.current_image],
                                                    (self.scale * self.image_scale, self.scale * self.image_scale))
-            utilities.add_sfx_to_queue("eat_ghost.wav")
+            utilities.add_sfx_to_queue("eat_ghost")
         elif state == "frightened":
             # reverse ghosts current direction
             self.turn_around()
